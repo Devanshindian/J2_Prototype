@@ -4358,7 +4358,20 @@ class J2Run:
         self.changes.append(self.change)
         self._save_change()
 
+    def _change_totals(self, c):
+        """One change's record for report.json: what it changed and what it cost (messages, calls, credits)."""
+        if c.get("phase") != "closed":
+            self._recalc_spent()
+            c.update(messages=len(self.chat) - c["chat0"], calls=self.calls - c["calls0"], credits=self.spent - c["spent0"])
+        name = lambda r: (c["nodes"].get(r) or {}).get("name", r)
+        return {"id": c["id"], "request": c["request"], "phase": c["phase"], "closed": c.get("closed"),
+                "messages": c.get("messages", 0), "calls": c.get("calls", 0), "credits": c.get("credits", 0),
+                "documents_changed": [name(r) for r in c["documents_changed"]],
+                "affected": [a["name"] for a in c.get("affected") or []], "post_fixes": list(c.get("post_fixes") or [])}
+
     def _change_phase(self, phase):
+        if phase == "closed":                        # the totals are fixed when the change closes
+            self._change_totals(self.change)
         self.change["phase"] = phase
         if self.change["history"][-1] != phase:
             self.change["history"].append(phase)
@@ -6402,6 +6415,8 @@ class J2Run:
             for k in ("relay", "change"):          # the relay's own revision / build work for a change
                 if w.get(k):
                     wf[k] = w[k]
+            if self.change and self.change.get("phase") == "build" and wf["fixes"]:
+                self.change["post_fixes"].append(wf["id"])  # an Audit fix after the change's build: on record
             wf["revises"] = rv if wf["section"] != wf["id"] else None
             if self.real_summary:       # J2_REALIZATION: the plan's stage (a fix keeps the stage of what it revises)
                 st = {x["name"]: x.get("stage") for x in self.real_summary.get("proposal_brief") or []}.get(wf["name"])
@@ -8647,7 +8662,8 @@ class J2Run:
             review = {"verdict": f"Reviewer call failed: {type(e).__name__}: {str(e)[:200]}"}
         metrics["ai_calls"] = self.calls
         self.report = {"metrics": metrics, "review": review, "events": self.events,
-                       "made": time.strftime("%Y-%m-%d %H:%M:%S")}
+                       "made": time.strftime("%Y-%m-%d %H:%M:%S"),
+                       **({"changes": [self._change_totals(c) for c in self.changes]} if self.changes else {})}
         self.save("report.json", self.report)
         with open(os.path.join(self.dir, "report.md"), "w", encoding="utf-8") as f:
             f.write(self._report_md())

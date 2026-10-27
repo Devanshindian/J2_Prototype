@@ -329,4 +329,34 @@ ok(run.change["documents_changed"] == [] and any("No planning document changed" 
    "no document changed: the relay says so")
 ok(run.outcome.startswith("Done") and not posts(run, "affected"), "and the build goes on as today")
 
+# ---- Task 9: per-change records, the Requester finishing, and no names in the relay
+run = done_run(plan=three_docs, script={"Design": "change-here", "Build item 3": "affected"})
+change(run, "Make the look dark and minimal")
+rep = json.load(open(os.path.join(run.dir, "report.json"), encoding="utf-8"))
+ch = rep.get("changes") or [{}]
+ok(len(ch) == 1 and ch[0].get("id") == "C-1" and ch[0].get("documents_changed") == ["Design"] and ch[0].get("affected") == ["Build item 3"],
+   "report.json lists the change, the document it changed and the section it affected")
+ok(ch[0]["messages"] > 0 and ch[0]["calls"] > 0 and ch[0]["credits"] > 0 and isinstance(ch[0]["post_fixes"], list),
+   "with its messages, calls, credits and post-build fixes")
+saved = json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))
+ok(saved[0]["phase"] == "closed" and saved[0]["closed"] and saved[0]["messages"] == ch[0]["messages"],
+   "change.json holds the same totals once closed")
+
+run = done_run(plan=three_docs, script={"Design": "change-here"})
+run.budget = run.spent
+llm.ask = spy
+F.say(run, "Make the look dark and minimal")
+ok(run.paused and run.paused["kind"] == "relay_budget", "out of budget mid-relay: the run asks")
+F.say(run, "Finish as it is")
+F.finish(run)
+llm.ask = real_ask
+ok(run.change["closed"] == "finished by the Requester" and run.change["phase"] == "closed"
+   and not [w for w in run._all_wfs() if w.get("relay")], "the Requester finishes: the change closes, nothing is revised")
+
+src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "j2_relay.py"), encoding="utf-8").read()
+stage_ids = [x["id"] for x in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "agents", "j2",
+                                                    "stages.json"), encoding="utf-8"))["stages"]]
+ok(stage_ids and not [x for x in stage_ids if f'"{x}"' in src or f"'{x}'" in src],
+   "j2_relay.py names no stage: everything comes from the run")
+
 print(f"relay_test: {passed} checks passed")
