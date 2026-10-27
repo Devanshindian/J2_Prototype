@@ -6518,6 +6518,8 @@ class J2Run:
     def _turn_coordination(self, h):
         if h.get("kind") == "dispute":
             return self._turn_dispute("coordination", h)
+        if self.change and self.change.get("phase") == "relay" and not self._relay_building():
+            return self._handoff("relay", kind="relay")     # the relay's revisions are built (other work may be held)
         self.step = 6
         todo = [w for w in self.workflows if w["status"] in ("registered", "held")]
         if not todo:

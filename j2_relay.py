@@ -44,13 +44,24 @@ def latest(workflows, root):
     return family[-1] if family else None
 
 
+# A planning document is a workflow whose outputs are all files other than the site file (as j2.is_artifact). A site
+# section names the site file or its own section selectors ("#race-panel") as outputs.
+FILE_PATH = re.compile(r"(?!/)(?!.*\.\.)[\w./-]+\.\w+")
+SITE_FILES = ("index.html", "site/index.html")
+
+
+def is_planning(w, site_file=None):
+    outs = [str(o).strip() for o in (w or {}).get("outputs") or []]
+    site = set(SITE_FILES) | ({site_file.lower()} if site_file else set())
+    return bool(outs) and all(FILE_PATH.fullmatch(o) and o.lower() not in site for o in outs)
+
+
 def _is_site(w, site_file):
-    return site_file in (w.get("outputs") or [])
+    return not is_planning(w, site_file)
 
 
 def _is_planning(w, site_file):
-    outs = w.get("outputs") or []
-    return bool(outs) and not _is_site(w, site_file)
+    return is_planning(w, site_file)
 
 
 def _roots_in_order(workflows, keep):
@@ -287,7 +298,7 @@ def carry_checks(verification, diff, old_text):
 def change_problems(proposal, change, planning_names, site_file="index.html"):
     """Why a proposed site workflow breaks the relay's result, or []. change carries phase, changed_names (ids and
     names of the planning documents the change revised) and affected_refs (ids and names of the affected sections)."""
-    if site_file not in (proposal.get("outputs") or []):
+    if is_planning(proposal, site_file):
         return []
     if change.get("phase") in ("charter", "relay"):
         return ["the relay has not finished: no build work until every planning document has answered"]

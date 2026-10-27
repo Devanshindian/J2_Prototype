@@ -426,4 +426,25 @@ dpath = os.path.join(run.dir, j2.artifact_path(wf_named(run, "Design")))
 ok(c2[-1].get("kept") and open(dpath, encoding="utf-8").read() == open(c2[-1]["kept"], encoding="utf-8").read()
    and len(posts(run, "ruling")) == 1, "I4: the ruling restores the version C-2's last revision replaced")
 
+# Real run 1 (j2-20261027-190023): a stale HELD workflow kept Coordination from handing back to the relay
+run = done_run(plan=three_docs, script={"Design": "change-here"})
+run.workflows.append({**json.loads(json.dumps(wf_named(run, "Build item 3"))), "id": "W-99", "name": "Stale held",
+                      "status": "held", "dependencies": ["A rejected workflow"], "charged": False, "cost": 5})
+change(run, "Make the look dark and minimal")
+ok(posts(run, "agreement") and "build" in run.change["history"],
+   "a workflow left on HOLD from the first build doesn't stop the relay: after the revision it goes on to agreement")
+
+# Real run 1: site workflows may name section selectors as outputs ("#race-panel"), not the site file
+SEL = BASE_WFS + [W(19, "two-player-race", ["#race-panel", "#race-script"], ["design-guide", "build-final-wiring"])]
+ok([n["root"] for n in relay.planning_nodes(SEL, "index.html")] == ["W-1", "W-2", "W-3", "W-4"],
+   "a section with selector outputs is not a planning document")
+ok("W-19" in relay.build_candidates(SEL, ["W-2"], "index.html") and "W-19" in relay.direct_readers(SEL, "W-2"),
+   "it is a site section: asked whether it is affected, and a reader of the design guide")
+ok(any("relay has not finished" in x for x in relay.change_problems({"outputs": ["#race-panel"], "dependencies": ["design-guide"]},
+                                                                  {**CH, "phase": "relay"}, PLAN_NAMES)),
+   "and it is build work: refused before the relay has finished")
+ok(relay.is_planning({"outputs": ["notes/plan.md"]}) and not relay.is_planning({"outputs": ["index.html"]})
+   and not relay.is_planning({"outputs": ["#x", "plan.md"]}) and not relay.is_planning({"outputs": []}),
+   "a planning document is a workflow whose outputs are all files other than the site file")
+
 print(f"relay_test: {passed} checks passed")
