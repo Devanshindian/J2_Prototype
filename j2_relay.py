@@ -279,3 +279,27 @@ def carry_checks(verification, diff, old_text):
     out += [{"text": f"The document still has the heading {h}.", "type": "heading-present", "target": h, "expect": True}
             for h in headings_of(old_text)]
     return out
+
+
+# ---- the validator while a change is open (spec section 5): only site work is held to it
+def change_problems(proposal, change, planning_names, site_file="index.html"):
+    """Why a proposed site workflow breaks the relay's result, or []. change carries phase, changed_names (ids and
+    names of the planning documents the change revised) and affected_refs (ids and names of the affected sections)."""
+    if site_file not in (proposal.get("outputs") or []):
+        return []
+    if change.get("phase") in ("charter", "relay"):
+        return ["the relay has not finished: no build work until every planning document has answered"]
+    changed = {str(x) for x in change.get("changed_names") or []}
+    affected = [str(x) for x in change.get("affected_refs") or []]
+    rv = proposal.get("revises")
+    if rv:
+        if changed and not proposal.get("fixes") and str(rv) not in affected:
+            return [f"it revises {rv}, a section the relay has not marked affected (affected: {', '.join(affected) or 'none'})"]
+        return []
+    deps = {str(d) for d in proposal.get("dependencies") or []}
+    if not deps & {str(x) for x in planning_names}:
+        return ["it is a new section that names no planning document in its dependencies: list every planning "
+                "workflow whose file it reads"]
+    if changed and not deps & changed:
+        return ["it is a new section that no revised planning document calls for"]
+    return []

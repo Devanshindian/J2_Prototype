@@ -150,6 +150,7 @@ def done_run(on=True, script=None, plan=None):
                                                          "revise": lambda rnd: json.dumps(plan(goal))}
     try:
         run = j2.J2Run()
+        run.budget = 400                 # room for a change; the budget tests set budget = spent themselves
         run.relay_script = dict(script or {})
         F.say(run, F.BREW_LAB)
         F.finish(run)
@@ -285,5 +286,47 @@ change(run, "Make the look dark and minimal")
 revs = [w for w in run._all_wfs() if w.get("relay") == run.change["id"]]
 ok(revs and revs[0]["status"] == "done" and run.budget > run.spent - 1 and "build" in run.change["history"],
    "out of budget mid-relay: the run asks, gets credits, and the relay resumes where it stopped")
+
+# ---- Task 8: only affected sections are revised; the validator holds the line
+CH = {"phase": "build", "changed_names": ["design-guide", "W-2"], "affected_refs": ["W-17", "W-14", "build-two-player-race"]}
+PLAN_NAMES = {"product-spec", "design-guide", "copy-deck", "architecture", "W-1", "W-2", "W-3", "W-4"}
+site = lambda **kw: {"outputs": ["index.html"], **kw}
+ok(relay.change_problems(site(revises="W-17"), CH, PLAN_NAMES) == [], "revising an affected section is fine")
+ok(any("not marked affected" in x for x in relay.change_problems(site(revises="W-9"), CH, PLAN_NAMES)),
+   "revising a section the relay did not mark affected is refused")
+ok(relay.change_problems(site(revises="W-9", fixes=["F-3"]), CH, PLAN_NAMES) == [], "a fix for an Audit finding is exempt")
+ok(any("names no planning document" in x for x in relay.change_problems(site(dependencies=["build-final-wiring"]), CH, PLAN_NAMES)),
+   "a new section must name the planning documents it reads")
+ok(any("no revised planning document" in x for x in relay.change_problems(site(dependencies=["copy-deck"]), CH, PLAN_NAMES)),
+   "a new section must follow from a revised document")
+ok(relay.change_problems(site(dependencies=["design-guide", "build-final-wiring"]), CH, PLAN_NAMES) == [],
+   "a new section that reads the revised document is fine")
+ok(any("relay has not finished" in x for x in relay.change_problems(site(revises="W-17"), {**CH, "phase": "relay"}, PLAN_NAMES)),
+   "no build work before the relay has finished")
+ok(relay.change_problems({"outputs": ["design.md"], "revises": "W-2"}, {**CH, "phase": "relay"}, PLAN_NAMES) == [],
+   "planning work is not build work")
+nochange = {**CH, "changed_names": [], "affected_refs": []}
+ok(relay.change_problems(site(revises="W-9"), nochange, PLAN_NAMES) == [] and
+   any("names no planning document" in x for x in relay.change_problems(site(dependencies=[]), nochange, PLAN_NAMES)),
+   "no document changed: any section may be revised, but a new one still names its documents")
+
+run = done_run(plan=three_docs, script={"Design": "change-here", "Build item 3": "affected"})
+change(run, "Make the look dark and minimal")
+b3 = wf_named(run, "Build item 3")
+aff = posts(run, "affected")
+ok({m["reader"] for m in aff} == {"Build item 3"}, "only sections not asked during agreement are asked whether they are affected")
+ok([a["name"] for a in run.change["affected"]] == ["Build item 3"], "change.json lists the affected sections")
+task = next((p for p in prompts if "CHANGE C-1: REVISE EXACTLY THESE SECTIONS" in p), "")
+ok(b3["id"] in task.split("CHANGE C-1: REVISE EXACTLY THESE SECTIONS")[1][:300]
+   and wf_named(run, "Build item 2")["id"] + " " not in task.split("CHANGE C-1: REVISE EXACTLY THESE SECTIONS")[1][:300],
+   "Adaptation's task names exactly the affected section")
+ok(any(w.get("revises") == b3["id"] and w["status"] == "done" for w in run._all_wfs()), "the affected section is revised")
+ok(run.outcome.startswith("Done") and run.change["phase"] == "closed", "the run ends Done and the change is closed")
+
+run = done_run(plan=three_docs, script={})
+change(run, "Make the look dark and minimal")
+ok(run.change["documents_changed"] == [] and any("No planning document changed" in m["text"] for m in posts(run, "done")),
+   "no document changed: the relay says so")
+ok(run.outcome.startswith("Done") and not posts(run, "affected"), "and the build goes on as today")
 
 print(f"relay_test: {passed} checks passed")

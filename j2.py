@@ -3352,6 +3352,9 @@ class J2Run:
                     resume = {"to": self.turn, "handoff": self.handoff} if self.turn else None
                     self._handoff("identity", kind="question", frm=r["from"], question=r.get("text") or "", resume=resume)
         self.turn, self.done = None, True
+        if self.change and self.change["phase"] != "closed" and not self.paused:
+            self.change["closed"] = self.outcome or "the run stopped"
+            self._change_phase("closed")
         if not self.paused:
             self.step = 8
         if self.doc and self.sites and not self.paused:
@@ -4429,11 +4432,83 @@ class J2Run:
             if self._relay_building():
                 return self._handoff("coordination", kind="schedule")
             c["wave_i"] += 1
-        self._change_phase("build")
         changed = [c["nodes"][r]["name"] for r in c["documents_changed"]]
         self.post("system", f"Change {c['id']}: the relay is done. " + (f"Documents changed: {', '.join(changed)}."
                   if changed else "No planning document changed."), relay="done", change=c["id"])
-        return self._handoff("adaptation", **c["start"])
+        self._relay_affected()
+        self._change_phase("build")
+        start = dict(c["start"])
+        if c["documents_changed"]:
+            start["why"] = (start.get("why") or "") + " " + self._relay_brief()
+        return self._handoff("adaptation", **start)
+
+    def _relay_affected(self):
+        """Every built section whose dependencies reach a revised document, and wasn't asked during agreement, says
+        whether it is affected. Fills change["affected"], ["affected_refs"] and ["changed_names"]."""
+        c, wfs = self.change, self._all_wfs()
+        pre = c.setdefault("affected_pre", {})
+        cands = j2_relay.build_candidates(wfs, c["documents_changed"], "index.html")
+        rname = lambda i: next(w for w in wfs if w["id"] == j2_relay._root_id(wfs, i))["name"]
+        changed_files = ", ".join(artifact_path(j2_relay.latest(wfs, r)) for r in c["documents_changed"])
+        for rid in cands:
+            if rid in pre:
+                continue
+            name = rname(rid)
+
+            def mock(name=name):
+                hit = self.relay_script.get(name) == "affected"
+                return json.dumps({"affected": hit, "what": "mock: follow the revised documents" if hit else ""})
+            task = (f"CHANGE {c['id']}: the Requester asked: {c['request']}\nTHESE PLANNING DOCUMENTS WERE REVISED FOR "
+                    f"IT: {changed_files}. Your section of the site depends on them, directly or through other sections. "
+                    "Does your section have to change? Say what, or that it is not affected."
+                    + self._artifact_context(next(w for w in wfs if w["id"] == rid)))
+            a = None
+            for _ in range(2):
+                a = j2_relay.parse_affected(self.call(rid, '{"affected": bool, "what": str}', task, mock, json_reply=False))
+                if a:
+                    break
+            a = a or {"affected": True, "what": "no readable answer: check it"}
+            pre[rid] = a
+            self.post(rid, f"@Adaptation {'Affected: ' + a['what'] if a['affected'] else 'Not affected.'}",
+                      relay="affected", change=c["id"], reader=name, affected=a["affected"])
+        c["affected"] = [{"id": i, "name": rname(i), "what": pre[i]["what"]} for i in cands if pre.get(i, {}).get("affected")]
+        c["affected_refs"] = sorted({x for a in c["affected"] for x in (a["id"], a["name"], j2_relay._root_id(wfs, a["id"]))})
+        c["changed_names"] = sorted({x for r in c["documents_changed"] for w in wfs if j2_relay._root_id(wfs, w["id"]) == r
+                                     for x in (w["id"], w["name"])})
+        self._save_change()
+
+    def _relay_brief(self):
+        """What Adaptation's task says about the change once the relay is done."""
+        c = self.change
+        sections = "; ".join(f"{a['id']} {a['name']}: {a['what']}" for a in c["affected"]) or "none"
+        return (f"CHANGE {c['id']}: REVISE EXACTLY THESE SECTIONS (set revises to the id): {sections}. Add a new section "
+                "only where a revised planning document calls for one, and list in its dependencies every planning "
+                "workflow whose file it reads. Revised planning documents: "
+                + ", ".join(c["nodes"][r]["name"] for r in c["documents_changed"]) + ".")
+
+    def _change_problems(self, w):
+        c = self.change
+        if not c or c.get("phase") in (None, "closed") or w.get("relay"):
+            return []
+        planning = {x for p in self._all_wfs() if is_artifact(p) for x in (p["id"], p["name"])}
+        return j2_relay.change_problems(w, c, planning)
+
+    def _mock_relay_plan(self):
+        """Mock Adaptation for a change the relay bound: one revision of each affected section, its atom copied."""
+        c, wfs = self.change, self._all_wfs()
+        out = []
+        for a in c["affected"]:
+            t = next(w for w in wfs if w["id"] == a["id"])
+            atom = copy.deepcopy((t.get("atoms") or [{}])[0])
+            for x in ("id", "status", "results"):
+                atom.pop(x, None)
+            out.append({"name": f"{a['name']} for {c['id']}", "goal_gap": a["what"], "parts": ["fix"],
+                        "revises": a["id"], "covers": [], "outputs": ["index.html"], "change": c["id"],
+                        "completion_check": t.get("completion_check") or "The section follows the change",
+                        "estimated_resources": {"money": max(1, as_int(t.get("cost")))}, "atoms": [atom],
+                        "dependencies": list(t.get("dependencies") or [])})
+        return {"say": f"@Priority Change {c['id']}: one revision per section the relay marked affected.",
+                "act": "PROPOSE", "next": "Priority", "workflows": out}
 
     def _relay_nodes(self):
         return j2_relay.planning_nodes(self._all_wfs(), "index.html")
@@ -5291,6 +5366,9 @@ class J2Run:
                 return json.dumps(self._mock_doc_plan(fails))
             if self.blueprint and not self.workflows and not self.feedback:
                 return json.dumps(self._mock_blueprint_plan(crit))
+            if self.change and self.change.get("affected") and self.change["phase"] == "build" \
+                    and not any(x.get("change") == self.change["id"] for x in self.workflows):
+                return json.dumps(self._mock_relay_plan())
             if self.feedback:
                 # A change to something an earlier workflow already built is a revise of that workflow's section,
                 # priced as a fix. Which workflow that is comes off the board (Q-n), not from a guess.
@@ -6276,7 +6354,9 @@ class J2Run:
             lld = [str(i) for i in (w.get("lld_sections") or self.proposed_lld.get(name) or [])] if self.blueprint else []
             unknown_lld = [i for i in lld if i not in {x["id"] for x in self.blueprint["sections"]}] if self.blueprint else []
             rc, unknown = price(w)
+            relay_bad = self._change_problems(w)
             reason = ("a check or report on the site is Audit's job, not a workflow" if self.CHECK_WORK.search(str(name))
+                      else "; ".join(relay_bad) if relay_bad
                       else f"required field(s) missing: {', '.join(missing)}" if missing
                       else "; ".join(no_atom) if no_atom
                       else f"it cites LLD section(s) that don't exist: {unknown_lld}" if unknown_lld
@@ -6319,8 +6399,9 @@ class J2Run:
             doc_rev = bool(src and self.change and self._is_planning_wf(src))   # the relay revises a planning file
             wf["section"] = src["section"] if src and (src["section"] in self.sections or doc_rev) \
                 and src["section"] not in taken else wf["id"]
-            if w.get("relay"):
-                wf["relay"] = w["relay"]
+            for k in ("relay", "change"):          # the relay's own revision / build work for a change
+                if w.get(k):
+                    wf[k] = w[k]
             wf["revises"] = rv if wf["section"] != wf["id"] else None
             if self.real_summary:       # J2_REALIZATION: the plan's stage (a fix keeps the stage of what it revises)
                 st = {x["name"]: x.get("stage") for x in self.real_summary.get("proposal_brief") or []}.get(wf["name"])
