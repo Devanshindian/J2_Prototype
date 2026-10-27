@@ -359,4 +359,71 @@ stage_ids = [x["id"] for x in json.load(open(os.path.join(os.path.dirname(os.pat
 ok(stage_ids and not [x for x in stage_ids if f'"{x}"' in src or f"'{x}'" in src],
    "j2_relay.py names no stage: everything comes from the run")
 
+# ---- Final review fixes (I1-I6): each test failed before its fix
+# I1: the charter diff is taken against the charter as it was when the change opened, even when J2.a runs twice
+run = done_run()
+real_stamp, calls_ = run._stamp_check, []
+
+
+def stamp_once_bad():
+    calls_.append(1)
+    return (False, "mock: rejected once") if len(calls_) == 1 else real_stamp()
+
+
+run._stamp_check = stamp_once_bad
+change(run, "Make the look dark and minimal")
+ok(len(calls_) >= 2 and [t for _, t in run.change["diff"]["added"]] == ["Change: Make the look dark and minimal"],
+   "I1: J2.a ran twice for the change and the diff still names what the change added")
+
+# I6: an Audit fix that adds a section is exempt from the relay's rules
+ok(relay.change_problems(site(dependencies=["build-final-wiring"], fixes=["F-1"]), CH, PLAN_NAMES) == [],
+   "I6: a new section that fixes an Audit finding is not held to the relay's rules")
+
+# I2: a budget pause in an objection round: after the credits, the paid-for revision is made
+run = done_run(plan=three_docs, script={"Design": "change-here", "Build item 1->Design": "object-once"})
+run.budget = run.spent + wf_named(run, "Design")["cost"]          # room for the first revision only
+change(run, "Make the look dark and minimal")
+revs = [w["name"] for w in run._all_wfs() if w.get("relay") == run.change["id"]]
+ok(revs == ["Design r2", "Design r3"] and [m["agree"] for m in posts(run, "agreement")] == [False, True],
+   "I2: out of budget in the objection round: after the credits, the second revision is made and agreed")
+
+# I3: Finish on the relay's budget question ends the run, uncharges unbuilt relay work, and keeps the charter true
+run = done_run(plan=three_docs, script={"Design": "change-here"})
+goal0 = json.loads(json.dumps(run.goal))
+run.budget = run.spent
+llm.ask = spy
+F.say(run, "Make the look dark and minimal")
+F.say(run, "Finish as it is")
+llm.ask = real_ask
+ok(not run.paused and run.done and (run.outcome or "").startswith("Done")
+   and any(m["who"] == "identity" and "leave your change out" in m["text"] for m in run.chat),
+   "I3: Finish ends the run with no further question (the charter is back, so the site is Done)")
+ok(run.goal["done_when"] == goal0["done_when"] and run.goal.get("standards") == goal0.get("standards"),
+   "I3: no document was revised, so the charter goes back to what the product is")
+ok(not [w for w in run._all_wfs() if w.get("relay") and w.get("charged")], "I3: nothing unbuilt stays charged")
+
+# I5: a change starts a fresh cycle, so the previous cycle's turn count can't stop the relay
+run = done_run(plan=three_docs, script={"Design": "change-here"})
+run.cycle_turns = run._turn_cap() - 1
+c0 = run.cycle
+change(run, "Make the look dark and minimal")
+done_at = next((i for i, m in enumerate(run.chat) if m.get("relay") == "done" and m.get("change") == run.change["id"]),
+               len(run.chat))
+ok(run.cycle > c0 and "build" in run.change["history"]
+   and not any(m.get("pause") == "limit" for m in run.chat[run.change["chat0"]:done_at]),
+   "I5: the relay runs in a new cycle and reaches the build without a turn-cap question")
+
+# I4: a second change on the same run; Identity's "previous" ruling restores this change's own previous version
+run = done_run(plan=three_docs, script={"Design": "change-here"})
+change(run, "Make the look dark and minimal")
+ok(run.change["id"] == "C-1" and run.change["phase"] == "closed", "I4: the first change closed")
+run.relay_script = {"Design": "change-here", "Build item 1->Design": "object", "ruling": "previous"}
+change(run, "Use a larger type size")
+ok(run.change["id"] == "C-2" and len(run.changes) == 2, "I4: a second change opens as C-2")
+c2 = [w for w in run._all_wfs() if w.get("relay") == "C-2"]
+ok([w["name"] for w in c2] == ["Design r3", "Design r4"], "I4: C-2 revises the latest Design (r3, r4), not the original")
+dpath = os.path.join(run.dir, j2.artifact_path(wf_named(run, "Design")))
+ok(c2[-1].get("kept") and open(dpath, encoding="utf-8").read() == open(c2[-1]["kept"], encoding="utf-8").read()
+   and len(posts(run, "ruling")) == 1, "I4: the ruling restores the version C-2's last revision replaced")
+
 print(f"relay_test: {passed} checks passed")

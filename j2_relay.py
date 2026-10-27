@@ -220,6 +220,8 @@ def charter_diff(old, new):
     nxt = len(items)
     adds = []
     for j in added:
+        if n[j] in [t for _, t in adds]:          # an item listed twice is one item
+            continue
         nxt += 1
         adds.append((nxt, n[j]))
     return {"added": adds, "edited": [(no(a), a, b) for _, a, b in edited], "removed": [(no(o[i]), o[i]) for i in removed],
@@ -289,11 +291,13 @@ def change_problems(proposal, change, planning_names, site_file="index.html"):
         return []
     if change.get("phase") in ("charter", "relay"):
         return ["the relay has not finished: no build work until every planning document has answered"]
+    if proposal.get("fixes"):                     # a fix for an Audit finding goes through today's path
+        return []
     changed = {str(x) for x in change.get("changed_names") or []}
     affected = [str(x) for x in change.get("affected_refs") or []]
     rv = proposal.get("revises")
     if rv:
-        if changed and not proposal.get("fixes") and str(rv) not in affected:
+        if changed and str(rv) not in affected:
             return [f"it revises {rv}, a section the relay has not marked affected (affected: {', '.join(affected) or 'none'})"]
         return []
     deps = {str(d) for d in proposal.get("dependencies") or []}

@@ -3291,6 +3291,8 @@ class J2Run:
                 self._plan_stages()
                 self._handoff("identity", kind="intake")
             elif self.fixes or self.change:   # fix (b), and every change in a realization run: J2.a checks it first
+                if self.change:
+                    self._begin_cycle(advance=False)    # the change's work counts its own turns, not the last cycle's
                 self._handoff("identity", kind="intake", change=self.feedback, mark=len(self.intake))
             else:
                 self._handoff("adaptation", kind="propose", new_cycle=True,
@@ -3896,8 +3898,8 @@ class J2Run:
             goal["core_items"] = [c for c in goal["core_items"] if c in crit]
         before = self.goal
         self.goal = goal
-        if self.change and before:                  # the change relay: what Identity changed, by charter number
-            self.change["diff"] = j2_relay.charter_diff(before, goal)
+        if self.change and before and self.change["phase"] == "charter":   # the relay: what Identity changed
+            self.change["diff"] = j2_relay.charter_diff(self.change["charter0"], goal)
             self._follow_edits(self.change["diff"])
         self.save("goal.json", self.goal)
         ok, why = self._stamp_check()
@@ -3907,7 +3909,8 @@ class J2Run:
                                   + ". Work starts after your answer.",
                                   [{"question": "Keep them in scope, or drop them?",
                                     "options": ["Keep them in scope", "Drop them"]}],
-                                  "charter_drop", handoff={"kind": "intake", "force": True, "drop": True})
+                                  "charter_drop", handoff={"kind": "intake", "force": True, "drop": True,
+                                                           **({"change": change, "mark": mark} if change else {})})
         nxt, note = self._pick("identity", r.get("next"), ("adaptation",), "adaptation",
                                "after the charter, Adaptation proposes")
         self._reply(r, nxt, note, artifact="charter")
@@ -4353,6 +4356,7 @@ class J2Run:
 
     def _open_change(self, text):
         self.change = {"id": f"C-{len(self.changes) + 1}", "request": text, "phase": "charter", "history": ["charter"],
+                       "charter0": copy.deepcopy(self.goal),     # the diff is always against the charter as it was
                        "diff": None, "nodes": {}, "documents_changed": [], "affected": [], "post_fixes": [],
                        "chat0": len(self.chat), "calls0": self.calls, "spent0": self.spent, "closed": None}
         self.changes.append(self.change)
@@ -4429,6 +4433,13 @@ class J2Run:
                 rec = c["nodes"][root]
                 if rec["verdict"] != "change-here" or rec.get("settled"):
                     continue
+                if rec.get("pending"):          # an objection round's revision waited for credits: make it first
+                    if not self._relay_revise(nodes[root], rec, rec["pending"], "its readers objected"):
+                        if self._relay_short():
+                            return self._relay_ask_budget(rec)
+                        rec["settled"] = True
+                    rec.pop("pending", None)
+                    continue
                 objections = self._relay_agreement(nodes[root], rec)
                 if not objections:
                     rec["settled"] = True
@@ -4439,6 +4450,7 @@ class J2Run:
                     rec["settled"] = True
                 elif not self._relay_revise(nodes[root], rec, objections, "its readers objected"):
                     if self._relay_short():
+                        rec["pending"] = objections
                         return self._relay_ask_budget(rec)
                     rec["settled"] = True
             self._save_change()
@@ -4636,12 +4648,12 @@ class J2Run:
         r = self.call("identity", '{"keep": "latest" | "previous", "say": str (one sentence to the agents)}',
                       f"CHANGE {c['id']}: {rec['name']} was revised {len(rec['revisions'])} time(s) and its readers "
                       f"still object: {'; '.join(objections)}. Keep the latest version, or the one before it?",
-                      lambda: json.dumps({"keep": "latest", "say": "We keep the latest version; the objection is on record."}))
+                      lambda: json.dumps({"keep": self.relay_script.get("ruling", "latest"),
+                                          "say": "We decide between the two versions; the objection is on record."}))
         keep = "previous" if str(r.get("keep")) == "previous" else "latest"
-        if keep == "previous":
-            stem, ext = os.path.splitext(os.path.join(self.dir, f))
-            prev = f"{stem}.v{len(rec['revisions'])}{ext}"
-            if os.path.exists(prev):
+        if keep == "previous":             # the version this change's last revision replaced, kept beside the file
+            prev = (self._wf(rec["revisions"][-1]) or {}).get("kept") if rec["revisions"] else None
+            if prev and os.path.exists(prev):
                 shutil.copyfile(prev, os.path.join(self.dir, f))
         rec["ruling"] = keep
         self.post("identity", f"@Adaptation {r.get('say') or 'Ruling recorded.'} ({rec['name']}: {keep} version kept)",
@@ -4659,10 +4671,29 @@ class J2Run:
                               "relay_budget", to="relay", handoff={"kind": "relay"})
 
     def _close_change(self, why):
-        self.change["closed"] = why
+        """The Requester finished during the relay: the run ends as it is, as J2's own "finish as it is" does. The
+        change's unbuilt relay work is released, and when no document was revised the charter goes back to what the
+        product is (an item for a change that was never made would be an untrue charter)."""
+        c = self.change
+        for w in self.workflows:
+            if w.get("relay") == c["id"] and w["status"] in ("registered", "held"):
+                w["status"], w["charged"] = "unfunded", False
+        self._recalc_spent()
+        self.save("workflows.json", self.workflows)
+        revised = any(w.get("relay") == c["id"] and w["status"] == "done" for w in self._all_wfs())
+        if not revised and c.get("charter0"):
+            back = c.get("diff") or {}
+            self._follow_edits({"edited": [(n, new, old) for n, old, new in back.get("edited") or []]})
+            self.goal = copy.deepcopy(c["charter0"])
+            self.save("goal.json", self.goal)
+        c["closed"] = why
         self._change_phase("closed")
-        self.post("system", f"Change {self.change['id']} closed: {why}.", relay="closed", change=self.change["id"])
-        return self._handoff("audit", kind="audit")
+        self.post("system", f"Change {c['id']} closed: {why}." + ("" if revised else " The charter is back to what "
+                            "it was, since nothing was changed."), relay="closed", change=c["id"])
+        self.post("identity", "We'll leave your change out and finish the site as it is now.", to_user=True,
+                  next="user", done=True)
+        self.outcome = self._ship_outcome("on the Requester's decision (the change needed more credits)")
+        self.turn = None
 
     def _is_planning_wf(self, w):
         """A workflow whose output is a file other than the site file (a planning document)."""
@@ -4683,6 +4714,8 @@ class J2Run:
             k += 1
         if os.path.exists(path):
             shutil.copyfile(path, f"{stem}.v{k}{ext}")
+            return f"{stem}.v{k}{ext}"
+        return None
 
     def _register_doc_revision(self, node, changes, reason):
         """The relay revises a planning document: code registers a revision of the node's latest workflow (no
@@ -6902,7 +6935,7 @@ class J2Run:
             text = body[1].strip() + "\n"
             os.makedirs(os.path.dirname(path), exist_ok=True)
             if current is not None and attempt == 1:
-                self._keep_version(path)
+                w["kept"] = self._keep_version(path)    # the version this revision replaced (a ruling may restore it)
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write(text)
             failed = self._run_checks(w, attempt, text, doc=True)
