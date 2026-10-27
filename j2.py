@@ -43,6 +43,7 @@ import json
 import math
 import os
 import re
+import shutil
 import threading
 import time
 
@@ -4373,6 +4374,56 @@ class J2Run:
         """The relay's turn (Task 7 walks the planning documents here); until then Adaptation takes the change."""
         self._handoff("adaptation", **h["start"])
 
+    def _is_planning_wf(self, w):
+        """A workflow whose output is a file other than the site file (a planning document)."""
+        return is_artifact(w)
+
+    def _current_file(self, f):
+        try:
+            with open(os.path.join(self.dir, f), encoding="utf-8") as fh:
+                return fh.read()
+        except OSError:
+            return None
+
+    def _keep_version(self, path):
+        """Copy a planning file to <stem>.v<k><ext> before a revision overwrites it (k counts the kept versions)."""
+        stem, ext = os.path.splitext(path)
+        k = 1
+        while os.path.exists(f"{stem}.v{k}{ext}"):
+            k += 1
+        if os.path.exists(path):
+            shutil.copyfile(path, f"{stem}.v{k}{ext}")
+
+    def _register_doc_revision(self, node, changes, reason):
+        """The relay revises a planning document: code registers a revision of the node's latest workflow (no
+        Adaptation proposal), with the same file and dependencies, its predecessor's cost, the predecessor's checks
+        following the charter (j2_relay.carry_checks), and the changes as its task. Returns its id, or None with the
+        reason in self.change["short"] when it can't be registered (e.g. the budget)."""
+        wfs = self._all_wfs()
+        pred = next(x for x in wfs if x["id"] == node["id"])
+        root = next(x for x in wfs if x["id"] == node["root"])
+        k = 1 + sum(1 for x in wfs if x is not root and j2_relay._root_id(wfs, x["id"]) == root["id"])
+        f = artifact_path(pred)
+        atom = copy.deepcopy((pred.get("atoms") or [{}])[0])
+        for x in ("id", "status", "results"):
+            atom.pop(x, None)
+        atom["how"] = {**(atom.get("how") or {}), "steps": f"Revise {f}: " + "; ".join(changes)
+                       + ". Keep every part these changes don't touch."}
+        atom["goal"] = f"{f} carries the change: " + "; ".join(changes)
+        atom["verification"] = j2_relay.carry_checks(atom.get("verification"), self.change.get("diff") or {},
+                                                     self._current_file(f) or "")
+        prop = {"name": f"{root['name']} r{k + 1}", "goal_gap": reason, "purpose": reason, "outputs": pred["outputs"],
+                "completion_check": pred.get("completion_check") or f"{f} carries the change",
+                "dependencies": list(pred.get("dependencies") or []), "revises": pred["id"], "parts": ["fix"],
+                "covers": [], "envelope": {"money_limit": max(1, as_int(pred.get("cost")))}, "atoms": [atom],
+                "relay": self.change["id"]}
+        registered, refused, _ = self._register([prop])
+        if not registered:
+            self.change["short"] = "; ".join(str(x) for x in refused) or "not registered"
+            return None
+        self.change.pop("short", None)
+        return registered[0]["id"]
+
     def _follow_edits(self, diff):
         """A change request edited charter items (j2_relay.charter_diff): each keeps its charter number, and every
         workflow that covered it covers the new text, so coverage follows the number instead of being lost."""
@@ -6062,8 +6113,11 @@ class J2Run:
             rv = str(w.get("revises") or "").upper()
             src = self._wf(rv)
             taken = {x["section"] for x in self.workflows if x["status"] in ("registered", "held", "running")}
-            wf["section"] = src["section"] if src and src["section"] in self.sections and src["section"] not in taken \
-                else wf["id"]
+            doc_rev = bool(src and self.change and self._is_planning_wf(src))   # the relay revises a planning file
+            wf["section"] = src["section"] if src and (src["section"] in self.sections or doc_rev) \
+                and src["section"] not in taken else wf["id"]
+            if w.get("relay"):
+                wf["relay"] = w["relay"]
             wf["revises"] = rv if wf["section"] != wf["id"] else None
             if self.real_summary:       # J2_REALIZATION: the plan's stage (a fix keeps the stage of what it revises)
                 st = {x["name"]: x.get("stage") for x in self.real_summary.get("proposal_brief") or []}.get(wf["name"])
@@ -6507,7 +6561,14 @@ class J2Run:
         g = self.goal or {}
         charter = {k: g.get(k) for k in ("statement", "audience", "standards", "rules", "done_when", "to_be_confirmed")}
 
+        current = self._current_file(f) if w.get("revises") else None     # the relay's revision of a planning file
+
         def mock():
+            if current is not None:                 # a revision keeps the file and adds what the change asks for
+                steps = (w["atoms"][0].get("how") or {}).get("steps", "") if w.get("atoms") else ""
+                return (json.dumps({"say": f"@Coordination {fn} revised {f}.", "human_output": f"I revised {f}.",
+                                    "atom_human_output": "This brings the plan in line with the change.",
+                                    "next": "Coordination"}) + f"\n<<<FILE\n{current.rstrip()}\n\n{steps}\nFILE>>>")
             return (json.dumps({"say": f"@Coordination {fn} wrote {f}.", "human_output": f"I wrote {f} for the "
                                 "workflows after it.", "atom_human_output": "This sets what the later parts of the "
                                 "page follow.", "next": "Coordination"})
@@ -6523,6 +6584,8 @@ class J2Run:
                             "workflow's goal and work atom ask for, in the format the file's name says. Mark anything "
                             "the charter doesn't give as an assumption. Code runs your work atom's checks on the file."
                             f"\nCHARTER: {json.dumps(charter, ensure_ascii=False)}" + self._artifact_context(w)
+                            + (f"\nYOUR FILE AS IT IS NOW (revise it: make the changes your work atom names, and keep "
+                               f"every part they don't touch, headings included):\n{current}" if current is not None else "")
                             + (f"\nATTEMPT {attempt} OF {MAX_CHECK_ATTEMPTS}. THESE CHECKS FAILED ON YOUR LAST "
                                f"ATTEMPT:\n{evidence}\nFix the file so they pass." if evidence else ""),
                             mock, max_tokens=8000, json_reply=False)
@@ -6537,6 +6600,8 @@ class J2Run:
                 continue
             text = body[1].strip() + "\n"
             os.makedirs(os.path.dirname(path), exist_ok=True)
+            if current is not None and attempt == 1:
+                self._keep_version(path)
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write(text)
             failed = self._run_checks(w, attempt, text, doc=True)

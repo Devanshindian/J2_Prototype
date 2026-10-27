@@ -179,4 +179,39 @@ change(plain, "Make the look dark and minimal")
 ok(not any("THE REQUESTER ASKED FOR A CHANGE" in p for p in prompts) and plain.change is None
    and not os.path.exists(os.path.join(plain.dir, "change.json")), "J2_REALIZATION=0: the J2_FIXES=0 path is unchanged")
 
+# ---- Task 6: a planning file can be revised; the earlier version is kept
+run = done_run()
+plan_wf = next(w for w in run._all_wfs() if w["name"] == "Plan")
+art = os.path.join(run.dir, "artifacts", "plan.md")
+before_text = open(art, encoding="utf-8").read()
+node = {"id": plan_wf["id"], "name": "Plan", "root": plan_wf["id"], "outputs": plan_wf["outputs"], "parents": []}
+run.change = {"id": "C-1", "diff": relay.charter_diff(run.goal, run.goal), "nodes": {}}
+spent0 = run.spent
+rid = run._register_doc_revision(node, ["Add a short section on opening offers"], "the Requester asked for offers")
+rv = run._wf(rid)
+ok(rv and rv["revises"] == plan_wf["id"] and rv["outputs"] == plan_wf["outputs"] and rv["status"] == "registered",
+   "a planning revision is registered by code, revising the planning workflow, with the same file")
+ok(rv["name"] == "Plan r2" and rv["section"] == plan_wf["section"] and rv.get("relay") == "C-1",
+   "it is named after the original, owns the same section, and is tagged with the change")
+ok(run.spent - spent0 == rv["cost"] > 0, "it is charged like any workflow")
+ok(any(c["type"] == "heading-present" for c in rv["atoms"][0]["verification"])
+   and "opening offers" in json.dumps(rv["atoms"][0]["how"]), "its checks keep the old headings; its task names the change")
+run._run_artifact(rv, {"name": rv["name"]}, 3)
+kept = os.path.join(run.dir, "artifacts", "plan.v1.md")
+ok(rv["status"] == "done" and os.path.exists(kept) and open(kept, encoding="utf-8").read() == before_text,
+   "the revision ran; the earlier version is kept as plan.v1.md")
+now = open(art, encoding="utf-8").read()
+ok(now != before_text and all(h in relay.headings_of(now) for h in relay.headings_of(before_text)),
+   "plan.md is the new version and keeps every earlier heading")
+rid2 = run._register_doc_revision({**node, "id": rid}, ["One more change"], "again")
+run._run_artifact(run._wf(rid2), {"name": "x"}, 3)
+ok(run._wf(rid2)["name"] == "Plan r3" and run._wf(rid2)["revises"] == rid
+   and os.path.exists(os.path.join(run.dir, "artifacts", "plan.v2.md")), "a second revision is r3 and keeps plan.v2.md")
+broke = done_run()
+broke.change = {"id": "C-1", "diff": relay.charter_diff(broke.goal, broke.goal), "nodes": {}}
+broke.budget = broke.spent
+pw = next(w for w in broke._all_wfs() if w["name"] == "Plan")
+ok(broke._register_doc_revision({**node, "id": pw["id"], "root": pw["id"]}, ["x"], "y") is None
+   and broke.change.get("short") and "budget" in broke.change["short"], "out of budget: nothing registered, the reason kept")
+
 print(f"relay_test: {passed} checks passed")
