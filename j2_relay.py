@@ -99,6 +99,17 @@ def relay_waves(nodes):
     return waves
 
 
+def direct_readers(workflows, root):
+    """Latest ids of the workflows (planning or site) that name root, or any revision of it, in their dependencies."""
+    r, out = _root_id(workflows, root), []
+    for w in workflows:
+        wr = _root_id(workflows, w["id"])
+        if wr != r and r in _dep_roots(workflows, w):
+            lid = latest(workflows, wr)["id"]
+            if lid not in out:
+                out.append(lid)
+    return out
+
 def build_candidates(workflows, changed_roots, site_file):
     """Latest ids of the built site sections whose dependencies, followed through any workflow (every revision of
     it), reach a changed planning root."""

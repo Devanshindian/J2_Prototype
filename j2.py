@@ -120,6 +120,7 @@ STEPS = {1: "J2.a Enough information to work?", 2: "J2.b Adaptation proposes wor
          7: "J2.g Audit checks result", 8: "J2.h Is the site workable?"}
 TOPICS = {"proposal": "what to fund", "finding": "an Audit finding", "hold": "a Coordination HOLD"}
 PAUSES = {"info": "J2.a: not enough information to work yet",
+          "relay_budget": "credits to revise a document for the change",
           "charter_drop": "the charter leaves out items from the brief",
           "conflict": "J2.d: a conflict the charter doesn't decide",
           "question": "a question the charter can't answer",
@@ -4370,9 +4371,210 @@ class J2Run:
             return self._handoff("relay", kind="relay", start=start)
         return self._handoff("adaptation", **start)
 
+    RELAY_MAX_ROUNDS = 2
+    RELAY_VERDICT_FMT = ('{"verdict": "no-change" | "change-here", "reason": str (one sentence), "changes": [str] '
+                         '(what your file must change, each short; empty for no-change)}')
+    RELAY_AGREE_FMT = '{"agree": bool, "reason": str (one sentence)}'
+    RELAY_AGREE_BUILD_FMT = ('{"agree": bool, "reason": str (one sentence), "affected": bool (does your section of the '
+                             'site have to change?), "what": str (what in your section must change; "" if not affected)}')
+
     def _turn_relay(self, h):
-        """The relay's turn (Task 7 walks the planning documents here); until then Adaptation takes the change."""
-        self._handoff("adaptation", **h["start"])
+        """The change relay: walk the planning documents in dependency order. Each owner says no-change or
+        change-here; a change-here document is revised (code registers it, Coordination runs it) and its direct
+        readers agree or object (at most RELAY_MAX_ROUNDS objection rounds, then Identity picks a version). Then the
+        build follows. Re-entered after each round of revisions is built, and after a budget answer."""
+        c = self.change
+        c.setdefault("start", h.get("start") or {"kind": "propose", "new_cycle": True,
+                                                  "why": f"The Requester asked for a change: {c['request']}"})
+        if h.get("answer") is not None and c.get("short"):          # the Requester answered the budget question
+            answer = str(h["answer"]).strip().lower()
+            if re.search(r"\b(2|finish|stop|no)\b", answer):
+                return self._close_change("finished by the Requester")
+            n = as_int((re.search(r"\d+", answer) or [""])[0])
+            self._raise_budget(n if n > 2 else c.get("ask_add", 25), "the change relay")
+        if "waves" not in c:
+            c["waves"], c["wave_i"] = j2_relay.relay_waves(self._relay_nodes()), 0
+        while c["wave_i"] < len(c["waves"]):
+            nodes = {n["root"]: n for n in self._relay_nodes()}
+            wave = c["waves"][c["wave_i"]]
+            for root in wave:
+                rec = c["nodes"].setdefault(root, {"name": nodes[root]["name"], "root": root, "revisions": [],
+                                                   "rounds": 0, "agreements": []})
+                if "verdict" not in rec:
+                    self._relay_verdict(nodes[root], rec)
+                if rec["verdict"] == "change-here" and not rec["revisions"] and not rec.get("refused"):
+                    if not self._relay_revise(nodes[root], rec, rec["changes"], rec["reason"]):
+                        if self._relay_short():
+                            return self._relay_ask_budget(rec)
+                        rec["settled"] = True
+            if self._relay_building():
+                return self._handoff("coordination", kind="schedule")
+            for root in wave:
+                rec = c["nodes"][root]
+                if rec["verdict"] != "change-here" or rec.get("settled"):
+                    continue
+                objections = self._relay_agreement(nodes[root], rec)
+                if not objections:
+                    rec["settled"] = True
+                    continue
+                rec["rounds"] += 1
+                if rec["rounds"] >= self.RELAY_MAX_ROUNDS:
+                    self._relay_ruling(nodes[root], rec)
+                    rec["settled"] = True
+                elif not self._relay_revise(nodes[root], rec, objections, "its readers objected"):
+                    if self._relay_short():
+                        return self._relay_ask_budget(rec)
+                    rec["settled"] = True
+            self._save_change()
+            if self._relay_building():
+                return self._handoff("coordination", kind="schedule")
+            c["wave_i"] += 1
+        self._change_phase("build")
+        changed = [c["nodes"][r]["name"] for r in c["documents_changed"]]
+        self.post("system", f"Change {c['id']}: the relay is done. " + (f"Documents changed: {', '.join(changed)}."
+                  if changed else "No planning document changed."), relay="done", change=c["id"])
+        return self._handoff("adaptation", **c["start"])
+
+    def _relay_nodes(self):
+        return j2_relay.planning_nodes(self._all_wfs(), "index.html")
+
+    def _relay_building(self):
+        return any(w.get("relay") == self.change["id"] and w["status"] in ("registered", "held", "running")
+                   for w in self.workflows)
+
+    def _relay_short(self):
+        """The last revision was refused for the budget (the relay asks for credits), not for another reason."""
+        return "budget" in str(self.change.get("short") or "")
+
+    def _relay_revise(self, node, rec, changes, reason):
+        rid = self._register_doc_revision(node, changes, reason)
+        if not rid:
+            if not self._relay_short():          # refused for another reason: on record, the relay goes on
+                rec["refused"] = self.change.get("short")
+                self.post("system", f"Change {self.change['id']}: the revision of {rec['name']} was refused "
+                                    f"({rec['refused']}), so its current version stays.", relay="refused",
+                          change=self.change["id"], node=rec["name"])
+            return False
+        rec["revisions"].append(rid)
+        if rec["root"] not in self.change["documents_changed"]:
+            self.change["documents_changed"].append(rec["root"])
+        self._save_change()
+        return True
+
+    def _relay_task(self, node):
+        c = self.change
+        revised = [f"{c['nodes'][p]['name']} ({', '.join(c['nodes'][p].get('changes') or [])})"
+                   for p in node["parents"] if c["nodes"].get(p, {}).get("revisions")]
+        text = self._current_file(artifact_path(node)) or ""
+        return (f"CHANGE {c['id']}: the Requester asked: {c['request']}\n"
+                f"WHAT THE CHARTER CHANGED: {json.dumps(c.get('diff'), ensure_ascii=False)}\n"
+                + (f"DOCUMENTS ABOVE YOURS REVISED IN THIS CHANGE: {'; '.join(revised)}\n" if revised else "")
+                + f"YOUR FILE, {artifact_path(node)}:\n{text[:8000]}")
+
+    def _relay_verdict(self, node, rec):
+        """One call to the document's own agent: does this change start in my document? One retry, then no-change."""
+        c, name = self.change, node["name"]
+
+        def mock():
+            m = self.relay_script.get(name, "no-change")
+            if m == "garbage":
+                return "I think it's fine"
+            if m == "change-here":
+                return json.dumps({"verdict": "change-here", "reason": "mock: the change touches this document",
+                                   "changes": [f"Apply the change: {c['request']}"]})
+            return json.dumps({"verdict": "no-change", "reason": "mock: nothing in this document changes",
+                               "changes": []})
+        task = (self._relay_task(node) + "\nTHE CHANGE TRAVELS DOWN THE PLAN, DOCUMENT BY DOCUMENT. Decide for your "
+                "own file only: does the change start here (your file must say something different), or does it pass "
+                "you by unchanged? Name each change your file needs, or none.")
+        v = None
+        for _ in range(2):
+            v = j2_relay.parse_verdict(self.call(node["id"], self.RELAY_VERDICT_FMT, task, mock, json_reply=False))
+            if v:
+                break
+        if not v:
+            self.post("system", f"Change {c['id']}: {name}'s verdict was not readable twice, so the relay takes it as "
+                                "no-change.", relay="verdict_fallback", change=c["id"], node=name)
+            v = {"verdict": "no-change", "reason": "no readable verdict", "changes": []}
+        rec.update(v)
+        said = "the change starts here" if v["verdict"] == "change-here" else "no change"
+        self.post(node["id"], f"@Identity {name}: {said} ({v['reason']})"
+                              + (f": {'; '.join(v['changes'])}" if v["changes"] else ""),
+                  relay="verdict", change=c["id"], node=name, verdict=v["verdict"])
+        self._save_change()
+
+    def _relay_agreement(self, node, rec):
+        """Every direct reader of the revised document agrees or objects (a site section also says whether it is
+        affected). Returns the objections, as changes for the next revision."""
+        c, wfs, objections = self.change, self._all_wfs(), []
+        for rid in j2_relay.direct_readers(wfs, node["root"]):
+            reader = next(w for w in wfs if w["id"] == rid)
+            rname = next(w for w in wfs if w["id"] == j2_relay._root_id(wfs, rid))["name"]
+            build = not is_artifact(reader)
+            before = [a for a in rec["agreements"] if a["reader"] == rname and not a["agree"]]
+
+            def mock(rname=rname, build=build, before=before):
+                m = self.relay_script.get(f"{rname}->{node['name']}", "agree")
+                agree = not (m == "object" or (m == "object-once" and not before))
+                out = {"agree": agree, "reason": "mock: fine" if agree else "mock: this breaks what I build"}
+                if build:
+                    hit = self.relay_script.get(rname) == "affected"
+                    out.update({"affected": hit, "what": f"mock: follow {node['name']}" if hit else ""})
+                return json.dumps(out)
+            task = (self._relay_task(node) + f"\nYOU READ {artifact_path(node)}, JUST REVISED FOR THIS CHANGE. Do you "
+                    "agree with it? Object only if it breaks what you make or cannot be built, and say why."
+                    + (" Also say whether your section of the site has to change." if build else ""))
+            a = None
+            for _ in range(2):
+                a = j2_relay.parse_agreement(self.call(rid, self.RELAY_AGREE_BUILD_FMT if build else self.RELAY_AGREE_FMT,
+                                                       task, mock, json_reply=False), build)
+                if a:
+                    break
+            a = a or {"agree": True, "reason": "no readable answer", **({"affected": True, "what": "unclear"} if build else {})}
+            rec["agreements"].append({"reader": rname, "id": rid, "round": rec["rounds"], **a})
+            if build:
+                c.setdefault("affected_pre", {})[rid] = {"affected": a["affected"], "what": a["what"]}
+            self.post(rid, f"@{rec['name']} {'Agreed' if a['agree'] else 'Objection'}: {a['reason']}",
+                      relay="agreement", change=c["id"], node=rec["name"], reader=rname, agree=a["agree"])
+            if not a["agree"]:
+                objections.append(f"{rname} objects: {a['reason']}")
+        self._save_change()
+        return objections
+
+    def _relay_ruling(self, node, rec):
+        """After RELAY_MAX_ROUNDS objection rounds Identity keeps the latest version or the one before it."""
+        c, f = self.change, artifact_path(node)
+        objections = [a["reason"] for a in rec["agreements"] if not a["agree"]]
+        r = self.call("identity", '{"keep": "latest" | "previous", "say": str (one sentence to the agents)}',
+                      f"CHANGE {c['id']}: {rec['name']} was revised {len(rec['revisions'])} time(s) and its readers "
+                      f"still object: {'; '.join(objections)}. Keep the latest version, or the one before it?",
+                      lambda: json.dumps({"keep": "latest", "say": "We keep the latest version; the objection is on record."}))
+        keep = "previous" if str(r.get("keep")) == "previous" else "latest"
+        if keep == "previous":
+            stem, ext = os.path.splitext(os.path.join(self.dir, f))
+            prev = f"{stem}.v{len(rec['revisions'])}{ext}"
+            if os.path.exists(prev):
+                shutil.copyfile(prev, os.path.join(self.dir, f))
+        rec["ruling"] = keep
+        self.post("identity", f"@Adaptation {r.get('say') or 'Ruling recorded.'} ({rec['name']}: {keep} version kept)",
+                  relay="ruling", change=c["id"], node=rec["name"], keep=keep)
+
+    def _relay_ask_budget(self, rec):
+        c = self.change
+        last = rec["revisions"][-1] if rec["revisions"] else rec["root"]
+        need = max(1, as_int(next(w for w in self._all_wfs() if w["id"] == last).get("cost")))
+        c["ask_add"] = max(need - (self.budget - self.spent), 25)
+        self._save_change()
+        return self._ask_user(f"Revising {rec['name']} for your change needs {c['ask_add']} more work credits.",
+                              [{"question": "Add the credits and keep going, or finish as it is?",
+                                "options": [f"Add {c['ask_add']} work credits and keep going", "Finish as it is"]}],
+                              "relay_budget", to="relay", handoff={"kind": "relay"})
+
+    def _close_change(self, why):
+        self.change["closed"] = why
+        self._change_phase("closed")
+        self.post("system", f"Change {self.change['id']} closed: {why}.", relay="closed", change=self.change["id"])
+        return self._handoff("audit", kind="audit")
 
     def _is_planning_wf(self, w):
         """A workflow whose output is a file other than the site file (a planning document)."""
@@ -4409,7 +4611,8 @@ class J2Run:
             atom.pop(x, None)
         atom["how"] = {**(atom.get("how") or {}), "steps": f"Revise {f}: " + "; ".join(changes)
                        + ". Keep every part these changes don't touch."}
-        atom["goal"] = f"{f} carries the change: " + "; ".join(changes)
+        atom["goal"] = f"{f} is revised for the Requester's change"   # the changes are the task; a number in them
+                                                                    # would need a facts check of its own
         atom["verification"] = j2_relay.carry_checks(atom.get("verification"), self.change.get("diff") or {},
                                                      self._current_file(f) or "")
         prop = {"name": f"{root['name']} r{k + 1}", "goal_gap": reason, "purpose": reason, "outputs": pred["outputs"],
@@ -6191,6 +6394,8 @@ class J2Run:
         if not todo:
             self.agent_turns["coordination"] -= 1
             self.cycle_turns -= 1
+            if self.change and self.change["phase"] == "relay":     # the relay's revisions are built: back to it
+                return self._handoff("relay", kind="relay")
             self.post("system", f"Queue empty: no registered work left in cycle {self.cycle}. Hand-off by code: Audit "
                                 f"checks site v{len(self.sites)}.")
             return self._handoff("audit", kind="audit")

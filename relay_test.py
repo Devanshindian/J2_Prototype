@@ -66,6 +66,9 @@ ok(relay.latest(two, "W-2")["id"] == "W-19" and [n["id"] for n in relay.planning
 ok(relay.latest(two, "W-19")["id"] == "W-19" and relay.planning_nodes(two, "index.html")[1]["root"] == "W-2",
    "a revision's root is the original workflow")
 
+ok(relay.direct_readers(BASE_WFS, "W-2") == ["W-16", "W-18"] and relay.direct_readers(BASE_WFS, "W-1")[:3] == ["W-2", "W-3", "W-4"],
+   "a document's direct readers, by latest revision: design is read by styles and game core")
+
 # ---- Task 2: the replies the relay's calls must give
 ok(relay.parse_verdict('{"verdict":"change-here","reason":"palette","changes":["Dark palette"]}')["changes"] == ["Dark palette"],
    "a change verdict parses")
@@ -143,7 +146,8 @@ def done_run(on=True, script=None, plan=None):
     os.environ["J2_REALIZATION"], os.environ["J2_FIXES"] = ("1" if on else "0"), "0"
     real_mocks = j2.j2_realization.default_mocks
     if plan:
-        j2.j2_realization.default_mocks = lambda goal: {**real_mocks(goal), "plan": lambda rnd: json.dumps(plan(goal))}
+        j2.j2_realization.default_mocks = lambda goal: {**real_mocks(goal), "plan": lambda rnd: json.dumps(plan(goal)),
+                                                         "revise": lambda rnd: json.dumps(plan(goal))}
     try:
         run = j2.J2Run()
         run.relay_script = dict(script or {})
@@ -213,5 +217,73 @@ broke.budget = broke.spent
 pw = next(w for w in broke._all_wfs() if w["name"] == "Plan")
 ok(broke._register_doc_revision({**node, "id": pw["id"], "root": pw["id"]}, ["x"], "y") is None
    and broke.change.get("short") and "budget" in broke.change["short"], "out of budget: nothing registered, the reason kept")
+
+# ---- Task 7: the relay walks the planning documents in order, each owner decides, readers agree
+def three_docs(goal):
+    """Plan, then Design and Arch side by side (both read Plan); Build item 1 reads Design, Build item 2 reads Arch,
+    Build item 3 reads only Build item 1 (so it reaches Design through another section)."""
+    p = j2.j2_realization.mock_plan(goal)
+    base = p["workflows"][0]
+    p["workflows"][1:1] = [{**base, "name": "Design", "stage": "design", "inputs_from": ["Plan"], "informs": []},
+                           {**base, "name": "Arch", "stage": "engineering", "inputs_from": ["Plan"], "informs": []}]
+    for w in p["workflows"]:
+        w["inputs_from"] = {"Build item 1": ["Design"], "Build item 2": ["Arch"], "Build item 3": ["Build item 1"]}.get(
+            w["name"], w["inputs_from"])
+    p["stages"][1:1] = [{**p["stages"][0], "id": "design", "inputs_from": ["product"], "owns_factors": []},
+                        {**p["stages"][0], "id": "engineering", "inputs_from": ["product"], "owns_factors": []}]
+    return p
+
+
+def posts(run, kind):
+    return [m for m in run.chat if m.get("relay") == kind and m.get("change") == run.change["id"]]
+
+
+def wf_named(run, name):
+    return next(w for w in run._all_wfs() if w["name"] == name)
+
+
+run = done_run(plan=three_docs, script={"Design": "change-here"})
+ok([w["name"] for w in run._all_wfs() if j2.is_artifact(w)] == ["Plan", "Design", "Arch"], "the test plan has three documents")
+change(run, "Make the look dark and minimal")
+v = posts(run, "verdict")
+ok([m["node"] for m in v] == ["Plan", "Design", "Arch"], "verdicts in dependency order: Plan, then Design and Arch")
+ok(run.change["waves"] == [[wf_named(run, "Plan")["id"]], [wf_named(run, "Design")["id"], wf_named(run, "Arch")["id"]]],
+   "Design and Arch answer in the same wave")
+nd = {n["name"]: n for n in run.change["nodes"].values()}
+ok(nd["Design"]["verdict"] == "change-here" and nd["Plan"]["verdict"] == nd["Arch"]["verdict"] == "no-change",
+   "each owner's verdict is recorded")
+revs = [w for w in run._all_wfs() if w.get("relay") == run.change["id"]]
+dfile = j2.artifact_path(wf_named(run, "Design"))
+ok([w["name"] for w in revs] == ["Design r2"] and revs[0]["status"] == "done"
+   and os.path.exists(os.path.join(run.dir, dfile.replace(".md", ".v1.md"))), "one revision of Design, its old version kept")
+ok(nd["Design"]["revisions"] == [revs[0]["id"]] and run.change["documents_changed"] == [nd["Design"]["root"]],
+   "change.json names the document that changed")
+ag = posts(run, "agreement")
+ok(ag and all(m["node"] == "Design" for m in ag) and {m["reader"] for m in ag} == {"Build item 1"},
+   "Design's direct reader (Build item 1) is asked to agree")
+ok("relay" in run.change["history"] and run.outcome.startswith("Done"), "the run goes on and ends Done")
+
+run = done_run(plan=three_docs, script={"Design": "change-here", "Build item 1->Design": "object-once"})
+change(run, "Make the look dark and minimal")
+revs = [w["name"] for w in run._all_wfs() if w.get("relay") == run.change["id"]]
+ok(revs == ["Design r2", "Design r3"] and [m["agree"] for m in posts(run, "agreement")] == [False, True],
+   "one objection: a second revision, then agreement")
+
+run = done_run(plan=three_docs, script={"Design": "change-here", "Build item 1->Design": "object"})
+change(run, "Make the look dark and minimal")
+revs = [w["name"] for w in run._all_wfs() if w.get("relay") == run.change["id"]]
+ok(revs == ["Design r2", "Design r3"] and len(posts(run, "ruling")) == 1, "two objections: Identity rules, no third revision")
+
+run = done_run(plan=three_docs, script={"Plan": "garbage"})
+change(run, "Make the look dark and minimal")
+ok(any(m["who"] == "system" and "Plan" in m["text"] and "no-change" in m["text"] for m in run.chat)
+   and run.change["nodes"][wf_named(run, "Plan")["id"]]["verdict"] == "no-change", "a malformed verdict: one retry, then no-change")
+
+run = done_run(plan=three_docs, script={"Design": "change-here"})
+run.budget = run.spent
+change(run, "Make the look dark and minimal")
+revs = [w for w in run._all_wfs() if w.get("relay") == run.change["id"]]
+ok(revs and revs[0]["status"] == "done" and run.budget > run.spent - 1 and "build" in run.change["history"],
+   "out of budget mid-relay: the run asks, gets credits, and the relay resumes where it stopped")
 
 print(f"relay_test: {passed} checks passed")
