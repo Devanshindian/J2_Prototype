@@ -4,6 +4,7 @@ sections (docs/superpowers/specs/2026-10-27-change-relay-design.md).
 Pure logic, no AI calls and no run state: the planning graph read from a run's workflows, the replies the relay's
 calls must give, the charter diff, the checks a revision carries, and the validator's rules while a change is open.
 j2.py does the wiring. Nothing here names a stage, a document or a workflow: everything comes from the run."""
+import llm
 
 
 def _index(workflows):
@@ -116,4 +117,56 @@ def build_candidates(workflows, changed_roots, site_file):
         w = latest(workflows, r)
         if w.get("status") == "done" and reaches(r, {r}):
             out.append(w["id"])
+    return out
+
+
+# ---- the replies: each relay call answers in JSON, checked here (None = malformed, the caller retries once)
+VERDICTS = ("no-change", "change-here")
+
+
+def _obj(reply):
+    try:
+        d = llm.extract_json(str(reply)) if reply else None
+    except ValueError:
+        return None
+    return d if isinstance(d, dict) else None
+
+
+def _text(d, key):
+    return isinstance(d.get(key), str)
+
+
+def parse_verdict(reply):
+    """{"verdict": "no-change" | "change-here", "reason": str, "changes": [str]}: changes is non-empty exactly when
+    the verdict is change-here."""
+    d = _obj(reply)
+    if not d or d.get("verdict") not in VERDICTS or not _text(d, "reason"):
+        return None
+    ch = d.get("changes", [])
+    if not isinstance(ch, list) or not all(isinstance(x, str) and x.strip() for x in ch):
+        return None
+    if bool(ch) != (d["verdict"] == "change-here"):
+        return None
+    return {"verdict": d["verdict"], "reason": d["reason"], "changes": ch}
+
+
+def parse_affected(reply):
+    """{"affected": bool, "what": str}."""
+    d = _obj(reply)
+    if not d or not isinstance(d.get("affected"), bool) or not _text(d, "what"):
+        return None
+    return {"affected": d["affected"], "what": d["what"]}
+
+
+def parse_agreement(reply, build):
+    """{"agree": bool, "reason": str}, plus affected and what for a build section."""
+    d = _obj(reply)
+    if not d or not isinstance(d.get("agree"), bool) or not _text(d, "reason"):
+        return None
+    out = {"agree": d["agree"], "reason": d["reason"]}
+    if build:
+        a = parse_affected(reply)
+        if not a:
+            return None
+        out.update(a)
     return out

@@ -66,4 +66,22 @@ ok(relay.latest(two, "W-2")["id"] == "W-19" and [n["id"] for n in relay.planning
 ok(relay.latest(two, "W-19")["id"] == "W-19" and relay.planning_nodes(two, "index.html")[1]["root"] == "W-2",
    "a revision's root is the original workflow")
 
+# ---- Task 2: the replies the relay's calls must give
+ok(relay.parse_verdict('{"verdict":"change-here","reason":"palette","changes":["Dark palette"]}')["changes"] == ["Dark palette"],
+   "a change verdict parses")
+ok(relay.parse_verdict('Here: {"verdict":"no-change","reason":"same product","changes":[]}')["verdict"] == "no-change",
+   "a no-change verdict parses, with text around the JSON")
+ok(relay.parse_verdict('{"verdict":"change-here","reason":"x","changes":[]}') is None, "change-here needs changes")
+ok(relay.parse_verdict('{"verdict":"no-change","reason":"x","changes":["y"]}') is None, "no-change carries no changes")
+ok(relay.parse_verdict('{"verdict":"maybe","reason":"x","changes":[]}') is None, "an unknown verdict is refused")
+ok(relay.parse_verdict("sure, looks fine") is None and relay.parse_verdict(None) is None, "prose is not a verdict")
+ok(relay.parse_agreement('{"agree":false,"reason":"needs own state"}', build=False) == {"agree": False, "reason": "needs own state"},
+   "a planning reader objects")
+ok(relay.parse_agreement('{"agree":true,"reason":"ok"}', build=True) is None, "a build reader must say affected")
+ok(relay.parse_agreement('{"agree":true,"reason":"ok","affected":true,"what":"race board colours"}', build=True)
+   == {"agree": True, "reason": "ok", "affected": True, "what": "race board colours"}, "a build reader agrees and says affected")
+ok(relay.parse_agreement('{"agree":"yes","reason":"ok"}', build=False) is None, "agree must be true or false")
+ok(relay.parse_affected('{"affected":false,"what":""}') == {"affected": False, "what": ""}, "affected parses")
+ok(relay.parse_affected('{"affected":true}') is None, "affected needs what")
+
 print(f"relay_test: {passed} checks passed")
