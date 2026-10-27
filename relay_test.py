@@ -109,4 +109,23 @@ ok(r.workflows[0]["covers_text"] == ["B2"] and r.goal["charter_items"][1] == "B2
    "an edited item keeps its charter number and stays covered by the workflow that covered it")
 ok(r._wf_items(r.workflows[0]) == [2] and r._no("B2") == 2, "J2 sees the edited item as covered, at number 2")
 
+# ---- Task 4: a revision's checks follow the charter
+DESIGN = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests_data", "relay_design.md"), encoding="utf-8").read()
+W2_CHECKS = [{"text": "design.md exists", "type": "file-exists", "target": "design.md", "expect": True, "item": 1},
+             {"text": "Design standards appear", "type": "facts-present",
+              "target": ["Large tap targets and readable numbers", WARM], "expect": True, "item": 2}]
+heads = relay.headings_of(DESIGN)
+ok(heads and all(not h.startswith("#") for h in heads) and len(heads) == len(set(heads)), "headings come out without #, once each")
+dd = relay.charter_diff({"charter_items": [], "done_when": [], "standards": ["Large tap targets and readable numbers", WARM]},
+                        {"done_when": [], "standards": ["Large tap targets and readable numbers", DARK]})
+cc = relay.carry_checks(W2_CHECKS, dd, DESIGN)
+fp = [c for c in cc if c["type"] == "facts-present"]
+ok(fp and fp[0]["target"] == ["Large tap targets and readable numbers", DARK], "the facts check targets the new standard")
+ok(not any("warm" in json.dumps(c).lower() for c in cc), "no check keeps the word the change removed")
+ok({c["target"] for c in cc if c["type"] == "heading-present"} == set(heads), "every earlier heading must still be there")
+ok(any(c["type"] == "file-exists" for c in cc) and W2_CHECKS[1]["target"][1] == WARM, "other checks carry over; the input is not changed")
+gone = relay.charter_diff({"charter_items": [], "done_when": [], "standards": [WARM, "X"]}, {"done_when": [], "standards": ["X"]})
+ok(not [c for c in relay.carry_checks(W2_CHECKS, gone, DESIGN) if c["type"] == "facts-present" and WARM in c["target"]],
+   "a removed standard is dropped from the facts check")
+
 print(f"relay_test: {passed} checks passed")

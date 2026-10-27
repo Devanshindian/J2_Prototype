@@ -4,6 +4,9 @@ sections (docs/superpowers/specs/2026-10-27-change-relay-design.md).
 Pure logic, no AI calls and no run state: the planning graph read from a run's workflows, the replies the relay's
 calls must give, the charter diff, the checks a revision carries, and the validator's rules while a change is open.
 j2.py does the wiring. Nothing here names a stage, a document or a workflow: everything comes from the run."""
+import copy
+import re
+
 import llm
 
 
@@ -216,3 +219,52 @@ def charter_diff(old, new):
 def diff_empty(d):
     return not (d["added"] or d["edited"] or d["removed"]
                 or any(d[k][x] for k in ("standards", "rules") for x in ("added", "edited", "removed")))
+
+
+# ---- the checks a planning revision carries: its predecessor's, following the charter, plus every earlier heading
+HEADING = re.compile(r"^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$", re.M)
+
+
+def headings_of(text):
+    """The markdown headings of a document, without the #, in order, once each."""
+    out = []
+    for h in HEADING.findall(text or ""):
+        if h not in out:
+            out.append(h)
+    return out
+
+
+def _swaps(diff):
+    """(old, new) for every edited charter string and (old, None) for every removed one."""
+    sw = [(o, n) for _, o, n in diff.get("edited") or []] + [(o, None) for _, o in diff.get("removed") or []]
+    for k in ("standards", "rules"):
+        sw += list(diff.get(k, {}).get("edited") or []) + [(o, None) for o in diff.get(k, {}).get("removed") or []]
+    return [(o, n) for o, n in sw if o]
+
+
+def _swap(text, swaps):
+    for o, n in swaps:
+        if text == o or (len(text) >= 8 and text in o):
+            return n
+    return text
+
+
+def carry_checks(verification, diff, old_text):
+    """The predecessor's checks with facts-present text that came from an edited charter string replaced by the new
+    string (dropped when the string was removed; a facts check left with nothing is dropped), plus a
+    heading-present check for every heading of the old file. The input is not changed."""
+    swaps, out = _swaps(diff), []
+    for c in copy.deepcopy(verification or []):
+        if c.get("type") == "facts-present":
+            t = c.get("target")
+            vals = [_swap(x, swaps) for x in (t if isinstance(t, list) else [t])]
+            vals = [x for x in vals if x]
+            if not vals:
+                continue
+            c["target"] = vals if isinstance(t, list) else vals[0]
+        if c.get("type") == "heading-present":
+            continue                          # replaced by the full list below
+        out.append(c)
+    out += [{"text": f"The document still has the heading {h}.", "type": "heading-present", "target": h, "expect": True}
+            for h in headings_of(old_text)]
+    return out
