@@ -51,6 +51,7 @@ import j2_board
 import j2_check
 import j2_map
 import j2_realization
+import j2_relay
 import j2_schema
 import j2_send
 import llm
@@ -2738,6 +2739,8 @@ class J2Run:
         # J2_REALIZATION=1: the judged realization plan, its decisions, whether its blocking facts were asked, the record
         self.realization = realization_on()
         self.real, self.real_decisions, self.real_asked, self.real_summary = None, {}, False, None
+        # The change relay (j2_relay.py): the open change, every change of the run (change.json), test-only verdicts
+        self.change, self.changes, self.relay_script = None, [], {}
         self._begin_cycle(advance=False)
 
     def set_output(self, out):
@@ -3203,6 +3206,8 @@ class J2Run:
             if key and str(text).strip().startswith(key):
                 return self._override(str(text).strip()[len(key):].strip())   # the key is never posted or stored
             self.post("user", text, **({"change": True} if self.done and not self.paused else {}))
+            if self.done and not self.paused and self._relay_applies():
+                self._open_change(text)
             if self.done:
                 self.done = False
                 if not self.paused:          # an answer to Identity's questions is not a change request
@@ -3283,7 +3288,7 @@ class J2Run:
                 self.request = last_user
                 self._plan_stages()
                 self._handoff("identity", kind="intake")
-            elif self.fixes:   # fix (b): a change request is checked at J2.a before Adaptation works on it
+            elif self.fixes or self.change:   # fix (b), and every change in a realization run: J2.a checks it first
                 self._handoff("identity", kind="intake", change=self.feedback, mark=len(self.intake))
             else:
                 self._handoff("adaptation", kind="propose", new_cycle=True,
@@ -3748,9 +3753,12 @@ class J2Run:
         change, mark = h.get("change"), h.get("mark", 0)      # J2_FIXES=1: a change request after done
         last = bool(h.get("force"))      # only after a reply with neither questions nor a charter
         if change:
+            keep = ("keep everything the change does not contradict; edit or remove what it contradicts, in done_when, "
+                    "standards and rules alike, keeping the order of what you keep; and add or adjust done-when items "
+                    "so the change is checkable" if self.change else
+                    "keep everything already in it and add or adjust done-when items so the change is checkable")
             feedback += (f"\nTHE REQUESTER ASKED FOR A CHANGE AFTER THE GOAL WAS REACHED: {change}\nJ2.a for the change: "
-                         "is there enough information to make it? If not, ask. If yes, return the updated charter: keep "
-                         "everything already in it and add or adjust done-when items so the change is checkable. "
+                         f"is there enough information to make it? If not, ask. If yes, return the updated charter: {keep}. "
                          f"CURRENT CHARTER: {json.dumps(self.goal, ensure_ascii=False)}")
 
         def mock():
@@ -3881,7 +3889,11 @@ class J2Run:
             goal["core_items"] = [c for c, k in zip(crit, core) if k is True]
         elif "core_items" in goal:                                       # a change request kept the old marks
             goal["core_items"] = [c for c in goal["core_items"] if c in crit]
+        before = self.goal
         self.goal = goal
+        if self.change and before:                  # the change relay: what Identity changed, by charter number
+            self.change["diff"] = j2_relay.charter_diff(before, goal)
+            self._follow_edits(self.change["diff"])
         self.save("goal.json", self.goal)
         ok, why = self._stamp_check()
         dropped = [str(d) for d in self.goal.get("dropped_from_brief") or [] if str(d).strip()]
@@ -3902,7 +3914,7 @@ class J2Run:
                                    "done-when items. Work can start."
                       + (f" Dropped with the Requester's agreement: {'; '.join(dropped)}." if dropped else ""),
                       "adaptation", stamp=True)
-            return self._handoff("adaptation", **start)
+            return self._after_charter(start)
         if h.get("attempt", 1) < 2:
             self._event("validator", "refused", f"charter: {why}")
             self._say("validator", f"Charter rejected: {why}.", "identity", stamp=False)
@@ -3910,7 +3922,7 @@ class J2Run:
                                  feedback=f"The validator rejected the charter: {why}. Fix only that.")
         self.stamped = True
         self.post("system", "Charter accepted after two attempts; the validator's concern is on record.")
-        self._handoff("adaptation", **start)
+        self._after_charter(start)
 
     @staticmethod
     def _tbc(raw, crit, keep=()):
@@ -4328,6 +4340,38 @@ class J2Run:
         """The run-long number of the item at current position i (None when there is no such item)."""
         crit = (self.goal or {}).get("done_when") or []
         return self._no(crit[as_int(i) - 1]) if 1 <= as_int(i) <= len(crit) else None
+
+    # ---- the change relay (j2_relay.py, docs/superpowers/specs/2026-10-27-change-relay-design.md)
+    def _relay_applies(self):
+        """A change on this run goes through the relay: a realization website run with a charter."""
+        return bool(self.realization and self.goal and not self.doc and not self.blueprint)
+
+    def _open_change(self, text):
+        self.change = {"id": f"C-{len(self.changes) + 1}", "request": text, "phase": "charter", "history": ["charter"],
+                       "diff": None, "nodes": {}, "documents_changed": [], "affected": [], "post_fixes": [],
+                       "chat0": len(self.chat), "calls0": self.calls, "spent0": self.spent, "closed": None}
+        self.changes.append(self.change)
+        self._save_change()
+
+    def _change_phase(self, phase):
+        self.change["phase"] = phase
+        if self.change["history"][-1] != phase:
+            self.change["history"].append(phase)
+        self._save_change()
+
+    def _save_change(self):
+        self.save("change.json", self.changes)
+
+    def _after_charter(self, start):
+        """Where the work goes once the charter is stamped: the relay for an open change, else Adaptation."""
+        if self.change and self.change["phase"] == "charter":
+            self._change_phase("relay")
+            return self._handoff("relay", kind="relay", start=start)
+        return self._handoff("adaptation", **start)
+
+    def _turn_relay(self, h):
+        """The relay's turn (Task 7 walks the planning documents here); until then Adaptation takes the change."""
+        self._handoff("adaptation", **h["start"])
 
     def _follow_edits(self, diff):
         """A change request edited charter items (j2_relay.charter_diff): each keeps its charter number, and every

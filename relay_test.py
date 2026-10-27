@@ -128,4 +128,55 @@ gone = relay.charter_diff({"charter_items": [], "done_when": [], "standards": [W
 ok(not [c for c in relay.carry_checks(W2_CHECKS, gone, DESIGN) if c["type"] == "facts-present" and WARM in c["target"]],
    "a removed standard is dropped from the facts check")
 
+# ---- Task 5: a change in a realization run goes to Identity on the change path
+import llm  # noqa: E402
+prompts, real_ask = [], llm.ask
+
+
+def spy(system, user, mock, **kw):
+    prompts.append(user)
+    return real_ask(system, user, mock, **kw)
+
+
+def done_run(on=True, script=None, plan=None):
+    """A mock realization run (Brew Lab) to Done, with J2_FIXES=0 as the default install has it."""
+    os.environ["J2_REALIZATION"], os.environ["J2_FIXES"] = ("1" if on else "0"), "0"
+    real_mocks = j2.j2_realization.default_mocks
+    if plan:
+        j2.j2_realization.default_mocks = lambda goal: {**real_mocks(goal), "plan": lambda rnd: json.dumps(plan(goal))}
+    try:
+        run = j2.J2Run()
+        run.relay_script = dict(script or {})
+        F.say(run, F.BREW_LAB)
+        F.finish(run)
+    finally:
+        j2.j2_realization.default_mocks = real_mocks
+    assert run.outcome.startswith("Done"), run.outcome
+    return run
+
+
+def change(run, text):
+    prompts.clear()
+    llm.ask = spy
+    try:
+        F.say(run, text)
+        F.finish(run)
+    finally:
+        llm.ask = real_ask
+
+
+run = done_run()
+change(run, "Make the look dark and minimal")
+asked = [p for p in prompts if "THE REQUESTER ASKED FOR A CHANGE" in p]
+ok(len(asked) == 1, "Identity got the change on the change path once, with J2_FIXES=0")
+ok("edit or remove what it contradicts" in asked[0] and "standards" in asked[0], "and may edit what the change contradicts")
+ok(run.change and run.change["id"] == "C-1" and "charter" in run.change["history"], "the change opened and passed the charter")
+ok(os.path.exists(os.path.join(run.dir, "change.json")), "change.json is written")
+ok([t for _, t in run.change["diff"]["added"]] == ["Change: Make the look dark and minimal"],
+   "the charter diff records the item Identity added for the change")
+plain = done_run(on=False)
+change(plain, "Make the look dark and minimal")
+ok(not any("THE REQUESTER ASKED FOR A CHANGE" in p for p in prompts) and plain.change is None
+   and not os.path.exists(os.path.join(plain.dir, "change.json")), "J2_REALIZATION=0: the J2_FIXES=0 path is unchanged")
+
 print(f"relay_test: {passed} checks passed")
