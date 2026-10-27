@@ -4329,6 +4329,19 @@ class J2Run:
         crit = (self.goal or {}).get("done_when") or []
         return self._no(crit[as_int(i) - 1]) if 1 <= as_int(i) <= len(crit) else None
 
+    def _follow_edits(self, diff):
+        """A change request edited charter items (j2_relay.charter_diff): each keeps its charter number, and every
+        workflow that covered it covers the new text, so coverage follows the number instead of being lost."""
+        items = (self.goal or {}).get("charter_items")
+        for no, old, new in diff.get("edited") or []:
+            if items and no and 0 < no <= len(items) and items[no - 1] == old:
+                items[no - 1] = new
+                if new in items[no:]:                 # J2.a appended the edited text as a new item: drop that copy
+                    del items[no + items[no:].index(new)]
+            for w in self._all_wfs():
+                if old in (w.get("covers_text") or []):
+                    w["covers_text"] = [new if t == old else t for t in w["covers_text"]]
+
     def _item_at(self):
         """Run-long number -> current position in done_when."""
         return {self._no(c): i for i, c in enumerate((self.goal or {}).get("done_when") or [], 1)}

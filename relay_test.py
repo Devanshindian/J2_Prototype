@@ -84,4 +84,29 @@ ok(relay.parse_agreement('{"agree":"yes","reason":"ok"}', build=False) is None, 
 ok(relay.parse_affected('{"affected":false,"what":""}') == {"affected": False, "what": ""}, "affected parses")
 ok(relay.parse_affected('{"affected":true}') is None, "affected needs what")
 
+# ---- Task 3: the charter diff; an edited item keeps its number and its coverage
+WARM, DARK = "Warm, friendly, uncluttered look and tone", "Dark, minimal, uncluttered look and tone"
+old = {"charter_items": ["A", "B"], "done_when": ["A", "B"], "standards": [WARM], "rules": ["No ads"]}
+new = {"done_when": ["A", "B2", "C"], "standards": [DARK], "rules": ["No ads"]}
+d = relay.charter_diff(old, new)
+ok(d["added"] == [(3, "C")] and d["edited"] == [(2, "B", "B2")] and d["removed"] == [],
+   "the diff names items by charter number: one edited, one added")
+ok(d["standards"]["edited"] == [(WARM, DARK)] and d["rules"] == {"added": [], "edited": [], "removed": []},
+   "the diff names the edited standard; unchanged rules give nothing")
+d2 = relay.charter_diff({"charter_items": ["A", "B", "C"], "done_when": ["A", "C"]}, {"done_when": ["A"]})
+ok(d2["removed"] == [(3, "C")] and d2["edited"] == [] and d2["added"] == [], "a dropped item is removed, by its number")
+ok(not relay.diff_empty(d) and relay.diff_empty(relay.charter_diff(old, dict(old))), "an unchanged charter is an empty diff")
+
+import j2_flow_test as F      # noqa: E402  (sets J2's test env: temp runs and memory)
+j2 = F.j2
+j2.j2_check.tap_targets, j2.j2_check.behavior = F.fake_tap_targets, F.fake_behavior
+j2.j2_check.check, j2.j2_check.find_chrome = F.fake_check, lambda: None
+r = j2.J2Run()
+r.goal = {"charter_items": ["A", "B", "C"], "done_when": ["A", "B2", "C"]}
+r.workflows = [{"id": "W-9", "covers": [2], "covers_text": ["B"], "status": "done"}]
+r._follow_edits({"added": [], "removed": [], "edited": [(2, "B", "B2")]})
+ok(r.workflows[0]["covers_text"] == ["B2"] and r.goal["charter_items"][1] == "B2",
+   "an edited item keeps its charter number and stays covered by the workflow that covered it")
+ok(r._wf_items(r.workflows[0]) == [2] and r._no("B2") == 2, "J2 sees the edited item as covered, at number 2")
+
 print(f"relay_test: {passed} checks passed")

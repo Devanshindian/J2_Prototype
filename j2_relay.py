@@ -170,3 +170,49 @@ def parse_agreement(reply, build):
             return None
         out.update(a)
     return out
+
+
+# ---- the charter diff: what Identity changed, by charter number (an edit keeps its number)
+def _pair(old, new):
+    """Positional pairing of two lists of strings: an item that changed in place is an edit; the rest are removed or
+    added. Returns (edited [(i, old, new)], removed [i], added [j]) by list index."""
+    edited, removed, added = [], [], []
+    for i, o in enumerate(old):
+        if o in new:
+            continue
+        if i < len(new) and new[i] not in old:
+            edited.append((i, o, new[i]))
+        else:
+            removed.append(i)
+    taken = {e[0] for e in edited}
+    added = [j for j, n in enumerate(new) if n not in old and j not in taken]
+    return edited, removed, added
+
+
+def _list_diff(old, new):
+    edited, removed, added = _pair(list(old or []), list(new or []))
+    return {"added": [new[j] for j in added], "edited": [(o, n) for _, o, n in edited],
+            "removed": [old[i] for i in removed]}
+
+
+def charter_diff(old, new):
+    """Done-when items by charter number (old charter_items numbering; an added item takes the next number) plus
+    the standards and rules: {"added": [(n, text)], "edited": [(n, old, new)], "removed": [(n, text)],
+    "standards": {"added", "edited", "removed"}, "rules": {...}}."""
+    items = list(old.get("charter_items") or old.get("done_when") or [])
+    no = lambda t: items.index(t) + 1 if t in items else None
+    o, n = list(old.get("done_when") or []), list(new.get("done_when") or [])
+    edited, removed, added = _pair(o, n)
+    nxt = len(items)
+    adds = []
+    for j in added:
+        nxt += 1
+        adds.append((nxt, n[j]))
+    return {"added": adds, "edited": [(no(a), a, b) for _, a, b in edited], "removed": [(no(o[i]), o[i]) for i in removed],
+            "standards": _list_diff(old.get("standards"), new.get("standards")),
+            "rules": _list_diff(old.get("rules"), new.get("rules"))}
+
+
+def diff_empty(d):
+    return not (d["added"] or d["edited"] or d["removed"]
+                or any(d[k][x] for k in ("standards", "rules") for x in ("added", "edited", "removed")))
