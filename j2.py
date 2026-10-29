@@ -7699,12 +7699,14 @@ class J2Run:
             reply = llm.extract_json(raw)
         except ValueError:
             state["schema_errors"] = ["reply: the reply is not one JSON object"]
+            self._artifact_layer_fail(w, attempt, model.template(), state["schema_errors"])
             raise ValueError(f"the reply must be one JSON object following {model.template()}") from None
         data = j2_artifact_models.normalise(model, reply.get("section"))
         obj, errs = j2_artifact_models.validate(model, data)
         state["schema_errors"] = errs
         state["schema_ok"] = not errs
         if errs:
+            self._artifact_layer_fail(w, attempt, model.template(), errs)
             raise ValueError(f"the section doesn't follow {model.template()}: " + "; ".join(errs))
         got = obj.model_dump(by_alias=True)
         self.art_data.setdefault(kind, {})[section] = got
@@ -7715,6 +7717,7 @@ class J2Run:
             if derrs:
                 state["schema_errors"] = derrs
                 state["schema_ok"] = False
+                self._artifact_layer_fail(w, attempt, j2_artifact_models.Design.template(), derrs)
                 raise ValueError(f"the style guide doesn't follow {j2_artifact_models.Design.template()}: "
                                  + "; ".join(derrs))
             guide = j2_artifact_models.style_from_design(d.model_dump(by_alias=True))
@@ -7725,10 +7728,23 @@ class J2Run:
         body = j2_artifact_models.render_section(kind, section, got)
         if not body:
             state["schema_errors"] = [f"section: no renderer for {kind} {section!r}"]
+            self._artifact_layer_fail(w, attempt, model.template(), state["schema_errors"], "artifact-render")
             raise ValueError(f"code cannot render {kind} {section!r}; the section name must be one of "
                              + ", ".join(j2_artifact_models.SECTION_MODELS[kind]))
         state["rendered"] = True
         return ("", body), guide
+
+    def _artifact_layer_fail(self, w, attempt, template, errors, kind="artifact-schema"):
+        """The receipt for a layer that failed before anything could be rendered (a reply that doesn't follow its
+        model, or a provider reply with nothing usable in it). Written by code, with the same words the retry gets."""
+        ev = "; ".join(errors or []) or "not recorded"
+        for a in w.get("atoms") or []:
+            rec = self._receipt(a, {"text": f"The reply follows {template}", "type": kind, "target": template,
+                                    "expect": True}, attempt,
+                                {"actual": False, "pass": False, "evidence": ev},
+                                template=template, template_version=j2_artifact_models.VERSION)
+            a.setdefault("results", []).append(rec)
+            break      # one receipt per attempt: the reply is the workflow's, not one atom's
 
     def _artifact_provider_fail(self, w, attempt, why):
         """The provider returned nothing code can use (subtype error_max_structured_output_retries, a refusal, a
@@ -7739,6 +7755,7 @@ class J2Run:
         st.update(schema_ok=False, schema_errors=[why], rules=[], rendered=False, attempt=attempt,
                   subtype=(llm.LAST_META.get("structured") or {}).get("subtype"),
                   template=st.get("template") or (self.art_schema or {}).get("template"))
+        self._artifact_layer_fail(w, attempt, st.get("template") or "not recorded", [why])
 
     def _artifact_receipts(self, w, attempt, kind, section, model):
         """One receipt per layer, every attempt, written by code: artifact-schema (the reply followed the model),

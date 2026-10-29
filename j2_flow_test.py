@@ -59,6 +59,7 @@ def fingerprint(paths):
 
 REAL_BEFORE = fingerprint(REAL_MEMORY)
 import j2  # noqa: E402
+import j2_artifacts  # noqa: E402
 for _k in ("J2_SEND_MODE", *j2.j2_send.SMTP_VARS, "J2_SEND_CAP"):      # .env is never used here: the tests never send a real email
     os.environ.pop(_k, None)
 ATOM = [j2.mock_atom({})]            # a complete work atom for workflows a test registers directly
@@ -5092,6 +5093,316 @@ def board_story_view():
           "every number is computed from the files, and a run with no board.json has no story ok")
 
 
+
+def schema_run(brief=None, budget=1400, patch=None, demo=False, label="artifact schema demo run"):
+    """A mock run with J2_ARTIFACT_SCHEMA=1: the Still Point documents-plus-website brief unless another is given.
+    The flag is set around this run only, so the tests after it see the plain flow again."""
+    keep = os.environ.get("J2_ARTIFACT_SCHEMA")
+    os.environ["J2_ARTIFACT_SCHEMA"] = "1"
+    try:
+        run = docs_run(brief or YOGA_BRIEF, budget, patch=patch)
+        finish(run)
+    finally:
+        if keep is None:
+            os.environ.pop("J2_ARTIFACT_SCHEMA", None)
+        else:
+            os.environ["J2_ARTIFACT_SCHEMA"] = keep
+    if demo:
+        print(f"{label}: {os.path.basename(run.dir)} ({run.outcome})")
+    return run
+
+
+def art_recs(run, kind=None, atom=None):
+    """The artifact-schema / artifact-rules / artifact-render receipts of a run, newest last."""
+    return [r for r in j2._jsonl(run.dir, "receipts.jsonl")
+            if str(r.get("type")).startswith("artifact-") and (kind is None or r["type"] == kind)
+            and (atom is None or r["atom"] == atom)]
+
+
+def bad_section_mock(target, drop="statement", section=None):
+    """patch for docs_run: the first reply of workflow <target> comes back missing a field its section model
+    requires, so the shape layer must fail and the retry must fix it."""
+    state = {"done": False}
+
+    def patch(run, orig):
+        def call(fn, fmt, task, mock, **k):
+            if fn == target and not state["done"] and k.get("schema"):
+                state["done"] = True
+                inner = mock
+
+                def broken():
+                    d = json.loads(inner())
+                    sec = d.get("section") or {}
+                    sec.pop(drop, None)
+                    for key in list(sec):
+                        if section and key != section:
+                            continue
+                    d["section"] = sec
+                    return json.dumps(d, ensure_ascii=False)
+                mock = broken
+            return orig(fn, fmt, task, mock, **k)
+        return call
+    return patch
+
+
+def bad_reference_mock(target="W-9", bad="R9", attempts=(1,)):
+    """patch for docs_run: the Components builder covers a requirement id the PRD doesn't have, on the given
+    attempts only, so the rules layer must fail with that evidence and the retry must fix it."""
+    state = {"n": 0}
+
+    def patch(run, orig):
+        def call(fn, fmt, task, mock, **k):
+            if fn == target and k.get("schema"):
+                state["n"] += 1
+                if state["n"] in attempts:
+                    inner = mock
+
+                    def gap():
+                        d = json.loads(inner())
+                        comps = (d.get("section") or {}).get("components") or []
+                        if comps:
+                            comps[0]["covers"] = [bad]
+                        return json.dumps(d, ensure_ascii=False)
+                    mock = gap
+            return orig(fn, fmt, task, mock, **k)
+        return call
+    return patch
+
+
+def artifact_schemas():
+    """Artifact templates (artifact-schema/1, J2_ARTIFACT_SCHEMA=1): every artifact J2 generates comes out of a
+    defined template, enforced at generation (the schema goes with the call) and verified inside the workflow (shape,
+    rules, render), with the existing checks running unchanged on what code rendered.
+
+    With the flag unset nothing is recorded and nothing changes (plain_unchanged guards the prompts). With it set, a
+    mock documents-plus-website run of the Still Point brief ends Done, every builder atom passes all three layers,
+    the data is saved beside each document, and the rendered markdown still passes the P, H and L conditions. The
+    templates themselves are checked against the section constants and their conditions, and every transport schema
+    is draft-07 and accepted by `claude --json-schema`."""
+    import shutil
+    import subprocess
+    import j2_artifact_models as AM
+    # (e) the drift test: the templates are the code's own sections, in code order, with the conditions they come from
+    for kind, want in (("prd", j2.PRD_SECTIONS), ("hld", j2.HLD_SECTIONS), ("lld", j2.LLD_SECTIONS)):
+        assert list(AM.SECTION_MODELS[kind]) == list(want), (kind, list(AM.SECTION_MODELS[kind]))
+        conds = {c["id"] for c in j2.load_conditions(kind + ".json")}
+        for sec in want:
+            named = AM.SECTION_CONDITIONS[kind][sec]
+            assert named and set(named) <= conds, (kind, sec, named)
+            assert AM.rule_names(kind, sec), (kind, sec, "every section names the rules code holds it to")
+            assert AM.model_for(kind, sec).SECTION == sec, (kind, sec)
+            assert AM.render_section(kind, sec, {}) is not None, (kind, sec, "every section renders")
+    assert list(AM.SECTION_MODELS["design"]) == ["Style guide"] and list(AM.SECTION_MODELS["website"]) == ["Section"]
+    assert AM.PRD.TEMPLATE == "PRD/1" and AM.Design.TEMPLATE == "Design/1" and AM.VERSION == 1
+    assert list(AM.PRD.model_fields) == ["problem", "users", "goals", "requirements", "success_metrics",
+                                         "out_of_scope", "assumptions"], list(AM.PRD.model_fields)
+    assert list(AM.HLD.model_fields)[:6] == ["purpose", "pages", "components", "data_flows", "hosting", "risks"]
+    assert list(AM.LLD.model_fields)[:6] == ["sections", "elements", "form_fields", "files", "responsive_rules",
+                                             "accessibility_rules"]
+    assert list(AM.WebsiteSection.model_fields)[:3] == ["id", "anchor", "implements"]
+    # (f) every transport schema: draft-07, closed objects, nothing the transport forbids, and the CLI accepts it
+    chrome_free = ["minLength", "maxLength", "minItems", "maxItems", "pattern", "format", "$defs", "2020-12"]
+    sizes = {}
+    for kind, by in AM.SECTION_MODELS.items():
+        for sec, model in by.items():
+            sch = AM.reply_schema(model, {})
+            txt = json.dumps(sch)
+            assert sch["$schema"] == "http://json-schema.org/draft-07/schema#", (sec, sch.get("$schema"))
+            assert all(x not in txt for x in chrome_free), (sec, [x for x in chrome_free if x in txt])
+            assert sch["required"][0] == "reason" and "section" in sch["required"], (sec, sch["required"])
+            assert sch["additionalProperties"] is False and len(txt) < 8000, (sec, len(txt))
+            for node in re.findall(r'"type": "object"', txt):      # every object is closed
+                pass
+            assert txt.count('"type": "object"') == txt.count('"additionalProperties": false'), sec
+            assert len(AM.schema_sha(sch)) == 64
+            sizes[model.template()] = len(txt)
+    if shutil.which("claude"):      # the CLI validates the schema before any model call: a bogus model costs nothing
+        env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+        for kind, by in AM.SECTION_MODELS.items():
+            for sec, model in by.items():
+                p = subprocess.run(["claude", "-p", "--output-format", "json", "--json-schema",
+                                    json.dumps(AM.reply_schema(model, {})), "--model", "no-such-model-xyz",
+                                    "--tools", "", "--setting-sources", "", "--strict-mcp-config",
+                                    "--no-session-persistence", "hi"], capture_output=True, text=True, env=env,
+                                   input="", timeout=120)
+                out = (p.stdout or "") + (p.stderr or "")
+                assert "is not a valid JSON Schema" not in out, (model.template(), out[:200])
+        bad = subprocess.run(["claude", "-p", "--output-format", "json", "--json-schema",
+                              '{"type":"object","properties":{"x":{"type":"nonsense"}}}', "--model",
+                              "no-such-model-xyz", "--tools", "", "--setting-sources", "", "--strict-mcp-config",
+                              "--no-session-persistence", "hi"], capture_output=True, text=True, env=env, input="",
+                             timeout=120)
+        assert "is not a valid JSON Schema" in (bad.stdout or "") + (bad.stderr or ""), "the CLI checks the schema"
+    # (a) the flag unset: no schema sent, no artifact receipt, no data file
+    os.environ.pop("J2_ARTIFACT_SCHEMA", None)
+    off = docs_run(BREW_LAB, 200)
+    assert off.schemas is False and not art_recs(off), art_recs(off)[:1]
+    assert not any(c.get("artifact_schema") for c in calls_file(off)), "no schema record in calls.jsonl"
+    assert not [f for f in os.listdir(off.dir) if f in ("website.json", "design.json", "prd.json")]
+    if shutil.which("node"):
+        card_off = render_node(off.snapshot(), docs={"docs": {}})["cards"][off.workflows[0]["id"]]
+        assert 'data-block="artifact_template"' not in card_off, "no block with the flag off"
+    # (b) the Still Point documents-plus-website run with the flag on
+    run = schema_run()
+    assert run.outcome.startswith("Done"), run.outcome
+    recs = art_recs(run)
+    assert recs and not [r for r in recs if not r["pass"]], [r for r in recs if not r["pass"]][:2]
+    assert all(r["by"] == "code" for r in recs), "written by code only"
+    atoms = {a["id"] for w in run._all_wfs() for a in w.get("atoms") or [] if w.get("section")}
+    built = {r["atom"] for r in recs}
+    assert built and built <= atoms and len(built) >= 20, (len(built), len(atoms))
+    for aid in built:      # every builder atom passed all three layers
+        for t in ("artifact-schema", "artifact-rules", "artifact-render"):
+            mine = [r for r in recs if r["atom"] == aid and r["type"] == t]
+            assert mine and mine[-1]["pass"] is True, (aid, t, mine[-1:])
+    tmpls = {r.get("template") for r in recs}
+    assert tmpls >= {"PRD/1 · Problem", "HLD/1 · Components", "LLD/1 · Form fields",
+                     "WebsiteSection/1 · Section"}, sorted(tmpls)
+    assert all(r.get("template_version") == AM.VERSION for r in recs)
+    # the data beside each document, and the document code rendered from it
+    for kind in ("prd", "hld", "lld", "design", "website"):
+        f = os.path.join(run.dir, f"{kind}.json")
+        assert os.path.isfile(f), f
+        rec = json.load(open(f, encoding="utf-8"))
+        assert rec["schema"] == AM.SCHEMA and rec["sections"] and rec["version"], rec.get("template")
+        assert rec["template"] == AM.DOC_MODELS[kind].TEMPLATE, (kind, rec["template"])
+        assert any(re.fullmatch(rf"{kind}-v\d+\.json", x) for x in os.listdir(os.path.join(run.dir, "site"))), kind
+    for kind, secs in (("prd", j2.PRD_SECTIONS), ("hld", j2.HLD_SECTIONS), ("lld", j2.LLD_SECTIONS)):
+        text = open(os.path.join(run.dir, f"{kind}.md"), encoding="utf-8").read()
+        assert [h for lv, h, _ in j2.md_sections(text) if lv == 2][:len(secs)] == list(secs), (kind, text[:200])
+    # (e) the rendered markdown still passes the document conditions, and the readers still read it
+    au = {a.get("output"): a for a in j2._read(run.dir, "audits.json", []) or [] if a.get("conditions")}
+    for kind in ("prd", "hld", "lld"):
+        conds = (j2._read(run.dir, f"stage-{kind}.json", {}) or {}).get("audits") or []
+        last = (conds or [{}])[-1].get("conditions") or (au.get(kind) or {}).get("conditions") or []
+        assert last and all(c["met"] or c.get("severity") == "warn" for c in last), (kind, [(c["id"], c["met"]) for c in last])
+    hld = open(os.path.join(run.dir, "hld.md"), encoding="utf-8").read()
+    comps = j2.parse_hld(hld)
+    assert comps and all(c["covers"] and c["responsibility"] for c in comps), comps[:2]
+    lld = j2.parse_lld(open(os.path.join(run.dir, "lld.md"), encoding="utf-8").read())
+    assert lld["sections"] and all(s["anchor"] and s["implements"] for s in lld["sections"]), lld["sections"][:2]
+    assert lld["elements"] and all(e["selector"] and e["trigger"] and e["behaviour"] for e in lld["elements"])
+    assert lld["fields"] and all(f["name"] and f["type"] and f["required"] is not None for f in lld["fields"])
+    # the schema really went with each builder call, and the records say which one
+    sent = [c for c in calls_file(run) if c.get("artifact_schema")]
+    assert sent and all(set(c["artifact_schema"]) == {"template", "version", "schema_sha", "schema_bytes", "subtype",
+                                                      "structured_output", "attempt"} for c in sent)
+    assert all(c["artifact_schema"]["structured_output"] and len(c["artifact_schema"]["schema_sha"]) == 64
+               and c["artifact_schema"]["schema_bytes"] < 8000 for c in sent)
+    assert {c["artifact_schema"]["template"] for c in sent} == tmpls - {None}, "one schema per section"
+    assert all('"section"' in c["prompt"] or "YOUR TEMPLATE" in c["prompt"] for c in sent)
+    # (h) older saved runs still open: a run recorded without the flag has no artifact rows and no data file
+    here = os.path.dirname(os.path.abspath(__file__))
+    real = [os.path.join(here, "runs", x) for x in sorted(os.listdir(os.path.join(here, "runs")))[:3]] \
+        if os.path.isdir(os.path.join(here, "runs")) else []
+    for d in [x for x in real if os.path.isdir(x)]:
+        assert j2_artifacts.tree(d)["groups"], d
+        assert not [r for r in j2._jsonl(d, "receipts.jsonl") if str(r.get("type")).startswith("artifact-")] \
+            or os.path.isfile(os.path.join(d, "prd.json")), d
+    # the page: the Artifact template block between Defined output and Verification, and the data in the Artifacts tab
+    if shutil.which("node"):
+        snap = run.snapshot()
+        wf = next(w for w in snap["workflows"] if (w.get("atoms") or [{}])[0].get("id") in built)
+        card = render_node(snap, docs={"docs": {}})["cards"][wf["id"]]
+        order = re.findall(r'data-block="(\w+)"', card)
+        assert order.index("artifact_template") == order.index("expected_output") + 1, order
+        assert order.index("artifact_template") + 1 == order.index("verification"), order
+        blk = card.split('data-block="artifact_template"')[1].split('data-block="verification"')[0]
+        assert re.findall(r'data-artrow="(\w+)"', blk) == ["template", "schema", "rules", "rendered"], blk[:200]
+        txt = " ".join(re.sub(r"<[^>]+>", " ", blk).split())
+        assert "/1" in txt and "pass" in txt and "rule(s) met" in txt and "yes" in txt, txt[:200]
+        assert blk.count('data-link="artreceipt"') == 3, blk[:300]
+        tree = j2_artifacts.tree(run.dir)
+        rows = [c["name"] for g in tree["groups"] for it in g["items"] for c in it.get("children") or []]
+        assert "Template data (PRD/1)" in rows and "Template data (HLD/1)" in rows, rows[:8]
+    print("artifact schemas: the templates are the code's own sections with their conditions, every transport schema "
+          f"is draft-07 and accepted by claude --json-schema ({min(sizes.values())}-{max(sizes.values())} bytes), the "
+          f"Still Point run ends Done with all three layers passing on {len(built)} builder atoms, the data is saved "
+          "beside each document, and the markdown code rendered still passes P1-P8, H1-H6 and L1-L6 ok")
+
+
+def artifact_schema_failures():
+    """Artifact templates, the planted failures. A reply missing a field its model requires fails the shape layer and
+    is retried with Pydantic's exact words; an HLD component covering a requirement the PRD doesn't have fails the
+    rules layer with that evidence and the retry fixes it; a reply with no usable structured output (subtype
+    error_max_structured_output_retries, or success with nothing in structured_output) is a failed attempt with the
+    subtype as its evidence."""
+    import j2_artifact_models as AM
+    # (c) a reply missing a required field: the shape layer fails, the retry carries the error, then it passes
+    bad = schema_run(patch=bad_section_mock("W-1", drop="statement"))
+    assert bad.outcome.startswith("Done"), bad.outcome
+    recs = art_recs(bad, "artifact-schema", "W-1.a1")
+    assert [r["pass"] for r in recs][:2] == [False, True], [(r["attempt"], r["pass"], r["evidence"][:40]) for r in recs]
+    assert "statement" in recs[0]["evidence"] and "Field required" in recs[0]["evidence"], recs[0]["evidence"]
+    assert recs[0]["template"] == "PRD/1 · Problem" and recs[0]["by"] == "code", recs[0]
+    calls = [c for c in calls_file(bad) if c.get("atom") == "W-1.a1" and c.get("artifact_schema")]
+    assert len(calls) >= 2 and any("statement" in c["prompt"] and "REJECTED" in c["prompt"] for c in calls[1:]), \
+        "the retry carries Pydantic's own words"
+    w1 = next(w for w in bad._all_wfs() if w["id"] == "W-1")
+    assert w1["retries_used"] >= 1 and w1["status"] == "done", (w1["retries_used"], w1["status"])
+    assert any(m["who"] == "system" and "can't be used" in m["text"] and "PRD/1" in m["text"] for m in bad.chat), \
+        [m["text"][:80] for m in bad.chat if m["who"] == "system"][:4]
+    # (d) a reference the earlier document doesn't have: the rules layer fails with that evidence
+    ref = schema_run(patch=bad_reference_mock("W-9", "R9", attempts=(1,)))
+    assert ref.outcome.startswith("Done"), ref.outcome
+    rr = art_recs(ref, "artifact-rules", "W-9.a1")
+    assert [r["pass"] for r in rr][:2] == [False, True], [(r["attempt"], r["pass"], r["evidence"][:50]) for r in rr]
+    assert "R9" in rr[0]["evidence"] and "not a requirement of the PRD" in rr[0]["evidence"], rr[0]["evidence"]
+    assert art_recs(ref, "artifact-schema", "W-9.a1")[0]["pass"] is True, "the shape was fine; the reference was not"
+    assert any("R9" in c["prompt"] for c in calls_file(ref) if c.get("atom") == "W-9.a1"), \
+        "the builder is sent the reference it got wrong"
+    hld = open(os.path.join(ref.dir, "hld.md"), encoding="utf-8").read()
+    reqs = {r["id"] for r in (ref.chain.get("prd") or {}).get("requirements") or []}
+    assert all(set(c["covers"]) <= reqs for c in j2.parse_hld(hld)), (j2.parse_hld(hld)[:2], reqs)
+    # a reference that stays wrong on every attempt takes the existing path to Adaptation
+    stuck = schema_run(patch=bad_reference_mock("W-9", "R9", attempts=(1, 2, 3, 4, 5)))
+    srr = art_recs(stuck, "artifact-rules", "W-9.a1")
+    assert srr and all(r["pass"] is False for r in srr), [(r["attempt"], r["pass"]) for r in srr]
+    assert any(m["who"] == "adaptation" or "Adaptation" in m.get("text", "") for m in stuck.chat), "Adaptation got it"
+    # (g) no usable structured output: both cases are failed attempts, with the subtype as the evidence
+    import llm
+    class FakeRun:
+        def __init__(self, payload):
+            self.payload, self.returncode, self.stderr = payload, 0, ""
+        @property
+        def stdout(self):
+            return json.dumps(self.payload)
+    for payload, want in (({"subtype": "error_max_structured_output_retries", "result": "", "is_error": True},
+                           "error_max_structured_output_retries"),
+                          ({"subtype": "success", "result": "{}", "is_error": False}, "no structured_output")):
+        keep = llm.subprocess.run
+        llm.subprocess.run = lambda *a, **k: FakeRun(payload)
+        try:
+            raised = None
+            try:
+                llm._run_claude_cli(["claude"], None, "hi", {}, lambda e: None, {"type": "object"})
+            except RuntimeError as e:
+                raised = str(e)
+        finally:
+            llm.subprocess.run = keep
+        assert raised and want in raised, (want, raised)
+        assert (llm.LAST_META.get("structured") or {}).get("subtype") == payload["subtype"], llm.LAST_META
+    # and in a run: the builder's first call brings nothing usable, the next one does
+    state = {"done": False}
+
+    def patch(run, orig):
+        def call(fn, fmt, task, mock, **k):
+            if fn == "W-2" and k.get("schema") and not state["done"]:
+                state["done"] = True
+                raise RuntimeError("claude -p structured output failed: subtype "
+                                   "'error_max_structured_output_retries'")
+            return orig(fn, fmt, task, mock, **k)
+        return call
+    prov = schema_run(patch=patch)
+    assert prov.outcome.startswith("Done"), prov.outcome
+    pr = art_recs(prov, "artifact-schema", "W-2.a1")
+    assert pr and pr[0]["pass"] is False and "error_max_structured_output_retries" in pr[0]["evidence"], pr[:1]
+    assert pr[-1]["pass"] is True, [(r["attempt"], r["pass"]) for r in pr]
+    print("artifact schema failures: a missing field fails the shape layer and the retry carries Pydantic's words; a "
+          "component covering R9 fails the rules layer with that evidence and the retry fixes it (and a gap that "
+          "stays goes to Adaptation); a reply with subtype error_max_structured_output_retries, and one with success "
+          "but no structured_output, are failed attempts with the subtype as the evidence ok")
+
 def board_functions_off():
     """Message board, Part B: the same brief and change request with J2_BOARD unset write no board file, ask
     nothing, and no prompt carries the board fields or the BOARD block (the flag gates all of it; plain_unchanged
@@ -7943,6 +8254,24 @@ def docs_intake_and_compare():
 
 
 if __name__ == "__main__":
+    if "--schema-demo" in sys.argv or "--schema-fail-demo" in sys.argv:
+        # python3 j2_flow_test.py --fast --schema-demo [--schema-fail-demo]: the artifact-template demo runs
+        # (artifact_schemas' own run), saved to runs/ as evidence instead of the temp folder. Mock mode.
+        j2.RUNS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "runs")
+        fail = "--schema-fail-demo" in sys.argv
+        demo = schema_run(patch=(lambda run, orig: bad_reference_mock("W-9", "R9", attempts=(1,))(
+            run, bad_section_mock("W-1", drop="statement")(run, orig))) if fail else None, demo=True,
+            label="artifact templates demo run (planted failures)" if fail else "artifact templates demo run (clean)")
+        for t in ("artifact-schema", "artifact-rules", "artifact-render"):
+            rs = art_recs(demo, t)
+            print(f"  {t}: {sum(1 for r in rs if r['pass'])} passed, {sum(1 for r in rs if not r['pass'])} failed"
+                  + (f" ({'; '.join(r['evidence'][:60] for r in rs if not r['pass'])})"
+                     if any(not r["pass"] for r in rs) else ""))
+        print("  data:", ", ".join(sorted(f for f in os.listdir(demo.dir)
+                                          if f in ("prd.json", "hld.json", "lld.json", "design.json",
+                                                   "website.json"))))
+        print(f"http://127.0.0.1:8773/?run={os.path.basename(demo.dir)}&view=detail")
+        sys.exit(0)
     if "--board-doc-demo" in sys.argv:
         # python3 j2_flow_test.py --fast --board-doc-demo: the document-change demo (board_doc_change's own run),
         # saved to runs/ as evidence instead of the temp folder. Mock mode, the browser measurement stubbed.
@@ -8011,6 +8340,9 @@ if __name__ == "__main__":
         plain_unchanged(board="0")                 # J2_BOARD=0 explicitly set: still identical, prompt for prompt
         charter_crash_fix()
         validator_fixes()
+        if mode == "0":      # artifact-schema/1 doesn't branch on J2_FIXES: the runs are long, so once
+            artifact_schemas()
+            artifact_schema_failures()
         board_disabled()
         board_functions_off()
         os.environ["J2_BOARD"] = "1"
