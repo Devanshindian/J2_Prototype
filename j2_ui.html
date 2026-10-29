@@ -684,6 +684,25 @@ function atomPreview(a, v){
   return PREVIEWS[a.id] ? `<iframe class="apreview" data-preview="frame" sandbox="" title="What this atom built" srcdoc="${esc(PREVIEWS[a.id])}"></iframe>`
     : `<div class="apreview" data-preview="text">${esc(h || "")}</div>`;
 }
+const ART_TYPES = ["artifact-schema", "artifact-rules", "artifact-render"];
+const artLast = (a, t) => (a.results || []).filter(r => r.type === t).slice(-1)[0] || null;
+function artifactRows(a){
+  const got = ART_TYPES.map(t => artLast(a, t));
+  if (!got.some(Boolean)) return "";
+  const call = (CTX && CTX.call_log || []).filter(c => c.atom === a.id && c.artifact_schema).slice(-1)[0];
+  const sub = call && call.artifact_schema && call.artifact_schema.subtype;
+  const tmpl = (got.find(r => r && r.template) || {}).template || (call && call.artifact_schema && call.artifact_schema.template) || "not recorded";
+  const chip = r => !r ? '<span class="empty">not recorded</span>' : `<span class="${r.pass ? "pass" : "fail"}">${r.pass ? "pass" : "fail"}</span>`;
+  const link = (r, t) => r ? `<button type="button" class="linkbtn" data-link="artreceipt" data-atom="${esc(a.id)}" data-arttype="${esc(t)}">receipt</button>` : "";
+  const row = (key, label, body) => `<div data-artrow="${esc(key)}"><b>${label}</b> ${body}</div>`;
+  const rules = got[1];
+  return row("template", "Template", `<span class="code">${esc(tmpl)}</span>`)
+    + row("schema", "Schema valid", `${chip(got[0])} <span class="empty">${got[0] ? "attempt " + esc(got[0].attempt) : ""}`
+        + `${sub && sub !== "success" ? " · result subtype " + esc(sub) : ""}${got[0] && !got[0].pass ? " · " + esc(got[0].evidence) : ""}</span> ${link(got[0], "artifact-schema")}`)
+    + row("rules", "Rules", `${chip(rules)} <span class="empty">${rules ? esc(rules.evidence) : ""}</span> ${link(rules, "artifact-rules")}`)
+    + row("rendered", "Rendered", `${got[2] && got[2].pass ? '<span class="pass">yes</span>' : got[2] ? '<span class="fail">no</span>' : '<span class="empty">not recorded</span>'}`
+        + ` <span class="empty">${got[2] ? esc(got[2].evidence) : ""}</span> ${link(got[2], "artifact-render")}`);
+}
 function atomBlocks(a, w, v){
   const ag = a.agent_output, res = a.results || [], ok = res.filter(r => r.pass === true).length, bad = res.filter(r => r.pass === false).length;
   const g = t => `<h4 class="agroup">${t}</h4>`;
@@ -711,6 +730,8 @@ function atomBlocks(a, w, v){
     + blockHTML(a, "context", "Context", "What it needs to know", atomRow(a, "context", w), true)
     + g("2. Defined output and verification")
     + blockHTML(a, "expected_output", "Defined output", "What must exist when it is done", atomRow(a, "expected_output", w), false)
+    + (artifactRows(a) ? blockHTML(a, "artifact_template", "Artifact template",
+        "The template its data followed, and what code made of it", artifactRows(a), false) : "")
     + blockHTML(a, "verification", "Verification", "The check that proves the goal is met",
         `${res.length ? `${ok} passed, ${bad} failed of ${res.length}.` : "Not run yet."} <button type="button" class="linkbtn" data-link="evidence" data-atom="${esc(a.id)}">Verification evidence</button>`
         + foldBlock(`blk-${a.id}-evidence`, atomRow(a, "verification", w)), false)
@@ -2330,6 +2351,11 @@ async function wantPreview(id){
 }
 $("pane-workflows").addEventListener("click", e => { const b = e.target.closest("[data-link]"); if (!b || b.tagName === "A") return;
   const a = state.workflows.flatMap(w => w.atoms || []).find(x => x.id === b.dataset.atom); if (!a) return;
+  if (b.dataset.link === "artreceipt"){      // the receipt code wrote for one layer of the artifact template
+    const rs = (a.results || []).filter(r => r.type === b.dataset.arttype);
+    $("dtitle").textContent = `${a.id} · ${b.dataset.arttype} receipt${rs.length > 1 ? "s" : ""}`;
+    $("dbody").innerHTML = `<pre>${esc(JSON.stringify(rs, null, 2))}</pre>`;
+    $("detail").showModal(); return; }
   $("dtitle").textContent = `${a.id} · ${b.dataset.link === "agent" ? "workflow output" : "verification evidence"}`;
   $("dbody").innerHTML = `<pre>${esc(JSON.stringify(b.dataset.link === "agent" ? a.agent_output : (a.results || []), null, 2))}</pre>`;
   $("detail").showModal(); });

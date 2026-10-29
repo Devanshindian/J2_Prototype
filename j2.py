@@ -6463,8 +6463,17 @@ class J2Run:
                     if art_model is not None:      # data, not markdown: one JSON object that follows the template
                         fmt_task = (self._artifact_reply_format(art_model, first),
                                     fmt_task[1] + self._artifact_task(art_kind, art_sec, art_model, first))
-                    raw = self.call(fn, *fmt_task, mock, max_tokens=16000, json_reply=False, schema=schema)
+                    prov_err = None
                     try:
+                        raw = self.call(fn, *fmt_task, mock, max_tokens=16000, json_reply=False, schema=schema)
+                    except RuntimeError as e:      # no usable structured output: a refusal, a cut-off, a bad subtype
+                        if schema is None:
+                            raise
+                        raw, prov_err = "", str(e)
+                    try:
+                        if prov_err:
+                            self._artifact_provider_fail(w, attempt, prov_err)
+                            raise ValueError(prov_err)
                         if art_model is not None:      # J2_ARTIFACT_SCHEMA=1: data in, markdown rendered by code
                             parts, guide = self._read_artifact(w, raw, art_kind, art_sec, art_model, sid, first,
                                                                attempt)
@@ -7721,6 +7730,16 @@ class J2Run:
         state["rendered"] = True
         return ("", body), guide
 
+    def _artifact_provider_fail(self, w, attempt, why):
+        """The provider returned nothing code can use (subtype error_max_structured_output_retries, a refusal, a
+        cut-off reply, or no structured_output at all): recorded as this attempt's shape failure, with the subtype as
+        the evidence, so the existing retry path takes it."""
+        aid = (w.get("atoms") or [{}])[0].get("id")
+        st = self.art_state.setdefault(aid, {})
+        st.update(schema_ok=False, schema_errors=[why], rules=[], rendered=False, attempt=attempt,
+                  subtype=(llm.LAST_META.get("structured") or {}).get("subtype"),
+                  template=st.get("template") or (self.art_schema or {}).get("template"))
+
     def _artifact_receipts(self, w, attempt, kind, section, model):
         """One receipt per layer, every attempt, written by code: artifact-schema (the reply followed the model),
         artifact-rules (its references point at ids that exist, here and in the earlier documents) and
@@ -7763,8 +7782,9 @@ class J2Run:
         data = self.art_data.get(kind)
         if not data:
             return
-        rec = {"schema": j2_artifact_models.SCHEMA, "template": f"{kind.upper() if kind != 'design' else 'Design'}/"
-               f"{j2_artifact_models.VERSION}", "artifact": kind, "version": version, "sections": data}
+        model = j2_artifact_models.DOC_MODELS.get(kind)
+        rec = {"schema": j2_artifact_models.SCHEMA, "template": getattr(model, "TEMPLATE", kind),
+               "artifact": kind, "version": version, "sections": data}
         self.save(f"{kind}.json", rec)
         os.makedirs(os.path.join(self.dir, "site"), exist_ok=True)
         with open(os.path.join(self.dir, "site", f"{kind}-v{version}.json"), "w", encoding="utf-8") as f:

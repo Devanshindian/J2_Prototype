@@ -804,10 +804,48 @@ def rule_errors(kind, section, data, chain=None, lld=None):
     return out
 
 
-def rules_count(kind, section, data):
-    """How many template rules this section's data was held to (the model's own, plus the cross-document ones), so
-    the card can say "n of m"."""
-    model = model_for(kind, section)
-    n = len(model.model_fields) if model else 0
-    extra = {("hld", "Components"): 1, ("lld", "Pages and sections"): 1, ("website", "Section"): 1}
-    return n + extra.get((kind, section), 0)
+# The template rules code holds each section to, by name: the model's own validators and the references that need
+# another document. The card says "n of m" from these, so the number means something a reader can check.
+RULE_NAMES = {
+    ("prd", "Problem"): ["the problem statement is given"],
+    ("prd", "Users"): ["every user group is named", "a group with no actions is marked as having none"],
+    ("prd", "Goals"): ["ids G1, G2, ... unique and in order"],
+    ("prd", "Requirements"): ["ids R1, R2, ... unique and in order", "priority is must, should or could",
+                              "goals point at a goal id of this document"],
+    ("prd", "Success metrics"): ["every metric names a goal id of this document"],
+    ("prd", "Out of scope"): ["the out-of-scope lines are given"],
+    ("hld", "Purpose and scope"): ["the purpose is given"],
+    ("hld", "Pages"): ["ids P1, P2, ... unique and in order"],
+    ("hld", "Components"): ["ids C1, C2, ... unique and in order", "every component states its responsibility",
+                            "page points at a page id of this document",
+                            "covers points at a requirement id of the PRD"],
+    ("hld", "Data flow"): ["every flow has from, to, data and trigger"],
+    ("hld", "Hosting and deployment"): ["the hosting kind is given"],
+    ("hld", "Risks"): ["every risk has a mitigation"],
+    ("lld", "Pages and sections"): ["ids S1, S2, ... unique and in order", "every section has an anchor",
+                                    "implements points at a component id of the HLD"],
+    ("lld", "Interactive elements"): ["ids E1, E2, ... unique and in order",
+                                      "every element has a selector, a trigger and a behaviour",
+                                      "section points at a section id of this document"],
+    ("lld", "Form fields"): ["ids F1, F2, ... unique and in order",
+                             "every field has a name, a type and a required flag",
+                             "type is one of " + ", ".join(FIELD_TYPES[:4]) + ", ...",
+                             "section points at a section id of this document"],
+    ("lld", "File structure"): ["every file has a path and a purpose"],
+    ("lld", "Responsive and accessibility rules"): ["the rules are given"],
+    ("design", "Style guide"): ["every palette colour is a hex colour", "heading and body fonts are given",
+                                "every value is plain CSS", "the fonts url is a fonts.googleapis.com url or null"],
+    ("website", "Section"): ["the html has no <html>, <head> or <body> tags", "the anchor is an id selector",
+                             "the anchor points at an element in the html",
+                             "implements points at a section id of the LLD"],
+}
+
+
+def rule_names(kind, section):
+    """The names of the rules this section is held to ([] when the template doesn't fix any)."""
+    return list(RULE_NAMES.get((str(kind or ""), str(section or "")), []))
+
+
+def rules_count(kind, section, data=None):
+    """How many template rules this section's data was held to, so the card can say "n of m"."""
+    return len(rule_names(kind, section))

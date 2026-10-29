@@ -222,6 +222,16 @@ def code_text(d, deck, section=None):
     return None if not isinstance(e, dict) else (e.get("head") or "") + (e.get("body") or "")
 
 
+def _template_data(d, name):
+    """{"template", "file"} when a run saved the data an artifact was rendered from (J2_ARTIFACT_SCHEMA=1:
+    <kind>.json beside the document), else None. Read only; nothing is guessed."""
+    f = f"{name}.json"
+    rec = _read(d, f, None)
+    if not isinstance(rec, dict) or rec.get("schema") != "artifact-schema/1":
+        return None
+    return {"template": rec.get("template") or "not recorded", "file": f, "version": rec.get("version")}
+
+
 def tree(d, m=None):
     import j2_map
     if not d or not os.path.isdir(d):
@@ -343,6 +353,11 @@ def tree(d, m=None):
             for f in sorted(os.listdir(d)):
                 if base and f.startswith(os.path.basename(base) + ".") and f != os.path.basename(n.get("file") or "") and f.endswith(".docx"):
                     kids.append(item("Word file", f, {"function": "code (export)"}))
+        data = _template_data(d, t["name"])
+        if data:
+            kids.append(item(f"Template data ({data['template']})", data["file"], {"function": "code (the data the "
+                                                                                   "builders sent)"},
+                             note=f"rendered from {data['template']}"))
         for s_ in sends:
             if any(e["from"] == n["id"] and e["to"] == s_["id"] for e in reads):
                 placed_send.add(s_["id"])
