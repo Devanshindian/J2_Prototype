@@ -684,23 +684,6 @@ function atomPreview(a, v){
   return PREVIEWS[a.id] ? `<iframe class="apreview" data-preview="frame" sandbox="" title="What this atom built" srcdoc="${esc(PREVIEWS[a.id])}"></iframe>`
     : `<div class="apreview" data-preview="text">${esc(h || "")}</div>`;
 }
-const TMPL_ST = {pass: "pass", fail: "fail"};      // the classes the verification rows already use
-const tmplChip = x => `<span class="${TMPL_ST[x] || "empty"}" data-tmpl-st>${esc(x || "not recorded")}</span>`;
-function tmplRows(a, v){
-  const t = (v || {}).template;
-  const row = (key, label, gloss, chip, ev) => `<div data-tmplrow="${key}"><b>${label}</b> <span class="empty">${gloss}</span> ${chip} <span class="empty">${ev}</span></div>`;
-  if (!t) return row("prompt", "Prompt template", "prompts/builder.md", tmplChip(null), "nothing recorded for this atom")
-    + row("reply", "Reply model", "BuilderReply", tmplChip(null), "nothing recorded for this atom")
-    + row("output", "Output template", "artifacts/templates", tmplChip(null), "nothing recorded for this atom");
-  const call = (t.prompt.evidence || "").match(/call (\d+)/);
-  const callLink = call ? `<button type="button" class="linkbtn" data-link="call" data-call="${esc(call[1])}" data-atom="${esc(a.id)}">call ${esc(call[1])}</button> ` : "";
-  const rec = t.output.match === "not recorded" ? "" : `<button type="button" class="linkbtn" data-link="receipt" data-atom="${esc(a.id)}" data-receipt="${esc(t.output.evidence)}">${esc(t.output.evidence)}</button> `;
-  return row("prompt", "Prompt template", esc(t.prompt.version), tmplChip(t.prompt.used), callLink + esc(t.prompt.evidence.replace(/^call \d+: /, "")))
-    + row("reply", "Reply model", esc(t.reply.model), tmplChip(t.reply.valid),
-          `${t.reply.retries == null ? "retries not recorded" : t.reply.retries + " retry(ies)"}${(t.reply.errors || []).length ? " · " + esc(t.reply.errors.join("; ")) : ""}`)
-    + row("output", "Output template", esc(t.output.template) + (t.output.section ? " · " + esc(t.output.section) : ""), tmplChip(t.output.match),
-          rec + esc(t.output.note || t.output.evidence));
-}
 function atomBlocks(a, w, v){
   const ag = a.agent_output, res = a.results || [], ok = res.filter(r => r.pass === true).length, bad = res.filter(r => r.pass === false).length;
   const g = t => `<h4 class="agroup">${t}</h4>`;
@@ -728,8 +711,6 @@ function atomBlocks(a, w, v){
     + blockHTML(a, "context", "Context", "What it needs to know", atomRow(a, "context", w), true)
     + g("2. Defined output and verification")
     + blockHTML(a, "expected_output", "Defined output", "What must exist when it is done", atomRow(a, "expected_output", w), false)
-    + ((v && v.template) || (CTX && CTX.templates)
-       ? blockHTML(a, "template", "Template", "The templates it was held to, and the proof", tmplRows(a, v), false) : "")
     + blockHTML(a, "verification", "Verification", "The check that proves the goal is met",
         `${res.length ? `${ok} passed, ${bad} failed of ${res.length}.` : "Not run yet."} <button type="button" class="linkbtn" data-link="evidence" data-atom="${esc(a.id)}">Verification evidence</button>`
         + foldBlock(`blk-${a.id}-evidence`, atomRow(a, "verification", w)), false)
@@ -2347,28 +2328,10 @@ async function wantPreview(id){
     PREVIEWS[id] = r.ok ? (await r.json()).html || "" : ""; } catch (e) {}
   if (state) paint($("pane-workflows"), renderWorkflows(state));
 }
-$("pane-workflows").addEventListener("click", async e => { const b = e.target.closest("[data-link]"); if (!b || b.tagName === "A") return;
+$("pane-workflows").addEventListener("click", e => { const b = e.target.closest("[data-link]"); if (!b || b.tagName === "A") return;
   const a = state.workflows.flatMap(w => w.atoms || []).find(x => x.id === b.dataset.atom); if (!a) return;
-  const kind = b.dataset.link;
-  if (kind === "receipt"){      // the template-match receipt code wrote for this atom
-    const att = Number(String(b.dataset.receipt || "").split(":")[1]);
-    const r = (a.results || []).filter(x => x.type === "template-match" && (!att || x.attempt === att));
-    $("dtitle").textContent = `${a.id} · template-match receipt ${b.dataset.receipt}`;
-    $("dbody").innerHTML = `<pre>${esc(JSON.stringify(r.length ? r : (a.results || []), null, 2))}</pre>`;
-    $("detail").showModal(); return; }
-  if (kind === "call"){         // the builder call in full, with the template record kept with it
-    const id = b.dataset.call;
-    $("dtitle").textContent = `${a.id} · call ${id}`;
-    const c = (state.call_log || []).find(x => String(x.id) === String(id));
-    $("dbody").innerHTML = `<pre>${esc(JSON.stringify((c || {}).template || {}, null, 2))}</pre><pre id="fulltext">Loading…</pre>`;
-    $("detail").showModal();
-    try { const r = await fetch(`/api/call?id=${encodeURIComponent(id)}${viewRun ? "&run=" + encodeURIComponent(viewRun) : ""}`);
-      const full = r.ok ? await r.json() : null;
-      if ($("fulltext")) $("fulltext").textContent = full ? `SYSTEM PROMPT\n${full.system}\n\nPROMPT\n${full.prompt}\n\nRAW REPLY\n${full.raw}` : "Not found."; }
-    catch (err) { if ($("fulltext")) $("fulltext").textContent = "Not found."; }
-    return; }
-  $("dtitle").textContent = `${a.id} · ${kind === "agent" ? "workflow output" : "verification evidence"}`;
-  $("dbody").innerHTML = `<pre>${esc(JSON.stringify(kind === "agent" ? a.agent_output : (a.results || []), null, 2))}</pre>`;
+  $("dtitle").textContent = `${a.id} · ${b.dataset.link === "agent" ? "workflow output" : "verification evidence"}`;
+  $("dbody").innerHTML = `<pre>${esc(JSON.stringify(b.dataset.link === "agent" ? a.agent_output : (a.results || []), null, 2))}</pre>`;
   $("detail").showModal(); });
 // Saved runs: pick one to open it read-only; the URL keeps ?run= so it can be reloaded or shared locally.
 (async () => { try { const r = await (await fetch("/api/runs")).json();
