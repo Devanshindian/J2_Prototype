@@ -21,7 +21,7 @@ import copy
 import hashlib
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -46,8 +46,8 @@ class Artifact(BaseModel):
     """Base of every artifact model: strict (no extra keys), and it carries the template name the records show."""
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    TEMPLATE = "artifact/1"
-    SECTION = ""
+    TEMPLATE: ClassVar[str] = "artifact/1"
+    SECTION: ClassVar[str] = ""
 
     @classmethod
     def template(cls):
@@ -110,19 +110,22 @@ class SuccessMetric(Artifact):
 
 
 class PRDProblem(Artifact):
-    TEMPLATE, SECTION = "PRD/1", "Problem"
+    TEMPLATE: ClassVar[str] = "PRD/1"
+    SECTION: ClassVar[str] = "Problem"
     statement: str = Field(description="the problem the product solves, in the charter's own words")
     assumptions: List[str] = Field(default_factory=list, description="facts you had to assume, each one line")
 
 
 class PRDUsers(Artifact):
-    TEMPLATE, SECTION = "PRD/1", "Users"
+    TEMPLATE: ClassVar[str] = "PRD/1"
+    SECTION: ClassVar[str] = "Users"
     users: List[UserGroup] = Field(description="every user group the charter names")
     assumptions: List[str] = Field(default_factory=list)
 
 
 class PRDGoals(Artifact):
-    TEMPLATE, SECTION = "PRD/1", "Goals"
+    TEMPLATE: ClassVar[str] = "PRD/1"
+    SECTION: ClassVar[str] = "Goals"
     goals: List[Goal] = Field(description="the goals, G1, G2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
 
@@ -133,7 +136,8 @@ class PRDGoals(Artifact):
 
 
 class PRDRequirements(Artifact):
-    TEMPLATE, SECTION = "PRD/1", "Requirements"
+    TEMPLATE: ClassVar[str] = "PRD/1"
+    SECTION: ClassVar[str] = "Requirements"
     requirements: List[Requirement] = Field(description="the requirements, R1, R2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
 
@@ -144,19 +148,21 @@ class PRDRequirements(Artifact):
 
 
 class PRDSuccessMetrics(Artifact):
-    TEMPLATE, SECTION = "PRD/1", "Success metrics"
+    TEMPLATE: ClassVar[str] = "PRD/1"
+    SECTION: ClassVar[str] = "Success metrics"
     success_metrics: List[SuccessMetric] = Field(description="one metric per goal")
     assumptions: List[str] = Field(default_factory=list)
 
 
 class PRDOutOfScope(Artifact):
-    TEMPLATE, SECTION = "PRD/1", "Out of scope"
+    TEMPLATE: ClassVar[str] = "PRD/1"
+    SECTION: ClassVar[str] = "Out of scope"
     out_of_scope: List[str] = Field(description="what the product will not do, one line each")
     assumptions: List[str] = Field(default_factory=list)
 
 
 class PRD(Artifact):
-    TEMPLATE = "PRD/1"
+    TEMPLATE: ClassVar[str] = "PRD/1"
     problem: PRDProblem
     users: List[UserGroup] = Field(default_factory=list)
     goals: List[Goal] = Field(default_factory=list)
@@ -211,13 +217,15 @@ class Risk(Artifact):
 
 
 class HLDPurpose(Artifact):
-    TEMPLATE, SECTION = "HLD/1", "Purpose and scope"
+    TEMPLATE: ClassVar[str] = "HLD/1"
+    SECTION: ClassVar[str] = "Purpose and scope"
     purpose: str = Field(description="what this design covers and what it leaves out")
     assumptions: List[str] = Field(default_factory=list)
 
 
 class HLDPages(Artifact):
-    TEMPLATE, SECTION = "HLD/1", "Pages"
+    TEMPLATE: ClassVar[str] = "HLD/1"
+    SECTION: ClassVar[str] = "Pages"
     pages: List[Page] = Field(description="the pages, P1, P2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
 
@@ -228,7 +236,8 @@ class HLDPages(Artifact):
 
 
 class HLDComponents(Artifact):
-    TEMPLATE, SECTION = "HLD/1", "Components"
+    TEMPLATE: ClassVar[str] = "HLD/1"
+    SECTION: ClassVar[str] = "Components"
     components: List[Component] = Field(description="the components, C1, C2, ... in order; each names the PRD "
                                                     "requirement ids it covers")
     assumptions: List[str] = Field(default_factory=list)
@@ -240,25 +249,28 @@ class HLDComponents(Artifact):
 
 
 class HLDDataFlow(Artifact):
-    TEMPLATE, SECTION = "HLD/1", "Data flow"
+    TEMPLATE: ClassVar[str] = "HLD/1"
+    SECTION: ClassVar[str] = "Data flow"
     data_flows: List[DataFlow] = Field(description="every flow the pages need, including each form")
     assumptions: List[str] = Field(default_factory=list)
 
 
 class HLDHosting(Artifact):
-    TEMPLATE, SECTION = "HLD/1", "Hosting and deployment"
+    TEMPLATE: ClassVar[str] = "HLD/1"
+    SECTION: ClassVar[str] = "Hosting and deployment"
     hosting: Hosting
     assumptions: List[str] = Field(default_factory=list)
 
 
 class HLDRisks(Artifact):
-    TEMPLATE, SECTION = "HLD/1", "Risks"
+    TEMPLATE: ClassVar[str] = "HLD/1"
+    SECTION: ClassVar[str] = "Risks"
     risks: List[Risk] = Field(description="each risk with its mitigation")
     assumptions: List[str] = Field(default_factory=list)
 
 
 class HLD(Artifact):
-    TEMPLATE = "HLD/1"
+    TEMPLATE: ClassVar[str] = "HLD/1"
     purpose: str = ""
     pages: List[Page] = Field(default_factory=list)
     components: List[Component] = Field(default_factory=list)
@@ -324,7 +336,8 @@ class FileEntry(Artifact):
 
 
 class LLDSections(Artifact):
-    TEMPLATE, SECTION = "LLD/1", "Pages and sections"
+    TEMPLATE: ClassVar[str] = "LLD/1"
+    SECTION: ClassVar[str] = "Pages and sections"
     sections: List[LLDSection] = Field(description="the page sections, S1, S2, ... in order, each with its anchor and "
                                                    "the HLD components it implements")
     assumptions: List[str] = Field(default_factory=list)
@@ -336,7 +349,8 @@ class LLDSections(Artifact):
 
 
 class LLDElements(Artifact):
-    TEMPLATE, SECTION = "LLD/1", "Interactive elements"
+    TEMPLATE: ClassVar[str] = "LLD/1"
+    SECTION: ClassVar[str] = "Interactive elements"
     elements: List[Element] = Field(description="every interactive element, E1, E2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
 
@@ -347,7 +361,8 @@ class LLDElements(Artifact):
 
 
 class LLDFormFields(Artifact):
-    TEMPLATE, SECTION = "LLD/1", "Form fields"
+    TEMPLATE: ClassVar[str] = "LLD/1"
+    SECTION: ClassVar[str] = "Form fields"
     form_fields: List[FormField] = Field(description="every form field, F1, F2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
 
@@ -358,20 +373,22 @@ class LLDFormFields(Artifact):
 
 
 class LLDFiles(Artifact):
-    TEMPLATE, SECTION = "LLD/1", "File structure"
+    TEMPLATE: ClassVar[str] = "LLD/1"
+    SECTION: ClassVar[str] = "File structure"
     files: List[FileEntry] = Field(description="every file of the build")
     assumptions: List[str] = Field(default_factory=list)
 
 
 class LLDRules(Artifact):
-    TEMPLATE, SECTION = "LLD/1", "Responsive and accessibility rules"
+    TEMPLATE: ClassVar[str] = "LLD/1"
+    SECTION: ClassVar[str] = "Responsive and accessibility rules"
     responsive_rules: List[str] = Field(default_factory=list, description="one rule per line")
     accessibility_rules: List[str] = Field(default_factory=list, description="one rule per line")
     assumptions: List[str] = Field(default_factory=list)
 
 
 class LLD(Artifact):
-    TEMPLATE = "LLD/1"
+    TEMPLATE: ClassVar[str] = "LLD/1"
     sections: List[LLDSection] = Field(default_factory=list)
     elements: List[Element] = Field(default_factory=list)
     form_fields: List[FormField] = Field(default_factory=list)
@@ -426,7 +443,8 @@ class Buttons(Artifact):
 
 
 class Design(Artifact):
-    TEMPLATE, SECTION = "Design/1", "Style guide"
+    TEMPLATE: ClassVar[str] = "Design/1"
+    SECTION: ClassVar[str] = "Style guide"
     palette: Palette
     fonts: Fonts
     spacing: Spacing
@@ -450,7 +468,8 @@ class Design(Artifact):
 
 # ---------------------------------------------------------------- WebsiteSection/1
 class WebsiteSection(Artifact):
-    TEMPLATE, SECTION = "WebsiteSection/1", "Section"
+    TEMPLATE: ClassVar[str] = "WebsiteSection/1"
+    SECTION: ClassVar[str] = "Section"
     id: str = Field(description="the section id of this workflow, as the task gives it")
     anchor: str = Field(description="the id attribute of the section element, with the #")
     implements: List[str] = Field(default_factory=list, description="the LLD section ids this builds; empty when the "
@@ -634,3 +653,146 @@ def normalise(model, data):
                     walk(v)
     walk(d)
     return d
+
+
+# ---------------------------------------------------------------- rendering: code writes the document, not the agent
+# Each renderer writes the markdown the existing readers already parse (parse_hld, parse_lld, md_ids) and the
+# conditions already check (P1-P8 / H1-H6 / L1-L6). The agent sends data; no agent writes a heading.
+NO_ACTIONS = "have no actions in this version"
+
+
+def _lines(items, fmt):
+    return "\n".join(fmt(i, x) for i, x in enumerate(items, 1))
+
+
+def _assumptions(data):
+    return "".join(f"\nAssumption: {a}" for a in (data.get("assumptions") or []))
+
+
+def render_section(kind, section, data):
+    """The markdown of one section, from its validated data: "## <Section>" and the body, in the shape the readers
+    expect. Returns None when nothing here renders that section."""
+    d = dict(data or {})
+    body = None
+    if kind == "prd":
+        if section == "Problem":
+            body = str(d.get("statement") or "")
+        elif section == "Users":
+            rows, idle = [], []
+            for u in d.get("users") or []:
+                acts = ", ".join(u.get("actions") or [])
+                rows.append(f"- {u.get('group')}: {u.get('needs') or 'uses the page'}"
+                            + (f" They {acts}." if acts else ""))
+                if not (u.get("actions") or []):
+                    name = str(u.get("group") or "")
+                    idle.append(f"{name[:1].upper() + name[1:]} {NO_ACTIONS}.")
+            body = "\n".join(rows) + ("\n\n" + " ".join(idle) if idle else "")
+        elif section == "Goals":
+            body = _lines(d.get("goals") or [], lambda i, g: f"- **{g['id']}**: {g['statement']}")
+        elif section == "Requirements":
+            body = _lines(d.get("requirements") or [], lambda i, r: f"{i}. **{r['id']}**: {r['statement']}"
+                          + f" ({r.get('priority', 'must')})"
+                          + (f" Serves {', '.join(r.get('goals') or [])}." if r.get("goals") else ""))
+        elif section == "Success metrics":
+            rows = d.get("success_metrics") or []
+            body = ("| Goal | Metric | Target | Window |\n|---|---|---|---|\n"
+                    + "\n".join(f"| {m.get('goal')} | {m.get('metric')} | {m.get('target') or 'not set'} | "
+                                f"{m.get('window') or 'measurement window not set'} |" for m in rows))
+        elif section == "Out of scope":
+            body = "\n".join(f"- {x}" for x in d.get("out_of_scope") or [])
+    elif kind == "hld":
+        if section == "Purpose and scope":
+            body = str(d.get("purpose") or "")
+        elif section == "Pages":
+            body = _lines(d.get("pages") or [], lambda i, p: f"- **{p['id']}** {p['name']}: {p['purpose']}"
+                          + (f" Implements {', '.join(p.get('implements') or [])}." if p.get("implements") else ""))
+        elif section == "Components":
+            body = _lines(d.get("components") or [], lambda i, c: f"- **{c['id']}** {c['name']}: {c['responsibility']}"
+                          + (f" Covers {', '.join(c.get('covers') or [])}." if c.get("covers") else "")
+                          + (f" On {c['page']}." if c.get("page") else ""))
+        elif section == "Data flow":
+            body = "\n".join(f"- {f.get('from') or f.get('from_')} to {f['to']}: {f['data']}, on {f['trigger']}."
+                             for f in d.get("data_flows") or [])
+        elif section == "Hosting and deployment":
+            h = d.get("hosting") or {}
+            body = f"{h.get('kind') or ''}" + (f" {h.get('notes')}" if h.get("notes") else "")
+        elif section == "Risks":
+            body = "\n".join(f"- {r['risk']} Mitigation: {r['mitigation']}" for r in d.get("risks") or [])
+    elif kind == "lld":
+        if section == "Pages and sections":
+            body = _lines(d.get("sections") or [], lambda i, s: f"- **{s['id']}** `{s['anchor']}`"
+                          + (f" (page `{s['page']}`)" if s.get("page") else "") + ": shows "
+                          + (", ".join(s.get("implements") or []) or "this part of the page")
+                          + (f". Implements {', '.join(s.get('implements') or [])}." if s.get("implements") else "."))
+        elif section == "Interactive elements":
+            body = _lines(d.get("elements") or [], lambda i, e: f"- **{e['id']}** in {e['section']}: `{e['selector']}`"
+                          f" trigger {e['trigger']}; behaviour {e['behaviour']}")
+        elif section == "Form fields":
+            body = _lines(d.get("form_fields") or [],
+                          lambda i, f: f"- **{f['id']}** in {f.get('section') or 'S1'}, form `{f['form']}`: field "
+                          f"`{f['name']}`, type {f['type']}, required {'yes' if f.get('required') else 'no'}"
+                          + (f", validation {f['validation']}" if f.get("validation") else ""))
+        elif section == "File structure":
+            body = "\n".join(f"- `{x['path']}`: {x['purpose']}" for x in d.get("files") or [])
+        elif section == "Responsive and accessibility rules":
+            body = "\n".join([f"- {x}" for x in d.get("responsive_rules") or []]
+                             + [f"- {x}" for x in d.get("accessibility_rules") or []])
+    if body is None:
+        return None
+    return f"## {section}\n\n{body.strip()}{_assumptions(d)}\n"
+
+
+def style_from_design(data):
+    """The design data as the style guide the rest of the code already uses (style_css, style.json): the same keys
+    STYLE_FMT has, so nothing downstream changes."""
+    d = dict(data or {})
+    fonts = dict(d.get("fonts") or {})
+    return {"palette": dict(d.get("palette") or {}),
+            "fonts": {"heading": fonts.get("heading"), "body": fonts.get("body"),
+                      "google_fonts_url": fonts.get("google_fonts_url")},
+            "spacing": dict(d.get("spacing") or {}), "radius": d.get("radius"),
+            "buttons": dict(d.get("buttons") or {}), "card": d.get("card"), "notes": d.get("notes") or ""}
+
+
+# ---------------------------------------------------------------- the rules layer (code, every attempt)
+def rule_errors(kind, section, data, chain=None, lld=None):
+    """Every template rule for one section's data that the model alone can't check: the references that point at
+    another document (H4: an HLD component covers a PRD requirement; L5: an LLD section implements an HLD component;
+    a website section implements an LLD section). chain is the run's own chain record ({"prd": {...}, "hld": {...}}),
+    so nothing is guessed: with no record, a reference is reported as not recorded, never as a pass."""
+    d, out = dict(data or {}), []
+    ch = chain or {}
+    known = lambda key, pat: {i for i in re.findall(pat, json.dumps((ch.get(key) or {}), ensure_ascii=False))}
+    if kind == "hld" and section == "Components":
+        reqs = known("prd", r"\bR\d+\b")
+        for c in d.get("components") or []:
+            if not reqs:
+                out.append(f"{c.get('id')}: the PRD's requirement ids are not recorded, so Covers can't be checked")
+                break
+            bad = [r for r in c.get("covers") or [] if r not in reqs]
+            if bad:
+                out.append(f"{c.get('id')} covers {', '.join(bad)}, which is not a requirement of the PRD")
+    if kind == "lld" and section == "Pages and sections":
+        comps = known("hld", r"\bC\d+\b")
+        for s in d.get("sections") or []:
+            if not comps:
+                out.append(f"{s.get('id')}: the HLD's component ids are not recorded, so Implements can't be checked")
+                break
+            bad = [c for c in s.get("implements") or [] if c not in comps]
+            if bad:
+                out.append(f"{s.get('id')} implements {', '.join(bad)}, which is not a component of the HLD")
+    if kind == "website":
+        ids = {s.get("id") for s in (lld or {}).get("sections") or []}
+        bad = [x for x in d.get("implements") or [] if x not in ids]
+        if bad and ids:
+            out.append(f"{d.get('id')} implements {', '.join(bad)}, which is not a section of the LLD")
+    return out
+
+
+def rules_count(kind, section, data):
+    """How many template rules this section's data was held to (the model's own, plus the cross-document ones), so
+    the card can say "n of m"."""
+    model = model_for(kind, section)
+    n = len(model.model_fields) if model else 0
+    extra = {("hld", "Components"): 1, ("lld", "Pages and sections"): 1, ("website", "Section"): 1}
+    return n + extra.get((kind, section), 0)
