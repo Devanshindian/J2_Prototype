@@ -6611,6 +6611,9 @@ def map_shapes():
             svg = tree[tree.index('<svg class="treesvg"'):tree.index("</svg>", tree.index('<svg class="treesvg"'))]
             for mt in re.finditer(r'<g class="tnode (t(?:charter|stage|deck))[ "][^>]*data-id="([^"]+)"[^>]*>(.*?)</g>', svg, re.S):
                 kind, nid, body = mt.group(1), htmllib.unescape(mt.group(2)), mt.group(3)
+                # the status badge (mapBadge) is a circle with "!" or "?" by design, so the shape of the node itself
+                # is read without it: a faulted or waiting box still has to be a rounded square
+                body = re.sub(r"<g><circle\b.*$", "", body, flags=re.S)      # the badge's own </g> ends the capture
                 n = by.get(nid)
                 if kind == "tcharter":
                     assert '<circle class="tdot"' in body and body.count('class="tglyph"') == 1 and "<rect" not in body, (name, "Charter: a circle with a centre dot")
