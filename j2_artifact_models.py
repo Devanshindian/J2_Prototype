@@ -31,7 +31,8 @@ HEX = re.compile(r"#(?:[0-9a-fA-F]{3}){1,2}$")
 CSS_SAFE = re.compile(r'^[^<>{}"\\]*$')      # the same rule parse_style enforces on a style value
 # Field names that may be missing from a reply because the brief may not say anything about them. Everything else is
 # required in the transport schema.
-OPTIONAL_FIELDS = {"assumptions", "google_fonts_url", "notes", "window", "target", "validation", "page",
+OPTIONAL_FIELDS = {"assumptions", "google_fonts_url", "notes", "window", "target", "validation", "page", "head",
+                   "anchor", "html",
                    "selectors_used", "facts_used", "implements", "covers", "goals", "actions", "needs",
                    "responsive_rules", "accessibility_rules", "out_of_scope", "risks", "data_flows", "files"}
 ID_RE = {"G": re.compile(r"^G\d+$"), "R": re.compile(r"^R\d+$"), "P": re.compile(r"^P\d+$"),
@@ -471,10 +472,14 @@ class WebsiteSection(Artifact):
     TEMPLATE: ClassVar[str] = "WebsiteSection/1"
     SECTION: ClassVar[str] = "Section"
     id: str = Field(description="the section id of this workflow, as the task gives it")
-    anchor: str = Field(description="the id attribute of the section element, with the #")
+    anchor: str = Field(default="", description="the id attribute of the section element, with the #; \"\" when this "
+                                                 "workflow writes page-head tags only")
     implements: List[str] = Field(default_factory=list, description="the LLD section ids this builds; empty when the "
                                                                     "run has no LLD")
-    html: str = Field(description="the section's HTML only: no <html>, <head> or <body> tags")
+    html: str = Field(default="", description="the section's HTML only: no <html>, <head> or <body> tags; \"\" when "
+                                               "this workflow writes page-head tags only")
+    head: str = Field(default="", description="page-head tags this section needs (meta, link, style or script only); "
+                                              "\"\" when it needs none")
     selectors_used: List[str] = Field(default_factory=list, description="the ids and classes you used")
     facts_used: List[str] = Field(default_factory=list, description="the charter facts this section shows, copied "
                                                                      "exactly")
@@ -483,19 +488,26 @@ class WebsiteSection(Artifact):
     @classmethod
     def _anchor(cls, v):
         a = str(v or "")
-        if not a.startswith("#") or not re.fullmatch(r"#[A-Za-z][\w-]*", a):
+        if a and not re.fullmatch(r"#[A-Za-z][\w-]*", a):
             raise ValueError(f"anchor must be an id selector like \"#classes\", not {v!r}")
         return a
 
-    @field_validator("html")
+    @field_validator("html", "head")
     @classmethod
-    def _html(cls, v):
+    def _markup(cls, v):
         t = str(v or "")
         if re.search(r"<\s*(?:!doctype|html|body|head)\b", t, re.I):
-            raise ValueError("the html contains <html>, <head> or <body> tags; write only your section's markup")
-        if not t.strip():
-            raise ValueError("the html is empty")
+            raise ValueError("it contains <html>, <head> or <body> tags; write only your own markup")
         return t
+
+    @model_validator(mode="after")
+    def _something(self):
+        if not str(self.html).strip() and not str(self.head).strip():
+            raise ValueError("a section must have html, or head tags when it writes only those")
+        if self.anchor and str(self.html).strip() and f'id="{self.anchor[1:]}"' not in self.html:
+            raise ValueError(f"the html has no element with id=\"{self.anchor[1:]}\", so the anchor {self.anchor} "
+                             "points at nothing")
+        return self
 
 
 # ---------------------------------------------------------------- the registry: section -> model
@@ -682,7 +694,7 @@ def render_section(kind, section, data):
             for u in d.get("users") or []:
                 acts = ", ".join(u.get("actions") or [])
                 rows.append(f"- {u.get('group')}: {u.get('needs') or 'uses the page'}"
-                            + (f" They {acts}." if acts else ""))
+                            + (f"; they {acts}." if acts else "."))
                 if not (u.get("actions") or []):
                     name = str(u.get("group") or "")
                     idle.append(f"{name[:1].upper() + name[1:]} {NO_ACTIONS}.")
@@ -690,8 +702,8 @@ def render_section(kind, section, data):
         elif section == "Goals":
             body = _lines(d.get("goals") or [], lambda i, g: f"- **{g['id']}**: {g['statement']}")
         elif section == "Requirements":
-            body = _lines(d.get("requirements") or [], lambda i, r: f"{i}. **{r['id']}**: {r['statement']}"
-                          + f" ({r.get('priority', 'must')})"
+            body = _lines(d.get("requirements") or [], lambda i, r: f"{i}. **{r['id']}**: "
+                          + str(r["statement"]).rstrip(".") + f" ({r.get('priority', 'must')})."
                           + (f" Serves {', '.join(r.get('goals') or [])}." if r.get("goals") else ""))
         elif section == "Success metrics":
             rows = d.get("success_metrics") or []
@@ -704,10 +716,12 @@ def render_section(kind, section, data):
         if section == "Purpose and scope":
             body = str(d.get("purpose") or "")
         elif section == "Pages":
-            body = _lines(d.get("pages") or [], lambda i, p: f"- **{p['id']}** {p['name']}: {p['purpose']}"
+            body = _lines(d.get("pages") or [], lambda i, p: f"- **{p['id']}** {p['name']}: "
+                          + str(p["purpose"]).rstrip(".") + "."
                           + (f" Implements {', '.join(p.get('implements') or [])}." if p.get("implements") else ""))
         elif section == "Components":
-            body = _lines(d.get("components") or [], lambda i, c: f"- **{c['id']}** {c['name']}: {c['responsibility']}"
+            body = _lines(d.get("components") or [], lambda i, c: f"- **{c['id']}** {c['name']}: "
+                          + str(c["responsibility"]).rstrip(".") + "."
                           + (f" Covers {', '.join(c.get('covers') or [])}." if c.get("covers") else "")
                           + (f" On {c['page']}." if c.get("page") else ""))
         elif section == "Data flow":
@@ -717,13 +731,14 @@ def render_section(kind, section, data):
             h = d.get("hosting") or {}
             body = f"{h.get('kind') or ''}" + (f" {h.get('notes')}" if h.get("notes") else "")
         elif section == "Risks":
-            body = "\n".join(f"- {r['risk']} Mitigation: {r['mitigation']}" for r in d.get("risks") or [])
+            body = "\n".join(f"- {str(r['risk']).rstrip('.')}. Mitigation: {r['mitigation']}"
+                             for r in d.get("risks") or [])
     elif kind == "lld":
         if section == "Pages and sections":
             body = _lines(d.get("sections") or [], lambda i, s: f"- **{s['id']}** `{s['anchor']}`"
                           + (f" (page `{s['page']}`)" if s.get("page") else "") + ": shows "
-                          + (", ".join(s.get("implements") or []) or "this part of the page")
-                          + (f". Implements {', '.join(s.get('implements') or [])}." if s.get("implements") else "."))
+                          + (", ".join(s.get("implements") or []) or "this part of the page") + "."
+                          + (f" Implements {', '.join(s.get('implements') or [])}." if s.get("implements") else ""))
         elif section == "Interactive elements":
             body = _lines(d.get("elements") or [], lambda i, e: f"- **{e['id']}** in {e['section']}: `{e['selector']}`"
                           f" trigger {e['trigger']}; behaviour {e['behaviour']}")

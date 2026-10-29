@@ -47,6 +47,7 @@ import threading
 import time
 
 import j2_artifacts
+import j2_artifact_models
 import j2_board
 import j2_check
 import j2_map
@@ -429,6 +430,13 @@ def build_agent_output(w, a, attempt, body, receipts, last_audit, n_sites, doc, 
             **({"kind": "doc", "file": out_file} if doc else {}),
             "checks": [{"check": r["check"], "type": r["type"], "target": r["target"], "pass": r["pass"]} for r in recs],
             "conditions": [{"id": c["id"], "met": c["met"]} for c in (last_audit or {}).get("conditions") or []]}
+
+
+def artifact_schema_on():
+    """J2_ARTIFACT_SCHEMA=1 (default off): a document, design or website builder answers with one JSON object that
+    follows its artifact template (j2_artifact_models), code validates it, checks its references, renders the
+    markdown and writes the data beside the document. Read per call so tests can switch it."""
+    return os.environ.get("J2_ARTIFACT_SCHEMA") == "1"
 
 
 def slim():
@@ -2749,6 +2757,9 @@ class J2Run:
         self.sections, self.write_lock, self.bargain = {}, None, None   # section id -> {owner, head, body, workflow}
         self.memory = memory_on()
         self.call_log, self.pending_calls = [], {}     # every AI call (calls.jsonl); calls not yet shown in a message
+        # J2_ARTIFACT_SCHEMA=1 (artifact-schema/1): the data each builder sent, and what the three layers made of it
+        self.schemas = artifact_schema_on()
+        self.art_data, self.art_state, self.art_schema, self.art_sent = {}, {}, None, False
         self.style = None                              # the style guide, written by the first workflow that runs
         self.playbooks_used, self.playbook_saved = [], None
         self.lessons_used, self.lessons_saved = [], []
@@ -3007,7 +3018,7 @@ class J2Run:
     REPLY_DEFAULTS = ("Thanks, got it. We're working on it now.", "Go ahead with the Requester's latest answer.")
 
     def call(self, fn, reply_format, task, mock, max_tokens=900, json_reply=True, images=None, defaults=None,
-             _retry=False, answer_only=False):
+             _retry=False, answer_only=False, schema=None):
         """One agent's AI call. Every JSON reply format gets a "reason" field. Each call is logged to calls.jsonl
         (inputs, reply, reason, tokens, time) and linked to the agent's next chat message for the detail view.
 
@@ -3028,9 +3039,10 @@ class J2Run:
         self.calls += 1
         self.thinking = fn
         t0 = time.time()
+        self.art_sent = schema is not None
         try:
             raw = llm.ask(system, user, mock, max_tokens=max_tokens, effort="low" if json_reply else "high",
-                          json_mode=json_reply, images=images)
+                          json_mode=json_reply, images=images, schema=schema)
         finally:
             self.thinking = None
         reply = raw
@@ -3042,6 +3054,7 @@ class J2Run:
             if llm.MOCK and not reply.get("reason"):
                 reply["reason"] = self.MOCK_REASON
         self._log_call(fn, task, system, user, raw, reply if json_reply else None, time.time() - t0)
+        self.art_sent = False
         if images:
             self.call_log[-1]["images"] = [os.path.relpath(p, self.dir) for p in images]
         if fn == "identity" and json_reply and '"to_requester"' in reply_format and reply.get("enough") is not False:
@@ -3103,6 +3116,14 @@ class J2Run:
 
     def _log_call(self, fn, task, system, user, raw, reply, secs):
         meta = dict(llm.LAST_META)
+        art = None
+        if self.schemas and self.art_schema and self.art_sent:      # the schema this call was sent, and what the provider said of it
+            st = (llm.LAST_META.get("structured") or {}) if not llm.MOCK else {"provider": "mock",
+                                                                               "subtype": "success", "present": True}
+            art = {"template": self.art_schema["template"], "version": self.art_schema["version"],
+                   "schema_sha": self.art_schema["sha"], "schema_bytes": self.art_schema["bytes"],
+                   "subtype": st.get("subtype"), "structured_output": st.get("present"),
+                   "attempt": self.art_schema.get("attempt")}
         rec = {"id": self.calls, "fn": fn, "step": self.step, "cycle": self.cycle, "t": time.strftime("%H:%M:%S"),
                "seconds": round(secs, 2), "model": None if llm.MOCK else meta.get("model") or llm.MODEL,
                "tokens": ({"input": meta.get("input_tokens"), "output": meta.get("output_tokens")}
@@ -3111,7 +3132,8 @@ class J2Run:
                "inputs": self._inputs(fn, task),
                "reply": {k: v for k, v in reply.items() if k != "reason"} if isinstance(reply, dict) else None,
                "reason": reply.get("reason") if isinstance(reply, dict) else None,
-               **({"atom": self.atom} if self.atom else {})}
+               **({"atom": self.atom} if self.atom else {}),
+               **({"artifact_schema": art} if art else {})}
         self.call_log.append(rec)
         self.pending_calls.setdefault(fn, []).append(rec["id"])
         os.makedirs(self.dir, exist_ok=True)
@@ -6332,6 +6354,16 @@ class J2Run:
         self.atom = (w.get("atoms") or [{}])[0].get("id")     # its AI calls are tagged with the atom they build
         if self._file_wf(w):
             return self._run_artifact(w, brief, max_calls)
+        art_kind, art_sec, art_model = None, None, None
+        if self.schemas:      # J2_ARTIFACT_SCHEMA=1: this workflow's own template (a document section, or a page section)
+            art_kind = self.output if self.doc else "website"
+            art_sec = (next((x.get("target") for a in w.get("atoms") or [] for x in a.get("expected_output") or []
+                             if isinstance(x, dict) and x.get("kind") == "heading"), None) or w.get("name")) \
+                if self.doc else "Section"
+            art_model = j2_artifact_models.model_for(art_kind, art_sec)
+            if art_model is None:
+                self._event("system", "artifact_schema", f"{fn}: no artifact template for {art_kind} {art_sec!r}; "
+                                                         "this builder keeps the plain reply")
         attempt, failed, evidence, prev_sig, early, spec_stop = 0, [], "", set(), None, None
         while True:
             attempt += 1
@@ -6346,6 +6378,9 @@ class J2Run:
 
             def mock():
                 board_extra = self._mock_board_extra(w, attempt) if j2_board.enabled() else {}
+                if art_model is not None:      # J2_ARTIFACT_SCHEMA=1: one JSON object, built from the charter only
+                    return json.dumps(self._mock_artifact(w, art_kind, art_sec, art_model, sid, first, board_extra),
+                                      ensure_ascii=False)
                 if self.doc:
                     return (json.dumps({"say": f"@Coordination {fn} done: {w['name']}. Section {sid} written.",
                                         "human_output": f"I wrote the {w['name']} section ({sid}) of the document.",
@@ -6373,6 +6408,18 @@ class J2Run:
             # A failed check buys one more call than the envelope's model_call_limit, so all attempts can run.
             limit = max_calls + attempt - 1
 
+            schema = None
+            if art_model is not None:
+                extra = {}
+                if first:      # the first page builder also writes the style guide, so its reply carries the design
+                    extra["design"] = {k: v for k, v in
+                                       j2_artifact_models.transport_schema(j2_artifact_models.Design).items()
+                                       if k != "$schema"}
+                schema = j2_artifact_models.reply_schema(art_model, extra)
+                self.art_schema = {"template": art_model.template(), "version": j2_artifact_models.VERSION,
+                                   "sha": j2_artifact_models.schema_sha(schema),
+                                   "bytes": len(json.dumps(schema, ensure_ascii=False)), "attempt": attempt}
+
             def one_call():
                 """One model call for this attempt (retried within the envelope on an unusable reply). Pulled out
                 of line so a board Answer (item 3) can trigger a second pass within the same attempt: resuming A
@@ -6385,7 +6432,7 @@ class J2Run:
                                                                                        if last_err else "")
                         break
                     w["calls_used"] += 1
-                    raw = self.call(fn, *(self._doc_prompt(w, brief, sid, mine, attempt, evidence, last_err, prev)
+                    fmt_task = (self._doc_prompt(w, brief, sid, mine, attempt, evidence, last_err, prev)
                                           if self.doc else (
                                     'First line: a JSON object {"say": str (one short line reporting to @Coordination: '
                                     'what you changed; code runs your checks and reports them, so don\'t claim they pass), '
@@ -6412,11 +6459,18 @@ class J2Run:
                                        else "")
                                     + (f"\nYOUR LAST ATTEMPT WAS REJECTED: {last_err}. Fix that." if last_err else "")
                                     + self._artifact_context(w)
-                                    + self._page_context(w, prev))),
-                                    mock, max_tokens=16000, json_reply=False)
+                                    + self._page_context(w, prev)))
+                    if art_model is not None:      # data, not markdown: one JSON object that follows the template
+                        fmt_task = (self._artifact_reply_format(art_model, first),
+                                    fmt_task[1] + self._artifact_task(art_kind, art_sec, art_model, first))
+                    raw = self.call(fn, *fmt_task, mock, max_tokens=16000, json_reply=False, schema=schema)
                     try:
-                        parts = parse_doc(raw) if self.doc else parse_section(raw)
-                        guide = parse_style(raw) if first else None
+                        if art_model is not None:      # J2_ARTIFACT_SCHEMA=1: data in, markdown rendered by code
+                            parts, guide = self._read_artifact(w, raw, art_kind, art_sec, art_model, sid, first,
+                                                               attempt)
+                        else:
+                            parts = parse_doc(raw) if self.doc else parse_section(raw)
+                            guide = parse_style(raw) if first else None
                         got = parts      # only once both parse: a missing style guide must be retried, not accepted
                         w["last_check"] = ("style guide, " if first else "") + "usable section" + (" and head tags"
                                                                                                    if got[0] else "")
@@ -6472,6 +6526,10 @@ class J2Run:
                 with open(os.path.join(self.dir, name), "w", encoding="utf-8") as f:
                     f.write(html_out)
             self.save("sections.json", self.sections)
+            if art_model is not None:      # the data behind the document, beside it: <kind>.json, site/<kind>-vN.json
+                self._save_artifact_data(art_kind, len(self.sites))
+                if first:
+                    self._save_artifact_data("design", len(self.sites))
             if self.blueprint and (verdict := self._spec_conflict(w, meta)):
                 if verdict == "revised":
                     for a in w["atoms"]:      # the check now holds the revised slice
@@ -6480,6 +6538,8 @@ class J2Run:
                 else:
                     spec_stop = meta["spec_conflict"]
             failed = self._run_checks(w, attempt, html_out)
+            if art_model is not None:      # J2_ARTIFACT_SCHEMA=1: shape, rules and render, each with its receipt
+                failed = self._artifact_receipts(w, attempt, art_kind, art_sec, art_model) + failed
             if spec_stop:
                 early = f"the builder reports a second conflict with LLD section {spec_stop.get('section')}"
                 break
@@ -7583,6 +7643,226 @@ class J2Run:
                    f"{json.dumps(self._manifest(w), ensure_ascii=False)}" if slim() else
                    f"\nTHE WHOLE DOCUMENT NOW (v{len(self.sites)}, read only):\n{prev[:SITE_LIMIT]}")
                 + self._board_context())
+
+    # ---- J2_ARTIFACT_SCHEMA=1 (artifact-schema/1): the data a builder sends, and the three layers code runs on it
+    def _artifact_reply_format(self, model, first):
+        """The reply format for a builder that answers with data (J2_ARTIFACT_SCHEMA=1): one JSON object, no fenced
+        blocks. The schema goes with the call, so this only says what the object is."""
+        fields = ['"reason": str (one short sentence: why you decided this)',
+                  '"say": str (one short line reporting to @Coordination: what you changed; code runs your checks and '
+                  'reports them, so don\'t claim they pass)',
+                  '"human_output": str (1 to 3 plain sentences telling a person what you built)',
+                  '"atom_human_output": str (1 or 2 plain sentences telling the Requester what this part created, in '
+                  'everyday words)',
+                  '"next": "Coordination"',
+                  f'"section": the {model.template()} object for your section only']
+        if j2_board.enabled():
+            fields.append('"question": null|{"to": str, "about": str, "text": str}, "board_used": null|[str]')
+        if first:
+            fields.append(f'"design": the {j2_artifact_models.Design.template()} object (you run first, so you write '
+                          'the style guide)')
+        return ("Answer with one JSON object only, following the schema you were given exactly: {" + ", ".join(fields)
+                + "}. No markdown, no fenced blocks, no headings: code renders the document from your data.")
+
+    def _artifact_task(self, kind, section, model, first):
+        """What the builder is told about its template: the section it fills in and the rules code will check on the
+        data (the ids, the references and the enum values the readers already enforce)."""
+        conds = (j2_artifact_models.SECTION_CONDITIONS.get(kind) or {}).get(section) or []
+        return (f"\nYOUR TEMPLATE: {model.template()}. Send the data for {section} only, in the fields of the schema; "
+                "code writes the heading and the markdown, so write no heading and no markdown. Ids run in order "
+                "(G1, G2, ...; R1, R2, ...; C1, C2, ...; S1, S2, ...), every id you name in covers, goals or "
+                "implements must exist, and every fact comes from the charter or an earlier document"
+                + (f". Code checks it against {', '.join(conds)} as before." if conds else ".")
+                + (f"\nYou also send the style guide as \"design\" ({j2_artifact_models.Design.template()}): "
+                   "palette hex colours, heading and body fonts, spacing, radius, button and card CSS." if first
+                   else ""))
+
+    def _read_artifact(self, w, raw, kind, section, model, sid, first, attempt):
+        """((head, body), style guide) from a builder's structured reply: the shape is validated against the section's
+        model with the full rules, and code renders the markdown (or takes the section's html). A reply that doesn't
+        follow the model raises ValueError with Pydantic's own words, so the existing retry path handles it."""
+        aid = (w.get("atoms") or [{}])[0].get("id")
+        state = self.art_state.setdefault(aid, {})
+        state.update(template=model.template(), kind=kind, section=section, attempt=attempt,
+                     subtype=((llm.LAST_META.get("structured") or {}).get("subtype") if not llm.MOCK else "success"),
+                     rendered=False, rules=[], schema_errors=[])
+        try:
+            reply = llm.extract_json(raw)
+        except ValueError:
+            state["schema_errors"] = ["reply: the reply is not one JSON object"]
+            raise ValueError(f"the reply must be one JSON object following {model.template()}") from None
+        data = j2_artifact_models.normalise(model, reply.get("section"))
+        obj, errs = j2_artifact_models.validate(model, data)
+        state["schema_errors"] = errs
+        state["schema_ok"] = not errs
+        if errs:
+            raise ValueError(f"the section doesn't follow {model.template()}: " + "; ".join(errs))
+        got = obj.model_dump(by_alias=True)
+        self.art_data.setdefault(kind, {})[section] = got
+        state["data"] = got
+        guide = None
+        if first:      # the first page builder also writes the style guide, as the design template
+            d, derrs = j2_artifact_models.validate(j2_artifact_models.Design, reply.get("design"))
+            if derrs:
+                state["schema_errors"] = derrs
+                state["schema_ok"] = False
+                raise ValueError(f"the style guide doesn't follow {j2_artifact_models.Design.template()}: "
+                                 + "; ".join(derrs))
+            guide = j2_artifact_models.style_from_design(d.model_dump(by_alias=True))
+            self.art_data.setdefault("design", {})["Style guide"] = d.model_dump(by_alias=True)
+        if kind == "website":
+            state["rendered"] = True
+            return (got.get("head") or "", got.get("html") or ""), guide
+        body = j2_artifact_models.render_section(kind, section, got)
+        if not body:
+            state["schema_errors"] = [f"section: no renderer for {kind} {section!r}"]
+            raise ValueError(f"code cannot render {kind} {section!r}; the section name must be one of "
+                             + ", ".join(j2_artifact_models.SECTION_MODELS[kind]))
+        state["rendered"] = True
+        return ("", body), guide
+
+    def _artifact_receipts(self, w, attempt, kind, section, model):
+        """One receipt per layer, every attempt, written by code: artifact-schema (the reply followed the model),
+        artifact-rules (its references point at ids that exist, here and in the earlier documents) and
+        artifact-render (code wrote the section). Returns the failed receipts, so a failure takes the normal path."""
+        out = []
+        for a in w.get("atoms") or []:
+            st = self.art_state.get(a["id"]) or {}
+            if not st:
+                continue
+            data = st.get("data") or {}
+            rules = j2_artifact_models.rule_errors(kind, section, data, self.chain, self.blueprint)
+            st["rules"] = rules
+            n = j2_artifact_models.rules_count(kind, section, data)
+            layers = [("artifact-schema", f"The reply follows {model.template()}", st.get("schema_ok"),
+                       "; ".join(st.get("schema_errors") or []) or f"the reply follows {model.template()}"
+                       + (f" (result subtype {st.get('subtype')})" if st.get("subtype") not in (None, "success")
+                          else "")),
+                      ("artifact-rules", f"Every reference in {model.template()} points at an id that exists",
+                       not rules, "; ".join(rules) or f"{n - len(rules)} of {n} rule(s) met"),
+                      ("artifact-render", f"Code rendered {section} from the data", bool(st.get("rendered")),
+                       f"{section} rendered by code" if st.get("rendered") else "nothing was rendered")]
+            for t, text, ok, ev in layers:
+                rec = self._receipt(a, {"text": text, "type": t, "target": section, "expect": True}, attempt,
+                                    {"actual": ok, "pass": bool(ok), "evidence": ev},
+                                    template=model.template(), template_version=j2_artifact_models.VERSION)
+                a.setdefault("results", []).append(rec)
+                if not ok:
+                    out.append(rec)
+            if out:
+                a["status"] = "failed"
+        if out:
+            self.post("system", f"Code read {w['id']}'s reply against {model.template()} (attempt {attempt} of "
+                                f"{MAX_CHECK_ATTEMPTS}): " + "; ".join(f"{r['type']}: {r['evidence']}" for r in out)
+                      + ".", checks=w["id"])
+        return out
+
+    def _save_artifact_data(self, kind, version):
+        """The data beside the document: <kind>.json and site/<kind>-vN.json, written by code from what the builders
+        sent (nothing is rewritten by an agent)."""
+        data = self.art_data.get(kind)
+        if not data:
+            return
+        rec = {"schema": j2_artifact_models.SCHEMA, "template": f"{kind.upper() if kind != 'design' else 'Design'}/"
+               f"{j2_artifact_models.VERSION}", "artifact": kind, "version": version, "sections": data}
+        self.save(f"{kind}.json", rec)
+        os.makedirs(os.path.join(self.dir, "site"), exist_ok=True)
+        with open(os.path.join(self.dir, "site", f"{kind}-v{version}.json"), "w", encoding="utf-8") as f:
+            json.dump(rec, f, indent=2, ensure_ascii=False)
+
+    def _mock_artifact(self, w, kind, section, model, sid, first, board_extra):
+        """Mock only: the structured reply a scripted builder sends, built from the charter and the chain only - the
+        same facts the scripted markdown carries, as data. No fact is invented here."""
+        g = self.goal or {}
+        name = g.get("product_name") or g.get("site_name") or "The product"
+        chain = self.chain or {}
+        reqs = ((chain.get("prd") or {}).get("requirements") or [])
+        reqs = reqs or [{"id": f"R{i}", "text": f} for i, f in enumerate(g.get("features") or [], 1)]
+        comps = ((chain.get("hld") or {}).get("components") or [])
+        groups = [x for x in g.get("user_groups") or [] if isinstance(x, dict)]
+        succ = g.get("success_measures") or []
+        feat = lambda r: (str(r.get("text") or "").split(" can ")[-1] if " can " in str(r.get("text") or "")
+                          else str(r.get("text") or "")).strip(" .").lower()
+        who = (groups[0]["name"] if groups and groups[0].get("actions") else "Users")
+        sec = {}
+        if kind == "prd":
+            sec = {"Problem": lambda: {"statement": f"{g.get('problem') or 'The problem in the brief'}. {name} exists "
+                                       "to solve this."},
+                   "Users": lambda: {"users": [{"group": x.get("name") or "Users", "needs": f"what {name} gives them",
+                                                "actions": list(x.get("actions") or [])} for x in groups]
+                                     or [{"group": g.get("users") or "Users", "needs": f"what {name} gives them",
+                                          "actions": [feat(r) for r in reqs][:2]}]},
+                   "Goals": lambda: {"goals": [{"id": f"G{i}", "statement": str(x)} for i, x in enumerate(succ, 1)]
+                                     or [{"id": "G1", "statement": f"{name} solves the problem"}]},
+                   "Requirements": lambda: {"requirements": [
+                       {"id": f"R{i}", "statement": (f"{feat(r)} ({who})" if str(r.get('text') or '')[:1].isupper()
+                                                     else f"{who[:1].upper() + who[1:]} can {feat(r)}"),
+                        "priority": "must", "goals": ["G1"] if succ else []}
+                       for i, r in enumerate(reqs, 1)]},
+                   "Success metrics": lambda: {"success_metrics": [
+                       {"goal": f"G{i}", "metric": str(x), "target": "as the brief states",
+                        "window": "measurement window not set"} for i, x in enumerate(succ, 1)]},
+                   "Out of scope": lambda: {"out_of_scope": [f"Anything outside this constraint: {c}"
+                                                             for c in g.get("constraints") or []]
+                                            or [f"Features beyond the listed requirements of {name}"]},
+                   }[section]()
+        elif kind == "hld":
+            prob = g.get("problem") or "the problem in the brief"
+            sec = {"Purpose and scope": lambda: {"purpose": f"{name} solves this: {prob}. This design covers every "
+                                                            "requirement in the PRD and nothing else."},
+                   "Pages": lambda: {"pages": [{"id": "P1", "name": "index.html", "purpose": f"the one page of {name}",
+                                                "implements": [r.get("id") for r in reqs if r.get("id")]}]},
+                   "Components": lambda: {"components": [
+                       {"id": f"C{i}", "name": feat(r) or f"part {i}", "responsibility": f"builds and shows {feat(r)}",
+                        "covers": [r["id"]] if r.get("id") else [], "page": "P1"} for i, r in enumerate(reqs, 1)]},
+                   "Data flow": lambda: {"data_flows": [{"from": "the visitor's form", "to": "the site owner by email",
+                                                         "data": "what visitors type", "trigger": "submitting the form"}]},
+                   "Hosting and deployment": lambda: {"hosting": {"kind": "a single static file on any static host",
+                                                                  "notes": "replaced on every release"}},
+                   "Risks": lambda: {"risks": [{"risk": "a form may send nothing if the address is wrong",
+                                                "mitigation": "the owner checks the first message"},
+                                               {"risk": "a section may not fit a small phone screen",
+                                                "mitigation": "every section is checked at phone width"}]},
+                   }[section]()
+        elif kind == "lld":
+            cs = comps or [{"id": "C1"}]
+            sec = {"Pages and sections": lambda: {"sections": [
+                       {"id": f"S{i}", "anchor": f"#sec-{i}", "page": "P1", "implements": [c["id"]]}
+                       for i, c in enumerate(cs, 1)]},
+                   "Interactive elements": lambda: {"elements": [
+                       {"id": f"E{i}", "section": f"S{i}", "selector": f"#act-{i}", "trigger": "click",
+                        "behaviour": "shows the result in the same section"} for i in range(1, len(cs) + 1)]},
+                   "Form fields": lambda: {"form_fields": [
+                       {"id": f"F{(i + 1) // 2}", "section": f"S{i}", "form": f"#form-{i}", "name": f"name-{i}",
+                        "type": "text", "required": True, "validation": "not empty"}
+                       for i in range(1, len(cs) + 1, 2)]},
+                   "File structure": lambda: {"files": [{"path": "index.html",
+                                                         "purpose": f"the single page of {name}"}]},
+                   "Responsive and accessibility rules": lambda: {
+                       "responsive_rules": ["Every button and field is big enough to tap on a phone."],
+                       "accessibility_rules": ["Every field has a visible label."]},
+                   }[section]()
+        else:      # a page section: the scripted markup this mock already writes, as data
+            head, body = mock_section(w, self.goal, self.sections, self._lld_slice_for(w),
+                                      [x["anchor"] for x in self.blueprint["sections"]
+                                       if x["id"] in {i for o in self.workflows for i in o.get("lld_sections") or []}]
+                                      if self.blueprint else ())
+            m_id = re.search(r'id="([\w-]+)"', body or "")
+            sec = {"id": str(sid), "anchor": f"#{m_id[1]}" if m_id else "",
+                   "implements": list(w.get("lld_sections") or []), "html": body or "", "head": head or "",
+                   "selectors_used": [f"#{m_id[1]}"] if m_id else [], "facts_used": []}
+        out = {"reason": f"{w.get('name')}: built {section} from the charter facts.",
+               "say": f"@Coordination {w['id']} done: {w['name']}. Section {sid} written.",
+               "human_output": f"I wrote the {w['name']} section ({sid}) of the "
+                               + ("document." if self.doc else "page."),
+               "atom_human_output": "This adds a part readers can use.", "next": "Coordination",
+               "section": sec, **board_extra}
+        if first:
+            out["design"] = {"palette": dict(MOCK_STYLE["palette"]), "fonts": dict(MOCK_STYLE["fonts"]),
+                             "spacing": dict(MOCK_STYLE["spacing"]), "radius": MOCK_STYLE["radius"],
+                             "buttons": dict(MOCK_STYLE["buttons"]), "card": MOCK_STYLE["card"],
+                             "notes": MOCK_STYLE["notes"]}
+        return out
 
     def _receipt(self, a, c, attempt, res, **extra):
         """One line of receipts.jsonl: written by code only, never by an agent."""

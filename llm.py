@@ -58,31 +58,39 @@ LAST_META = {}  # model, finish reason and token counts of the latest Gemini rep
 _client = None
 
 
-def ask(system, user, mock, max_tokens=1500, effort="high", on_progress=None, json_mode=False, images=None):
+def ask(system, user, mock, max_tokens=1500, effort="high", on_progress=None, json_mode=False, images=None,
+        schema=None):
     """effort="low" caps Gemini thinking; use it for short structured replies.
     json_mode=True makes Gemini return a JSON object only (Claude follows the prompt's format).
-    images: PNG paths sent with the prompt (Audit's screenshots); every provider takes them, mock ignores them."""
+    images: PNG paths sent with the prompt (Audit's screenshots); every provider takes them, mock ignores them.
+    schema: a JSON Schema the reply must follow (J2_ARTIFACT_SCHEMA=1). claude-cli sends it with --json-schema and
+    reads structured_output; the Anthropic API uses output_config's json_format; Gemini gets response_schema when
+    the schema is simple enough, else the schema in the prompt and code validates it. The reply is still returned as
+    the JSON text, so nothing downstream changes. LAST_META["structured"] records what the provider did."""
     images = [p for p in images or [] if p and os.path.exists(p)]
     progress = on_progress or (lambda e: None)
     LAST_META.clear()   # each provider fills in what it reports (tokens included); mock reports nothing
     if MOCK:
         return _stream_mock(mock(), progress)
     if PROVIDER == "gemini":
-        return _ask_gemini(system, user, max_tokens, effort, progress, json_mode, images)
+        return _ask_gemini(system, user, max_tokens, effort, progress, json_mode, images, schema)
     if PROVIDER == "claude-cli":
-        return _ask_claude_cli(system, user, effort, progress, images)
+        return _ask_claude_cli(system, user, effort, progress, images, schema)
     global _client
     if _client is None:
         import anthropic
         _client = anthropic.Anthropic()
     text = ""
+    extra = {"output_config": {"format": {"type": "json_schema", "schema": schema}}} if schema else {}
     with _client.messages.stream(model=MODEL, max_tokens=max_tokens, system=system,
-                                 messages=[{"role": "user", "content": _blocks(user, images)}]) as stream:
+                                 messages=[{"role": "user", "content": _blocks(user, images)}], **extra) as stream:
         for piece in stream.text_stream:
             text += piece
             progress({"chars": len(text), "text": text})
         usage = stream.get_final_message().usage
     LAST_META.update(model=MODEL, input_tokens=usage.input_tokens, output_tokens=usage.output_tokens)
+    if schema:
+        LAST_META["structured"] = {"provider": "anthropic", "subtype": "success", "present": bool(text.strip())}
     return text.strip()
 
 
@@ -98,7 +106,7 @@ def _blocks(user, images):
     return out + [{"type": "text", "text": user}]
 
 
-def _ask_claude_cli(system, user, effort, progress, images=None):
+def _ask_claude_cli(system, user, effort, progress, images=None, schema=None):
     """One non-interactive `claude -p` call with no tools, MCP, skills or settings: a plain completion.
     The CLI has no max-tokens flag, so the reply format in the prompt is what keeps replies short.
     With images the prompt goes in as one stream-json user message (image blocks + text) and the result line is read
@@ -116,8 +124,10 @@ def _ask_claude_cli(system, user, effort, progress, images=None):
            "--tools", "", "--model", MODEL,
            "--effort", "low" if effort == "low" else "high", "--no-session-persistence", "--strict-mcp-config",
            "--disable-slash-commands", "--setting-sources", ""]
+    if schema:      # structured output: Claude Code validates the schema, then returns the object in structured_output
+        cmd += ["--json-schema", json.dumps(schema, ensure_ascii=False)]
     try:
-        return _run_claude_cli(cmd, images, user, env, progress)
+        return _run_claude_cli(cmd, images, user, env, progress, schema)
     finally:
         if sysfile:
             try:
@@ -126,7 +136,20 @@ def _ask_claude_cli(system, user, effort, progress, images=None):
                 pass
 
 
-def _run_claude_cli(cmd, images, user, env, progress):
+def _cli_meta(d):
+    """What `claude -p` reports about one call, kept with it (the structured-output verdict is added by the caller)."""
+    keep = LAST_META.get("structured")
+    LAST_META.clear()
+    u = d.get("usage") or {}
+    LAST_META.update(model=next(iter(d.get("modelUsage") or {}), MODEL), duration_ms=d.get("duration_ms"),
+                     input_tokens=(u.get("input_tokens") or 0) + (u.get("cache_read_input_tokens") or 0)
+                     + (u.get("cache_creation_input_tokens") or 0) if u else None,
+                     output_tokens=u.get("output_tokens"))
+    if keep:
+        LAST_META["structured"] = keep
+
+
+def _run_claude_cli(cmd, images, user, env, progress, schema=None):
     stdin = (json.dumps({"type": "user", "message": {"role": "user", "content": _blocks(user, images)}}) + "\n"
              if images else user)
     last = None
@@ -139,14 +162,23 @@ def _run_claude_cli(cmd, images, user, env, progress):
                 d = next((x for x in reversed(lines) if x.get("type") == "result"), {})
             else:
                 d = json.loads(p.stdout or "{}")
+            sub = d.get("subtype")
+            if schema:
+                so = d.get("structured_output")
+                ok = p.returncode == 0 and sub == "success" and not d.get("is_error") and so is not None
+                LAST_META["structured"] = {"provider": "claude-cli", "subtype": sub, "present": so is not None}
+                if not ok:
+                    why = (f"subtype {sub!r}" if sub != "success" else "no structured_output in the reply")
+                    last = RuntimeError(f"claude -p structured output failed: {why}")
+                    progress({"note": f"{last}; retrying" if attempt == 0 else str(last)})
+                    continue
+                text = json.dumps(so, ensure_ascii=False)
+                _cli_meta(d)
+                progress({"chars": len(text), "text": text})
+                return text
             if p.returncode == 0 and not d.get("is_error") and (d.get("result") or "").strip():
                 text = d["result"].strip()
-                LAST_META.clear()
-                u = d.get("usage") or {}
-                LAST_META.update(model=next(iter(d.get("modelUsage") or {}), MODEL), duration_ms=d.get("duration_ms"),
-                                 input_tokens=(u.get("input_tokens") or 0) + (u.get("cache_read_input_tokens") or 0)
-                                 + (u.get("cache_creation_input_tokens") or 0) if u else None,
-                                 output_tokens=u.get("output_tokens"))
+                _cli_meta(d)
                 progress({"chars": len(text), "text": text})
                 return text
             last = RuntimeError(f"claude -p failed (exit {p.returncode}): {(d.get('result') or p.stderr)[:300]}")
@@ -166,7 +198,13 @@ def _stream_mock(text, progress):
     return text
 
 
-def _ask_gemini(system, user, max_tokens, effort, progress, json_mode=False, images=None):
+def _simple_schema(schema):
+    """True when a schema has no $ref, no definitions and no type lists: Gemini's response_schema takes those only."""
+    t = json.dumps(schema or {})
+    return "$ref" not in t and "definitions" not in t and '"type": [' not in t
+
+
+def _ask_gemini(system, user, max_tokens, effort, progress, json_mode=False, images=None, schema=None):
     global _client
     from google import genai
     from google.genai import errors, types
