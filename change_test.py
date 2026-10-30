@@ -82,4 +82,69 @@ ok(ch.parse_affected('{"affected":true}') is None, "affected needs what")
 ok(ch.parse_affected('{"affected":"yes","what":"x"}') is None, "affected must be true or false")
 ok(ch.parse_affected("sure, looks fine") is None and ch.parse_affected(None) is None, "prose is not a reply")
 
+# ---- Task 2: intents (the charter diff on charter numbers) and item owners
+# runs/sudoku4/j2-20261026-121214: goal.json (items shortened) and workflows.json (ids, names, covers, revises, status)
+ITEMS = ["One HTML file, no sign-up, no ads", "9x9 board with number pad, erase and undo",
+         "Three levels (Easy, Medium, Hard) and New Game", "Every puzzle has one solution", "Beginner help",
+         "Hint explains where to look", "Saves progress and resumes", "Reasons to come back",
+         "Warm, uncluttered layout", "No JavaScript errors, no overflow"]
+SUDOKU = {"statement": "A friendly, uncluttered Sudoku game in one web page", "audience": "Casual players on a phone",
+          "charter_items": list(ITEMS), "done_when": list(ITEMS),
+          "rules": ["No sign-up, no login and no ads", "Everything lives in one HTML file"],
+          "standards": ["Phone-first", "Help never reveals an answer"]}
+
+
+def changed(**kw):
+    g = {k: (list(v) if isinstance(v, list) else v) for k, v in SUDOKU.items()}
+    g.update(kw)
+    return g
+
+
+RENAMED = "Three levels (Gentle, Steady, Tricky) and New Game"
+renamed = changed(done_when=ITEMS[:2] + [RENAMED] + ITEMS[3:])
+d = ch.charter_diff(SUDOKU, renamed)
+ok(d["removed"] == [3] and d["added"] == [11], "an edit is remove + add")
+ok(not d["goal_changed"] and d["rules"] == {"added": [], "removed": []} and d["standards"] == {"added": [], "removed": []},
+   "an item edit changes nothing else")
+ok(not ch.diff_empty(d), "an edit is a change")
+reverted = changed(charter_items=ITEMS + [RENAMED], done_when=list(ITEMS))   # J2 appended the renamed text as 11
+ok(ch.diff_empty(ch.charter_diff(SUDOKU, reverted)), "a revert diffs to nothing")
+after = changed(charter_items=ITEMS + [RENAMED], done_when=ITEMS[:2] + [RENAMED] + ITEMS[3:])
+d = ch.charter_diff(after, reverted)
+ok(d["added"] == [3] and d["removed"] == [11], "a revert brings back the old number, not a new one")
+ok(ch.charter_diff(after, changed(charter_items=ITEMS + [RENAMED], done_when=[RENAMED] + ITEMS[:2] + ITEMS[3:]))
+   == ch.charter_diff(after, after), "numbers come from the charter, not done_when positions")
+ok(ch.diff_empty(ch.charter_diff(SUDOKU, changed())), "an unchanged charter is an empty diff")
+killer = changed(audience="Puzzle fans who want Killer Sudoku")
+ok(ch.charter_diff(SUDOKU, killer)["goal_changed"], "audience change → re-plan")
+ok(ch.charter_diff(SUDOKU, changed(statement="A Killer Sudoku game"))["goal_changed"] and not ch.diff_empty(
+   ch.charter_diff(SUDOKU, killer)), "statement change → re-plan; a goal change is not an empty diff")
+removed = changed(done_when=ITEMS[:6] + ITEMS[7:])
+d = ch.charter_diff(SUDOKU, removed)
+ok(d["removed"] == [7] and d["added"] == [], "a dropped item is removed, by its number")
+two = changed(done_when=ITEMS + ["Daily Challenge", "Share result", "Daily Challenge"])
+ok(ch.charter_diff(SUDOKU, two)["added"] == [11, 12], "new items take the next numbers, in order; a repeat is one item")
+d = ch.charter_diff(SUDOKU, changed(standards=["Phone-first", "Dark mode available"], rules=SUDOKU["rules"] + ["No sound"]))
+ok(d["standards"] == {"added": ["Dark mode available"], "removed": ["Help never reveals an answer"]}
+   and d["rules"] == {"added": ["No sound"], "removed": []} and not ch.diff_empty(d), "rules and standards diff by text")
+
+
+def S(i, name, covers, revises=None, status="done"):
+    return {"id": f"W-{i}", "name": name, "covers": covers, "revises": revises, "status": status}
+
+
+SUDOKU_WFS = [S(1, "Product plan", []), S(2, "Style guide", []), S(3, "Technical design", []), S(4, "Page shell", [1]),
+              S(5, "Puzzle engine", [4]), S(6, "Board and number pad", [2]), S(7, "Look and layout", [9]),
+              S(8, "Levels and new game", [3]), S(9, "Beginner help", [5]), S(10, "Hint", [6]),
+              S(11, "Save and resume", [7]), S(12, "Reasons to come back", [8]), S(13, "How to play", []),
+              S(14, "Page wiring", [10]), S(15, "Board and number pad fix", [2], "W-6")]
+owners = ch.owner_index(SUDOKU_WFS)
+ok(owners[2] == "W-15", "a revision replaces its original as owner")
+ok(owners == {1: "W-4", 2: "W-15", 3: "W-8", 4: "W-5", 5: "W-9", 6: "W-10", 7: "W-11", 8: "W-12", 9: "W-7", 10: "W-14"},
+   "every Sudoku item has exactly one owner")
+dropped = [dict(w, status="dropped") if w["id"] == "W-11" else w for w in SUDOKU_WFS]
+ok(7 not in ch.owner_index(dropped), "a dropped workflow owns nothing")
+moved = SUDOKU_WFS + [S(16, "Levels and new game r2", [11], "W-8")]
+ok(ch.owner_index(moved)[11] == "W-16" and 3 not in ch.owner_index(moved), "a revision's covers replace its original's")
+
 print(f"change_test: {passed} checks passed")

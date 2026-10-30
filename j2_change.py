@@ -140,3 +140,55 @@ def parse_affected(reply):
     if not d or not isinstance(d.get("affected"), bool) or not isinstance(d.get("what"), str):
         return None
     return {"affected": d["affected"], "what": d["what"]}
+
+
+# ---- step 2, intents: what Identity changed, by charter number (charter_items position + 1; an item is active while
+# its text is in done_when). An edit is a removed number plus an added one; a revert finds its old number again.
+def _numbers(base, new):
+    """Charter number of every item text: the newest charter_items list known, then new texts in done_when order."""
+    items = list(new.get("charter_items") or base.get("charter_items") or base.get("done_when") or [])
+    for t in base.get("charter_items") or []:
+        if t not in items:
+            items.append(t)
+    for t in list(base.get("done_when") or []) + list(new.get("done_when") or []):
+        if t not in items:
+            items.append(t)
+    return {t: i + 1 for i, t in enumerate(items)}
+
+
+def _text_diff(old, new):
+    old, new = list(old or []), list(new or [])
+    return {"added": [t for t in new if t not in old], "removed": [t for t in old if t not in new]}
+
+
+def charter_diff(base, new):
+    """{"added": [n], "removed": [n], "rules": {"added", "removed"}, "standards": {...}, "goal_changed": bool}: active
+    items by charter number, rules and standards by text; goal_changed when the statement or audience differs."""
+    no = _numbers(base, new)
+    was = {no[t] for t in base.get("done_when") or []}
+    now = {no[t] for t in new.get("done_when") or []}
+    same = lambda k: str(base.get(k) or "").strip() == str(new.get(k) or "").strip()
+    return {"added": sorted(now - was), "removed": sorted(was - now),
+            "rules": _text_diff(base.get("rules"), new.get("rules")),
+            "standards": _text_diff(base.get("standards"), new.get("standards")),
+            "goal_changed": not (same("statement") and same("audience"))}
+
+
+def diff_empty(d):
+    """Nothing to plan: no item, rule or standard changed and the goal is the same."""
+    return not (d["added"] or d["removed"] or d["goal_changed"]
+                or any(d[k][x] for k in ("rules", "standards") for x in ("added", "removed")))
+
+
+LIVE = ("registered", "held", "running", "done")      # as j2: a dropped, failed or unfunded workflow owns nothing
+
+
+def owner_index(workflows):
+    """{charter number: id of the workflow that owns it}: per revision chain, the newest live workflow's covers."""
+    out = {}
+    for r in _roots_in_order(workflows, lambda w: True):
+        live = [w for w in workflows if _root_id(workflows, w["id"]) == r and w.get("status") in LIVE]
+        if live:
+            for n in live[-1].get("covers") or []:
+                out[int(n)] = live[-1]["id"]
+    return out

@@ -72,7 +72,7 @@ ok(ch.diff_empty(ch.charter_diff(SUDOKU, reverted)), "a revert diffs to nothing"
 ok(ch.charter_diff(SUDOKU, killer)["goal_changed"], "audience change → re-plan")
 ok(ch.owner_index(SUDOKU_WFS)[2] == "W-15", "a revision replaces its original as owner")
 ```
-- [ ] Failing tests → implement → pass → commit.
+- [x] Failing tests → implement → pass → commit.
 
 ### Task 3: The decision rule (code)
 
