@@ -1,11 +1,13 @@
 """Charter change: a second prompt on a finished realization run, split into intents, each decided once
 (docs/superpowers/specs/2026-10-30-charter-change-design.md).
 
-Pure logic, no run state: the planning graph read from a run's workflows (ported from the change relay), the replies
-its calls must give, the charter diff on charter numbers, item owners, and the decision rule. j2.py does the wiring.
+No run state: the planning graph read from a run's workflows (ported from the change relay), the replies its calls
+must give, the charter diff on charter numbers, item owners, the decision rule, and the change planner's calls (through
+j2_realization's Session). j2.py does the wiring.
 Nothing here names a stage, a document or a workflow: everything comes from the run. What counts as a planning
 document is the caller's test (is_doc; j2 passes is_artifact)."""
 import llm
+import j2_realization as R
 
 
 # ---- the planning graph: workflows by id and name, revision chains, documents and their readers
@@ -184,10 +186,11 @@ LIVE = ("registered", "held", "running", "done")      # as j2: a dropped, failed
 
 
 def owner_index(workflows):
-    """{charter number: id of the workflow that owns it}: per revision chain, the newest live workflow's covers."""
+    """{charter number: id of the workflow that owns it}: per revision chain, the covers of the newest live workflow
+    that covers anything (a fix that names no items does not take ownership away)."""
     out = {}
     for r in _roots_in_order(workflows, lambda w: True):
-        live = [w for w in workflows if _root_id(workflows, w["id"]) == r and w.get("status") in LIVE]
+        live = [w for w in workflows if _root_id(workflows, w["id"]) == r and w.get("status") in LIVE and w.get("covers")]
         if live:
             for n in live[-1].get("covers") or []:
                 out[int(n)] = live[-1]["id"]
@@ -201,18 +204,25 @@ PART = {"done_test": "goal", "inputs": "context", "method": "how", "zone_fit": "
         "size": "size", "fits": "goal"}         # a work-atom label over the judge's checks; weights do not change
 
 
-def weakest_part(settled):
-    """The work-atom part of the check that lost the most in j2_realization.settle's result (None when none lost)."""
-    return PART.get((settled or {}).get("weakest"))
+def weakest_part(settled, spec):
+    """The work-atom part that lost the most in j2_realization.settle's result: each failed question's weight counts
+    for its check's part (spec: the workflow's {question id: (check, weight, text)}). None when nothing was lost."""
+    lost = {}
+    for i in (settled or {}).get("failed") or []:
+        if i in spec:
+            part = PART[spec[i][0]]
+            lost[part] = lost.get(part, 0) + spec[i][1]
+    return max(lost, key=lost.get) if lost else None
 
 
 def decide(kind, match, score, after_fix=None):
     """"A" | "B" | "C" | "D" for one intent. kind is "added" or "removed"; match = {"owner", "stage"} from the match
-    call; score = {"score", "weakest_part"} for the owner; after_fix = the owner's score after the one fix (B)."""
+    call (unread: its reply was malformed twice, so placement looks at it); score = {"score", "weakest_part"} for the
+    owner; after_fix = the owner's score after the one fix (B)."""
     if kind == "removed":
         return "A"
     if not match.get("owner"):
-        return "C" if match.get("stage") else "D"
+        return "C" if match.get("stage") or match.get("unread") else "D"
     if score["score"] >= THRESHOLD:
         return "A"
     if score.get("weakest_part") == "size":
@@ -220,3 +230,42 @@ def decide(kind, match, score, after_fix=None):
     if after_fix is None:
         return "B"
     return "A" if after_fix["score"] >= THRESHOLD else "C"
+
+
+# ---- the calls (j2_realization's Session; every reply is checked here and sent back once with its faults named)
+def ask_checked(s, who, system, task, mock, check):
+    """(result, faults): one call, and one more naming the faults when its reply breaks check(reply) -> (result,
+    faults); the reply with fewer faults counts."""
+    got, faults = check(s.ask(who, system, task, mock))
+    if faults:
+        got2, f2 = check(s.ask(who, system, task + "\n\nYOUR REPLY LACKED:\n- " + "\n- ".join(faults)
+                               + "\nSend the whole reply again.", mock))
+        if len(f2) <= len(faults):
+            got, faults = got2, f2
+    return got, faults
+
+
+def match(s, goal, plan, items, mock):
+    """{charter number: {"owner", "stage", "why"}} for the added items, from one match call (G0 asked of every
+    workflow). A stage not in the plan counts as none; an item the reply still lacks after one retry is unread."""
+    names = {w.get("name") for w in R.lst(plan.get("workflows")) if isinstance(w, dict)}
+    stages = {x.get("id") for x in R.lst(plan.get("stages")) if isinstance(x, dict)}
+
+    def check(r):
+        got, out = {}, []
+        for x in R.lst((r or {}).get("intents")):
+            n = R.as_int(x.get("item")) if isinstance(x, dict) else 0
+            if n not in items:
+                out.append(f"item {n} is not a new item")
+            elif x.get("owner") is not None and x["owner"] not in names:
+                out.append(f"item {n}: owner {x['owner']!r} is not a workflow in the plan")
+            else:
+                got[n] = {"owner": x.get("owner"), "stage": x.get("stage") if x.get("stage") in stages else None,
+                          "why": str(x.get("why") or "")}
+        if miss := [n for n in items if n not in got]:
+            out.append(f"no answer for item {', '.join(map(str, miss))}")
+        return got, out
+
+    got, _ = ask_checked(s, "judge", R.judge_system(), R.match_task(goal, plan, items), mock, check)
+    return {n: got.get(n) or {"owner": None, "stage": None, "why": "the match reply was unreadable", "unread": True}
+            for n in items}

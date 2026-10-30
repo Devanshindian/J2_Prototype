@@ -46,7 +46,7 @@ def stage_table():
                  if s["group"] == g]
     return "\n".join(rows)
 SOURCES = ("brief", "general", "research", "budget")
-CHECKS = ("inputs", "method", "done_test", "factors", "zone_fit", "size")
+CHECKS = ("inputs", "method", "done_test", "factors", "zone_fit", "size", "fits")     # fits: G0, on a change only
 ANSWERS = ("yes", "partly", "no")
 CITATION = re.compile(r"^research\.md#R-\d+$")
 
@@ -295,38 +295,52 @@ QUESTIONS = (            # id, check, weight, question
                          "deciding how it looks)."),
     ("S2", "size", 0.08, "It fits one builder's run: one coherent output, not a bundle of unrelated ones."),
 )
+CHANGE_QUESTIONS = (     # asked only when the charter changed (j2_change): the owner of a changed item must fit it
+    ("G0", "fits", 0.25, "The changed done-when items listed for it under CHANGE are this workflow's own job: the same "
+                         "kind of thinking and output as its goal, not a second job added on."),
+)
 ITEM_WEIGHT, FACTOR_WEIGHT = 0.10, 0.08
 JUDGE_ANSWERS = ("yes", "no", "n/a")
 
 
-def fallback_checklist(goal):
-    """One item question per done-when item, for when the checklist call fails."""
-    return [{"id": f"K{i}", "item": i, "question": f"The done-test verifies, by behaviour or content: {d}"}
-            for i, d in enumerate(goal.get("done_when") or [], 1)]
+def numbered(goal):
+    """The active done-when items as (charter number, text): the charter number is the charter_items position + 1, so
+    it never moves after a drop (positions when there is no charter_items, as on a first plan)."""
+    done = list(goal.get("done_when") or [])
+    charter = list(goal.get("charter_items") or done)
+    charter += [t for t in done if t not in charter]
+    return sorted((charter.index(t) + 1, t) for t in dict.fromkeys(done))
 
 
-def checklist_items(r, goal):
-    """The judge's per-plan item questions (TICK), numbered K1..; falls back to one question per item."""
-    n = len(goal.get("done_when") or [])
+def fallback_checklist(goal, items=None):
+    """One item question per done-when item (items: only these charter numbers), for when the checklist call fails."""
+    rows = enumerate(goal.get("done_when") or [], 1) if items is None else [(n, t) for n, t in numbered(goal) if n in items]
+    return [{"id": f"K{i}", "item": i, "question": f"The done-test verifies, by behaviour or content: {d}"} for i, d in rows]
+
+
+def checklist_items(r, goal, items=None):
+    """The judge's per-plan item questions (TICK), numbered K1..; falls back to one question per item. items: only these
+    charter numbers (a change)."""
+    want = set(range(1, len(goal.get("done_when") or []) + 1)) if items is None else set(items)
     rows = [x for x in lst((r or {}).get("items")) if isinstance(x, dict)
-            and 1 <= as_int(x.get("item")) <= n and str(x.get("question") or "").strip()]
-    if {as_int(x["item"]) for x in rows} != set(range(1, n + 1)):
+            and as_int(x.get("item")) in want and str(x.get("question") or "").strip()]
+    if {as_int(x["item"]) for x in rows} != want:
         have = {as_int(x["item"]) for x in rows}
-        rows += [x for x in fallback_checklist(goal) if x["item"] not in have]
+        rows += [x for x in fallback_checklist(goal, items) if x["item"] not in have]
     return [{"id": f"K{i}", "item": as_int(x["item"]), "question": str(x["question"]).strip()}
             for i, x in enumerate(sorted(rows, key=lambda x: as_int(x["item"])), 1)]
 
 
-def question_spec(p, checklist):
+def question_spec(p, checklist, names=None):
     """Workflow name -> {question id: (check, weight, text)}: the fixed questions, plus K questions for the items it
-    delivers and F questions for the factors its stage owns."""
+    delivers and F questions for the factors its stage owns. names: only these workflows."""
     factors = [f for f in lst(p.get("factors")) if isinstance(f, dict)]
     fid = {f.get("name"): f"F{i}" for i, f in enumerate(factors, 1)}
     why = {f.get("name"): f.get("why") or "" for f in factors}
     owns = {s.get("id"): lst(s.get("owns_factors")) for s in lst(p.get("stages")) if isinstance(s, dict)}
     spec = {}
     for w in lst(p.get("workflows")):
-        if not isinstance(w, dict):
+        if not isinstance(w, dict) or (names is not None and w.get("name") not in names):
             continue
         q = {i: (c, wt, t) for i, c, wt, t in QUESTIONS}
         for k in checklist:
@@ -459,6 +473,7 @@ PLAN_FMT = """{
 REVISE_FMT = PLAN_FMT[:-2] + ',\n "changes": [{"workflow": str, "weakest": str, "remedy": str, "axis": "ask"|"research:find"|"research:method"|"certainty:analyze"|"certainty:experiment"|"certainty:stabilize"|"certainty:reread"|"realization:add"|"realization:deepen"|"realization:split"|"rewrite"}]\n}'
 JUDGE_FMT = """{"answers": [{"workflow": str, "a": {"<question id>": {"answer": "yes"|"no"|"n/a", "note": str (required for no: what is missing; start with ask:, research: or probe: when it is missing information)}}, "compare": "better"|"same"|"worse"|null (only for workflows listed under REVISED)}]}"""
 CHECKLIST_FMT = """{"items": [{"item": int (done-when number), "question": str}]}"""
+MATCH_FMT = """{"intents": [{"item": int (charter number), "owner": str|null (the one workflow whose job it is), "stage": str|null (when owner is null: the id of the stage in the plan whose kind of thinking it needs, or null), "why": str}]}"""
 
 
 def _read(name):
@@ -488,15 +503,15 @@ def judge_system():
             + adaptation_part("CERTAINTY") + "\n\nReply with one JSON object and nothing else.")
 
 
-def charter_text(goal):
-    """What Adaptation and the judge read of Identity's charter."""
+def charter_text(goal, by_number=False):
+    """What Adaptation and the judge read of Identity's charter. by_number: items by charter number (a change)."""
     lines = [f"STATEMENT: {goal.get('statement', '')}"]
     for k in ("audience", "standards", "rules"):
         if goal.get(k):
             v = goal[k]
             lines.append(f"{k.upper()}: " + ("; ".join(v) if isinstance(v, list) else str(v)))
     lines.append("DONE WHEN:")
-    lines += [f"  {i}. {d}" for i, d in enumerate(goal.get("done_when") or [], 1)]
+    lines += [f"  {i}. {d}" for i, d in (numbered(goal) if by_number else enumerate(goal.get("done_when") or [], 1))]
     for k in ("open_inputs", "to_be_confirmed"):
         if goal.get(k):
             lines.append(f"{k.upper()}: " + "; ".join(goal[k]))
@@ -527,23 +542,41 @@ def revise_task(goal, web, plan, low, extra=""):
             f"format:\n{REVISE_FMT}")
 
 
-def checklist_task(goal):
-    return (f"CHARTER (from Identity):\n{charter_text(goal)}\n\nWrite the item questions for this charter: for each "
-            "done-when item, 1 to 3 yes/no questions, each asking whether a done-test verifies one concrete, checkable "
-            "part of that item. Use the charter's own numbers and words, and ask about behaviour or content, not only "
+def checklist_task(goal, items=None):
+    which = "each done-when item" if items is None else f"each of done-when items {', '.join(map(str, items))}"
+    return (f"CHARTER (from Identity):\n{charter_text(goal, items is not None)}\n\nWrite the item questions for this "
+            f"charter: for {which}, 1 to 3 yes/no questions, each asking whether a done-test verifies one concrete, "
+            "checkable part of that item. Use the charter's own numbers and words, and ask about behaviour or content, not only "
             "presence. Example, for 'a round lasts exactly 30 seconds, then the end screen appears': 'Does a check "
             "verify that a round ends after exactly 30 seconds?' and 'Does a check verify that the end screen appears "
             "when the round ends?'. The questions are frozen for every round of this plan.\n\n"
             f"Reply format:\n{CHECKLIST_FMT}")
 
 
-def judge_task(goal, plan, spec, revised):
+def match_task(goal, plan, items):
+    """The change path's first call: G0 for every workflow of the plan, for each new item (charter numbers)."""
+    new = "\n".join(f"  {n}. {t}" for n, t in numbered(goal) if n in items)
+    return (f"CHARTER (from Identity):\n{charter_text(goal, True)}\n\nTHE PLAN:\n{json.dumps(plan, ensure_ascii=False)}"
+            f"\n\nNEW DONE-WHEN ITEMS (charter numbers):\n{new}\n\nFor each new item, ask every workflow in the plan "
+            "G0: is this item its own job, the same kind of thinking and output as its goal, so that a small edit of it "
+            "would deliver the item? Name the one workflow that answers yes as owner. When none does, owner is null: "
+            "then name the stage in the plan whose kind of thinking the item needs, or null when no stage in the plan "
+            "has it. Don't plan or score anything.\n\n"
+            f"Reply format:\n{MATCH_FMT}")
+
+
+def judge_task(goal, plan, spec, revised, change=None):
     qs = [{"workflow": n, "questions": {i: t for i, (_, _, t) in q.items()}} for n, q in spec.items()]
     rev = ""
     if revised:
         rev = ("\n\nREVISED since the last round: say in compare whether each new version closes the gaps named then "
                "(better, same or worse):\n" + json.dumps(revised, ensure_ascii=False))
-    return (f"CHARTER (from Identity):\n{charter_text(goal)}\n\nTHE PLAN:\n{json.dumps(plan, ensure_ascii=False)}\n\n"
+    if change:
+        rev += ("\n\nCHANGE: the charter changed. Each workflow below is asked to take on the done-when items listed for "
+                "it (charter numbers). Answer its questions for the workflow with those items added and its done-test "
+                "extended to verify them; G0 asks whether they are its job at all:\n" + json.dumps(change))
+    return (f"CHARTER (from Identity):\n{charter_text(goal, change is not None)}\n\n"
+            f"THE PLAN:\n{json.dumps(plan, ensure_ascii=False)}\n\n"
             f"QUESTIONS, per workflow (answer every id):\n{json.dumps(qs, ensure_ascii=False)}{rev}\n\n"
             f"Reply format:\n{JUDGE_FMT}")
 
@@ -586,8 +619,8 @@ class Session:
         """The per-plan item questions (TICK), written once and frozen for every round."""
         return checklist_items(self.ask("judge", judge_system(), checklist_task(goal), mock), goal)
 
-    def _answers(self, goal, plan, spec, revised, mock):
-        task = judge_task(goal, plan, spec, revised)
+    def _answers(self, goal, plan, spec, revised, mock, change=None):
+        task = judge_task(goal, plan, spec, revised, change)
         r = self.ask("judge", judge_system(), task, lambda: mock(spec))
         got, faults = judge_faults(r, spec)
         if faults:
@@ -599,11 +632,17 @@ class Session:
                 got, faults = got2, f2
         return {n: settle(got.get(n), q) for n, q in spec.items()}, faults
 
-    def judge(self, goal, plan, checklist, mock, previous=None):
+    def judge(self, goal, plan, checklist, mock, previous=None, names=None, change=None):
         """Scores for every workflow. previous: last round's {"plan", "scores"}. A revised workflow that is not better
         than before can't score higher than before; a workflow within BORDER of the gate is judged again and the
-        lower result counts."""
-        spec = question_spec(plan, checklist)
+        lower result counts. names: judge only these workflows. change (a charter change, j2_change): {workflow: the
+        charter numbers it is asked to take on}; those workflows also get G0 and the K questions of those items, and
+        the charter is shown by charter number ({} for numbers alone)."""
+        spec = question_spec(plan, checklist, names)
+        for n, its in (change or {}).items():
+            if n in spec:
+                spec[n].update({i: (c, wt, t) for i, c, wt, t in CHANGE_QUESTIONS})
+                spec[n].update({k["id"]: ("done_test", ITEM_WEIGHT, k["question"]) for k in checklist if k["item"] in its})
         revised, kept = {}, {}
         if previous:
             old = {w.get("name"): w for w in lst(previous["plan"].get("workflows")) if isinstance(w, dict)}
@@ -615,7 +654,7 @@ class Session:
                     revised[n] = {"previous_version": old[n], "gaps_named": previous["scores"][n]["missing"]}
                 elif previous["scores"][n].get("held_by_compare"):
                     kept[n] = previous["scores"][n]["score"]     # unchanged since a revision that didn't help
-        scores, faults = self._answers(goal, plan, spec, revised, mock)
+        scores, faults = self._answers(goal, plan, spec, revised, mock, change)
         for n in revised:
             prev = previous["scores"][n]["score"]
             if str(scores[n].get("compare") or "").lower() in ("same", "worse") and scores[n]["score"] > prev:
@@ -626,7 +665,7 @@ class Session:
         border = {n: q for n, q in spec.items() if abs(scores[n]["score"] - THRESHOLD) < BORDER}
         if border:
             self.log(f"  second look near the gate: {', '.join(border)}")
-            again, f2 = self._answers(goal, plan, border, {}, mock)
+            again, f2 = self._answers(goal, plan, border, {}, mock, change)
             faults += f2
             for n, s2 in again.items():
                 first = scores[n]["score"]

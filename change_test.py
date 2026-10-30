@@ -4,6 +4,7 @@ The planning graph ported from the change relay, the replies its calls must give
 item owners, and the decision rule. No AI calls.
 """
 import os
+import re
 import sys
 
 os.environ["STUDIO_MOCK"] = "1"          # before llm is imported
@@ -163,24 +164,190 @@ ok(ch.PART == {"done_test": "goal", "inputs": "context", "method": "how", "zone_
                "size": "size", "fits": "goal"} and set(R.CHECKS) <= set(ch.PART), "every check has a work-atom part")
 
 
-def judged(no=()):
+def judged(no=(), extra=()):
     """settle's real output for one workflow answering "no" to the given question ids and "yes" to the rest."""
-    spec = {i: (check, w, text) for i, check, w, text in R.QUESTIONS}
+    spec = {i: (check, w, text) for i, check, w, text in R.QUESTIONS + tuple(extra)}
     s = R.settle({"a": {i: {"answer": "no" if i in no else "yes", "note": ""} for i in spec}}, spec)
-    return s, {"score": s["score"], "weakest_part": ch.weakest_part(s)}
+    return s, {"score": s["score"], "weakest_part": ch.weakest_part(s, spec)}
 
 
 s, sc = judged()
 ok(s["score"] == 0.95 and sc["weakest_part"] is None and ch.decide("added", OWNED, sc) == "A", "judge today 0.95 → A")
-ok(ch.decide("added", OWNED, {"score": 0.77, "weakest_part": ch.weakest_part({"score": 0.77, "weakest": "method"})})
-   == "B", "judge today 0.77, weakest how → B")
+s, sc = judged(no=("Z1",))
+ok(s["score"] == 0.70 and sc["weakest_part"] == "how" and ch.decide("added", OWNED, sc) == "B",
+   "judge today 0.70, weakest how → B")
 s, sc = judged(no=("I1",))
 ok(s["score"] == 0.70 and sc["weakest_part"] == "context" and ch.decide("added", OWNED, sc) == "B",
    "judge today 0.70, weakest context → B")
 s, sc = judged(no=("S1", "S2", "M2", "D3", "D4"))
 ok(s["score"] == 0.48 and sc["weakest_part"] == "size" and ch.decide("added", OWNED, sc) == "C",
    "a low score lost mostly on size → C")
-ok(ch.decide("added", OWNED, {"score": 0.62, "weakest_part": ch.weakest_part({"score": 0.62, "weakest": "size"})}) == "C",
-   "judge today 0.62, weakest size → C")
+s, sc = judged(no=("S1", "S2"))
+ok(s["score"] == 0.72 and sc["weakest_part"] == "size" and ch.decide("added", OWNED, sc) == "C",
+   "judge today 0.72, weakest size → C")
+
+# ---- Task 4: the judge for a change. A realization plan shaped like runs/sudoku4/j2-20261026-121214 realization.json
+import copy                              # noqa: E402
+import hashlib                           # noqa: E402
+import json                              # noqa: E402
+
+SIG = {k: {"answer": a, "evidence": "fixture"} for k, a in zip(R.SIGNALS, ("no", "no", "yes", "yes", "yes"))}
+
+
+def P(name, stage, delivers=(), informs=(), inputs=(), certainty="operate"):
+    return {"name": name, "stage": stage, "certainty": certainty, "certainty_signals": ["fixture"],
+            "approach": f"{name}: follow the plan.", "goal": f"{name} is done", "done_test": f"{name} passes its check",
+            "delivers": list(delivers), "informs": list(informs), "inputs_from": list(inputs), "experiment": None,
+            "research": None}
+
+
+def stage(sid, thinking, tiers, owns, inputs):
+    return {"id": sid, "thinking": thinking, "tiers": tiers, "goal": f"{sid} done", "done_test": f"{sid} checked",
+            "method": "fixture", "owns_factors": owns, "inputs_from": inputs}
+
+
+def D(name, stage_id, informs, inputs=()):
+    return P(name, stage_id, informs=informs, inputs=inputs, certainty="analyze")
+
+
+PLAN = {
+    "certainty_assessment": {"zone": "analyze", "signals": SIG, "rationale": "fixture"},
+    "analysis": {"options": ["a", "b"], "chosen": "a", "why": "fixture", "assumptions": []}, "deferred": [],
+    "factors": [{"name": "Help never reveals an answer", "source": "brief", "quote": "help", "citation": None,
+                 "why": "fixture", "stages": ["product"]},
+                {"name": "Warm, uncluttered look", "source": "brief", "quote": "warm", "citation": None, "why": "fixture",
+                 "stages": ["design"]},
+                {"name": "One HTML file", "source": "brief", "quote": "one file", "citation": None, "why": "fixture",
+                 "stages": ["engineering"]}],
+    "unplaced": [],
+    "stages": [stage("product", "users and scope", ["capability", "feature"], ["Help never reveals an answer"], []),
+               stage("design", "experience", ["feature"], ["Warm, uncluttered look"], ["product"]),
+               stage("engineering", "structure", ["architecture"], ["One HTML file"], ["product"]),
+               stage("build", "making", ["implementation"], [], ["product", "design", "engineering"])],
+    "workflows": [
+        D("Product plan", "product", [1, 3, 5, 6, 8]),
+        D("Style guide", "design", [2, 5, 8, 9], ["Product plan"]),
+        D("Technical design", "engineering", [1, 2, 3, 4, 5, 6, 7, 8], ["Product plan"]),
+        P("Page shell", "build", [1], inputs=["Technical design", "Product plan"]),
+        P("Puzzle engine", "build", [4], inputs=["Technical design", "Product plan", "Page shell"]),
+        P("Board and number pad", "build", [2], inputs=["Page shell", "Puzzle engine", "Technical design", "Style guide"]),
+        P("Look and layout", "build", [9], inputs=["Style guide", "Page shell", "Board and number pad"]),
+        P("Levels and new game", "build", [3], inputs=["Board and number pad", "Puzzle engine", "Product plan",
+                                                       "Technical design"]),
+        P("Beginner help", "build", [5], inputs=["Board and number pad", "Product plan", "Style guide", "Technical design"]),
+        P("Hint", "build", [6], inputs=["Board and number pad", "Puzzle engine", "Technical design", "Product plan"]),
+        P("Save and resume", "build", [7], inputs=["Board and number pad", "Levels and new game", "Technical design",
+                                                   "Beginner help"]),
+        P("Reasons to come back", "build", [8], inputs=["Save and resume", "Board and number pad", "Levels and new game",
+                                                        "Product plan", "Style guide", "Technical design"]),
+        P("How to play", "build", informs=[5, 6, 10], inputs=["Page shell", "Product plan", "Style guide"]),
+        P("Page wiring", "build", [10], inputs=["Page shell", "Look and layout", "Puzzle engine", "Board and number pad",
+                                               "Levels and new game", "Beginner help", "Hint", "Save and resume",
+                                               "Reasons to come back", "How to play", "Technical design",
+                                               "Product plan"])],
+    "open_facts": [], "not_ready": []}
+ok(R.plan_faults(PLAN, SUDOKU) == [], "the fixture plan follows every rule")
+quiet = lambda *_: None
+
+# Phase A follow-ups: weakest_part sums by work-atom part; a revision with no covers keeps its original as owner
+s, sc = judged(no=("G0", "I1", "D4"), extra=R.CHANGE_QUESTIONS)
+ok(s["weakest"] == "inputs" and sc["weakest_part"] == "goal",
+   "the part that lost the most (goal: G0 0.25 + D4 0.06) wins over the single check that lost the most (inputs)")
+ok(ch.weakest_part({"failed": []}, {}) is None, "nothing lost, no weakest part")
+blank = SUDOKU_WFS + [S(16, "Hint fix", [], "W-10")]
+ok(ch.owner_index(blank)[6] == "W-10", "a revision with empty covers does not erase its original's ownership")
+
+# the first plan is unchanged: spec, scores and the prompts the judge and planner read
+GOAL = {"statement": "A coffee shop site", "done_when": ["menu", "hours and location", "signature drinks", "contact form"]}
+h = lambda x: hashlib.sha256(x.encode()).hexdigest()[:16]
+mp = R.mock_plan(GOAL)
+cl = R.checklist_items(json.loads(R.default_mocks(GOAL)["checklist"]()), GOAL)
+spec = R.question_spec(mp, cl)
+ok(h(json.dumps(spec, sort_keys=True)) == "a18591ac18206877", "first-plan question spec unchanged (snapshot)")
+got = []
+for fail in ([], ["D1"], ["D3", "K1"], ["S1"], ["M2", "Z1"], ["S1", "S2", "F1"]):
+    for n in ("Plan", "Build item 1"):
+        x = R.settle(json.loads(R.mock_judge({"x": spec[n]}, fail={"x": fail}))["answers"][0], spec[n])
+        got.append((x["score"], x["weakest"], x["capped"]))
+ok(got == [(0.95, None, False)] * 2 + [(0.7, "done_test", False)] * 2 + [(0.85, "done_test", False),
+   (0.75, "done_test", False)] + [(0.79, "size", True)] * 2 + [(0.62, "zone_fit", False)] * 2
+   + [(0.64, "size", False), (0.72, "size", False)], "first-plan settle scores unchanged (snapshot)")
+low = {"Plan": {"score": 0.7, "weakest": "method", "missing": ["x"]}}
+ok((h(R.checklist_task(GOAL)), h(R.judge_task(GOAL, mp, spec, {})), h(R.revise_task(GOAL, True, mp, low)))
+   == ("75a238c164bdb721", "ac43f64ab27dbe1d", "93b518065a7f988c"), "first-plan checklist, judge and revise prompts unchanged")
+ok(R.question_spec(mp, cl, names=None) == spec and "fits" in R.CHECKS and not any(q[0] == "G0" for q in R.QUESTIONS),
+   "names=None is the whole plan; G0 is not a first-plan question")
+
+# the change path: charter numbers, a subset of workflows, G0
+ADD = changed(charter_items=ITEMS + ["Daily challenge"], done_when=ITEMS[:6] + ITEMS[7:] + ["Daily challenge"])
+ok(R.numbered(ADD)[-1] == (11, "Daily challenge") and (7, ITEMS[6]) not in R.numbered(ADD)
+   and R.numbered(GOAL) == list(enumerate(GOAL["done_when"], 1)), "items by charter number; positions without charter_items")
+ok("  11. Daily challenge" in R.charter_text(ADD, by_number=True) and "  10. Daily challenge" in R.charter_text(ADD),
+   "the change path shows charter numbers; the first plan keeps positions")
+ck = R.checklist_items(None, ADD, items=[11])
+ok(ck == [{"id": "K1", "item": 11, "question": "The done-test verifies, by behaviour or content: Daily challenge"}],
+   "item questions only for the changed items, by charter number (fallback, no call)")
+ok(R.checklist_items({"items": [{"item": 11, "question": "q11"}, {"item": 3, "question": "q3"}]}, ADD, items=[11])
+   == [{"id": "K1", "item": 11, "question": "q11"}], "a question for an unchanged item is ignored")
+ok("11. Daily challenge" in R.checklist_task(ADD, items=[11]) and "items 11" in R.checklist_task(ADD, items=[11]),
+   "the checklist call can be asked for the changed items only")
+sub = R.question_spec(PLAN, ck, names=["Hint", "Levels and new game"])
+ok(list(sub) == ["Levels and new game", "Hint"], "a subset spec has only the named workflows")
+seen = []
+
+
+def jmock(fail=None, compare="better"):
+    def f(spec):
+        seen.append(spec)
+        return R.mock_judge(spec, fail=fail, compare=compare)
+    return f
+
+
+sess = R.Session(log=quiet)
+sc, _ = sess.judge(ADD, PLAN, ck, jmock({"Hint": ["G0"]}), names=["Hint", "Levels and new game"],
+                   change={"Hint": [11], "Levels and new game": [11]})
+ok(set(seen[0]) == {"Hint", "Levels and new game"} and "G0" in seen[0]["Hint"] and "K1" in seen[0]["Hint"],
+   "the change judge asks the owners G0 and the K questions of their changed items")
+ok(sc["Hint"]["score"] == 0.70 and sc["Hint"]["checks"]["fits"] == "no" and sc["Levels and new game"]["score"] == 0.95,
+   "G0 no caps the score below the gate")
+ok(ch.weakest_part(sc["Hint"], seen[0]["Hint"]) == "goal", "G0 is the goal part")
+prompt = sess.trail[-1]["user"]
+ok("CHANGE" in prompt and "  11. Daily challenge" in prompt, "the change judge reads charter numbers and the change")
+
+# the match call: G0 for every workflow, the stage question when no one owns it
+TWO = changed(charter_items=ITEMS + ["Daily challenge", "Teach techniques"],
+              done_when=ITEMS + ["Daily challenge", "Teach techniques"])
+mreply = json.dumps({"intents": [{"item": 11, "owner": None, "stage": "build", "why": "a new screen"},
+                                 {"item": 12, "owner": "Hint", "stage": None, "why": "hints"}]})
+sess = R.Session(log=quiet)
+m = ch.match(sess, TWO, PLAN, [11, 12], lambda: mreply)
+ok(m[11]["owner"] is None and m[11]["stage"] == "build" and m[12]["owner"] == "Hint" and sess.calls == 1,
+   "mock match gives owner and stage in one call")
+ok("11. Daily challenge" in sess.trail[0]["user"] and "G0" in sess.trail[0]["user"], "the match call asks G0 by charter number")
+sess = R.Session(log=quiet)
+m = ch.match(sess, TWO, PLAN, [11, 12], lambda: json.dumps({"intents": [{"item": 11, "owner": "Nope", "stage": None,
+                                                                          "why": ""}]}))
+ok(sess.calls == 2 and m[11]["unread"] and m[12]["unread"] and ch.decide("added", m[11], None) == "C",
+   "a match reply malformed twice: the intent is decided C, never dropped")
+m = ch.match(R.Session(log=quiet), TWO, PLAN, [11, 12],
+             lambda: json.dumps({"intents": [{"item": 11, "owner": None, "stage": "growth", "why": "x"},
+                                             {"item": 12, "owner": None, "stage": None, "why": "y"}]}))
+ok(m[11]["stage"] is None and ch.decide("added", m[11], None) == "D", "a stage not in the plan is no stage: D")
+SCENARIO = re.compile(r"sudoku|hint|level|puzzle|board|product plan|style guide|technical design|engineering|design",
+                      re.I)
+
+
+def wording(task, goal, plan, *texts):
+    """A prompt without the run's own text (charter, plan, item texts): what code wrote."""
+    out = task.replace(R.charter_text(goal, True), "").replace(json.dumps(plan, ensure_ascii=False), "")
+    for t in texts:
+        out = out.replace(t, "")
+    return out
+
+
+ok(not SCENARIO.search(wording(R.match_task(TWO, PLAN, [11]), TWO, PLAN, "Daily challenge")),
+   "the match prompt names no scenario")
+ok(not SCENARIO.search(R.CHANGE_QUESTIONS[0][3] + prompt.split("CHANGE: ")[1].split(":\n")[0]),
+   "G0 and the judge's change note name no scenario")
 
 print(f"change_test: {passed} checks passed")

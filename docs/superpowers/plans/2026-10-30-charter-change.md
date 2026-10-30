@@ -99,8 +99,11 @@ ok(ch.owner_index(SUDOKU_WFS)[2] == "W-15", "a revision replaces its original as
   "why": str}]}`: G0 for every workflow in one call, with the stage question when no one owns it. Malformed twice →
   the intent is decided C (placement looks at it); it is never dropped.
 
-- [ ] Tests: subset spec has only named workflows; first-plan spec keys and scores unchanged (Sudoku fixture
+- [x] Tests: subset spec has only named workflows; first-plan spec keys and scores unchanged (Sudoku fixture
       snapshot); mock match gives owner/stage; G0 "no" caps the score. Commit.
+- Note: `confidence-judge.md` is left unchanged so the first-plan judge system prompt stays byte-identical; G0 is
+  explained in `judge_task`'s CHANGE note. Phase A follow-ups folded in: `weakest_part(settled, spec)` sums by part;
+  `owner_index` skips revisions with empty covers.
 
 ### Task 5: Act — A, B, C/D (LLM, mock first)
 
