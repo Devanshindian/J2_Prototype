@@ -141,14 +141,21 @@ ok(ch.owner_index(SUDOKU_WFS)[2] == "W-15", "a revision replaces its original as
 
 **Files:** `j2.py`.
 
-- [ ] `_change_applies()`: `J2_CHANGE=1`, realization website run, `realization.json` present, `self.feedback`.
-- [ ] After `_identity_intake` saves the new charter: keep `goal.v<k>.json`; no diff → no plan change; `goal_changed`
+- [x] `_change_applies()`: `J2_CHANGE=1`, realization website run, `realization.json` present, `self.feedback`.
+- [x] After `_identity_intake` saves the new charter: keep `goal.v<k>.json`; no diff → no plan change; `goal_changed`
       → full re-plan (`_realization_applies` allowed once); else handoff `change` → `_turn_change(h)` calls
       `plan_change`, saves `change.json`, posts a one-line summary, and hands Adaptation fixed text (doc revisions
       first, then `revises` and new workflows), like `_realization_plan` :5421.
-- [ ] Validator while a change is open: a workflow not in the change plan is refused.
-- [ ] Mock run: "Rename the levels" registers the Product plan revision before the Levels revision, nothing else.
-- [ ] Commit.
+- [x] Validator while a change is open: a workflow not in the change plan is refused.
+- [x] Mock run: "Rename the levels" registers the Product plan revision before the Levels revision, nothing else.
+- [x] Commit.
+- Notes: the base for every change is the charter and plan of the last full plan (`real_base`, `real["plan"]`), so a
+  revert diffs to nothing. A revision is named "<name> (change k)" so a build revision's dependency waits for the doc
+  revision, not the original of the same name; a file workflow's revision keeps `revises`. The validator refuses other
+  workflows until every row of the change plan is registered (then fixes after Audit go through as usual). A rule or
+  standard change with no item change is re-planned in full and Identity tells the Requester why. An edit (remove +
+  add) also revises every planning doc that informed the removed number (j2_change step 5). Prompt during a full
+  re-plan: the new plan's workflows build new sections beside the old ones (check in a real run).
 
 ### Task 8: Relay from revised docs
 

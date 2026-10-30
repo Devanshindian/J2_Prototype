@@ -48,6 +48,7 @@ import time
 
 import j2_artifacts
 import j2_board
+import j2_change
 import j2_templates
 import j2_types
 import j2_check
@@ -2805,6 +2806,9 @@ class J2Run:
         # J2_REALIZATION=1: the judged realization plan, its decisions, whether its blocking facts were asked, the record
         self.realization = realization_on()
         self.real, self.real_decisions, self.real_asked, self.real_summary = None, {}, False, None
+        # J2_CHANGE=1 (j2_change.py): the charter of the last full plan, a full re-plan allowed once, the open change
+        # and every change so far (change.json); relay_script: mock replies of the readers asked after a doc revision
+        self.real_base, self.real_replan, self.change, self.changes, self.relay_script = None, False, None, [], {}
         self._begin_cycle(advance=False)
 
     def set_output(self, out):
@@ -3371,7 +3375,7 @@ class J2Run:
                 self.request = last_user
                 self._plan_stages()
                 self._handoff("identity", kind="intake")
-            elif self.fixes:   # fix (b): a change request is checked at J2.a before Adaptation works on it
+            elif self.fixes or self._change_applies():   # fix (b): a change request is checked at J2.a first
                 self._handoff("identity", kind="intake", change=self.feedback, mark=len(self.intake))
             else:
                 self._handoff("adaptation", kind="propose", new_cycle=True,
@@ -3448,6 +3452,8 @@ class J2Run:
             self._write_summary()
         self._make_report(review=not self.paused)
         self.feedback = None
+        if self.change and not self.paused:      # J2_CHANGE: the change ends with the run it was built in
+            self.change["phase"] = "closed"
         self.status = "waiting"
 
     # ------------------------------------------------------------------ Identity
@@ -4031,6 +4037,9 @@ class J2Run:
             goal["core_items"] = [c for c, k in zip(crit, core) if k is True]
         elif "core_items" in goal:                                       # a change request kept the old marks
             goal["core_items"] = [c for c in goal["core_items"] if c in crit]
+        if change and self._change_applies(change):      # J2_CHANGE=1: the charter before this change is kept
+            k = 1 + sum(1 for f in os.listdir(self.dir) if re.fullmatch(r"goal\.v\d+\.json", f))
+            self.save(f"goal.v{k}.json", self.goal)
         self.goal = goal
         self.save("goal.json", self.goal)
         ok, why = self._stamp_check()
@@ -4052,7 +4061,7 @@ class J2Run:
                                    "done-when items. Work can start."
                       + (f" Dropped with the Requester's agreement: {'; '.join(dropped)}." if dropped else ""),
                       "adaptation", stamp=True)
-            return self._handoff("adaptation", **start)
+            return self._start_work(change, start)
         if h.get("attempt", 1) < 2:
             self._event("validator", "refused", f"charter: {why}")
             self._say("validator", f"Charter rejected: {why}.", "identity", stamp=False)
@@ -4060,7 +4069,7 @@ class J2Run:
                                  feedback=f"The validator rejected the charter: {why}. Fix only that.")
         self.stamped = True
         self.post("system", "Charter accepted after two attempts; the validator's concern is on record.")
-        self._handoff("adaptation", **start)
+        self._start_work(change, start)
 
     @staticmethod
     def _tbc(raw, crit, keep=()):
@@ -5265,8 +5274,8 @@ class J2Run:
                                "next": "Priority", "workflows": wfs})
 
         def mock():
-            first_real = bool(real and (self.real_summary or {}).get("proposal_brief") and not self.workflows)
-            r = json.loads(mock_real() if first_real else mock_plain())
+            first_real = bool(real and (self.real_summary or {}).get("proposal_brief") and (not self.workflows or replan))
+            r = self._mock_change_plan() if changing else json.loads(mock_real() if first_real else mock_plain())
             r["workflows"] = with_atoms(r.get("workflows"), self.out.get("mock_atom"))
             if r.get("act") == "PROPOSE" and not self.workflows and sum(item_min(c) for c in crit) > self.budget - self.spent:
                 r = self._cheapest_fit()                         # the charter costs more than the budget left
@@ -5323,14 +5332,17 @@ class J2Run:
                       + f"\nNECESSARY CONDITIONS (code checks every one on the built {self.out['noun']}; it is workable "
                       "only when all are met, so your plan must build what each needs):\n"
                       + "\n".join(f"{c['id']}: {c['text']}" for c in load_conditions(self.out["conditions"])))
-        real = None
+        real, replan = None, self.real_replan
+        changing = bool(self.change and self.change["phase"] == "plan")      # J2_CHANGE: the change plan is the task
         if self._realization_applies():
             real = self._realization_plan(h)
             if real is None:         # a blocking Requester fact went to Identity first
                 return
             task += real
+        elif changing:
+            task += self._change_text()
         # A proposal that follows the realization plan carries more workflows and atoms than the 900-token default
-        r = self.call("adaptation", fmt, task, mock, **({"max_tokens": 8000} if real else {}))
+        r = self.call("adaptation", fmt, task, mock, **({"max_tokens": 8000} if real or changing else {}))
         if self._budget_question(r):
             # Affordability is Priority's call (J2.c): a budget question is rejected, asked once more, then replaced.
             self._event("adaptation", "invalid_move", "budget POLICY_QUESTION rejected")
@@ -5426,9 +5438,10 @@ class J2Run:
                  "is Audit's job: never plan check, review, QA, test or report workflows.")
 
     def _realization_applies(self):
-        """J2_REALIZATION=1 shapes the first plan of a website run (not documents, a blueprint build or a change request)."""
-        return (self.realization and self.goal and not self.doc and not self.blueprint and not self.feedback
-                and not self._all_wfs())
+        """J2_REALIZATION=1 shapes the first plan of a website run (not documents, a blueprint build or a change request;
+        a change that needs a full re-plan, J2_CHANGE=1, is planned through it once more)."""
+        return (self.realization and self.goal and not self.doc and not self.blueprint
+                and (self.real_replan or (not self.feedback and not self._all_wfs())))
 
     def _realization_plan(self, h):
         """Adaptation's first plan through the realization axis (j2_realization): factors, stages, workflows with a
@@ -5441,7 +5454,7 @@ class J2Run:
             self.post("system", "Realization is on: Adaptation plans by stage and certainty, and a separate judge scores "
                                 "every workflow before anything is built.")
             r = j2_realization.plan_goal(self.goal, web=False, log=lambda m: None, extra=self.REAL_NOTE)
-            self.real = r
+            self.real, self.real_base = r, copy.deepcopy(self.goal)     # a change is diffed against this charter
             self.calls += r["calls"]
             self.save("realization.json", r)
             with open(os.path.join(self.dir, "realization.md"), "w", encoding="utf-8") as f:
@@ -5470,6 +5483,7 @@ class J2Run:
                           resume={"to": "adaptation", "handoff": {"kind": "propose", "why": h.get("why")}})
             return None
         rows, left = j2_realization.proposal_brief(r, answered=self.real_asked)
+        self.real_replan = False
         self.real_summary["proposal_brief"] = rows
         self.real_summary["left_out"] = left
         return (f"\nREALIZATION PLAN (judged before any build, plan confidence {r['plan_confidence']:.2f}; "
@@ -5486,6 +5500,119 @@ class J2Run:
                 + json.dumps(rows, ensure_ascii=False)
                 + (f"\nLEAVE OUT these items, in left_out with this reason: {json.dumps(left, ensure_ascii=False)}"
                    if left else ""))
+
+    # ---- J2_CHANGE=1: a change after done on a realization website run (j2_change.py; spec
+    # docs/superpowers/specs/2026-10-30-charter-change-design.md). Identity updates the charter as with J2_FIXES; code
+    # diffs it against the charter of the last full plan; plan_change decides each intent once; Adaptation proposes
+    # the change plan as fixed text, planning documents first; Relay asks the readers of each revised document.
+    def _change_applies(self, change=None):
+        return (os.getenv("J2_CHANGE", "0") == "1" and bool(self.realization) and not self.doc and not self.blueprint
+                and self.real is not None and bool(change or self.feedback))
+
+    def _start_work(self, change, start):
+        """After the charter is stamped: Adaptation proposes. A J2_CHANGE change goes to _turn_change, unless no item,
+        rule or standard changed (no plan change: the run ends as it is) or the goal itself changed (a full re-plan)."""
+        if not (change and self._change_applies(change)):
+            return self._handoff("adaptation", **start)
+        d = j2_change.charter_diff(self.real_base, self.goal)
+        if j2_change.diff_empty(d):
+            self._event("identity", "change", "the charter's items, rules and standards are unchanged: no plan change")
+            self.post("identity", "Your request doesn't change anything on the checklist, the rules or the standards, so "
+                                  "the plan and the site stay as they are.", to_user=True, requester_only=True,
+                      audience="user", change="none")
+            self.outcome = "Done: the change left the charter's items, rules and standards as they were; nothing to build."
+            self.turn = None
+            return
+        if d["goal_changed"]:
+            return self._replan(start, "The change alters what the site is for or who it is for")
+        self._handoff("change", change=change, start=start, new_cycle=start.get("new_cycle"))
+
+    def _replan(self, start, why):
+        """A change the plan can't absorb: the realization plan is made again from the new charter (once)."""
+        self.real, self.real_replan, self.change = None, True, None
+        self._event("adaptation", "replan", why)
+        self.post("identity", f"{why}, so the whole plan is made again from the updated charter before anything is "
+                              "built.", to_user=True, requester_only=True, audience="user", change="replan")
+        self._handoff("adaptation", **start)
+
+    def _turn_change(self, h):
+        """Plan the change (j2_change.plan_change, steps 2-6), add it to change.json, post a one-line summary, and hand
+        Adaptation the change plan as fixed text: planning-doc revisions first, then revisions and new workflows."""
+        self.step = 2
+        cid = f"C-{len(self.changes) + 1}"
+        rec = j2_change.plan_change(self.real_base, self.goal, self.real["plan"], self._all_wfs(), log=lambda m: None)
+        self.calls += rec["calls"]
+        self.changes.append({"id": cid, "request": h.get("change"), "cycle": self.cycle,
+                             **{k: rec[k] for k in ("diff", "intents", "docs", "revise", "new", "drop", "replan",
+                                                    "faults", "calls", "seconds")}})
+        self.save("change.json", self.changes)
+        start = {k: v for k, v in (h.get("start") or {}).items() if k != "new_cycle"}
+        if rec["replan"]:
+            items = rec["diff"]["added"] or rec["diff"]["removed"]
+            return self._replan(start, "The change plan still failed its checks after one retry" if items else
+                                "The change alters the charter's rules or standards, not a checklist item")
+        rows = self._change_rows(rec, len(self.changes))
+        self.change = {"id": cid, "rows": rows, "allowed": [r["name"] for r in rows], "phase": "plan", "relayed": [],
+                       "asked": {}, "request": h.get("change")}
+        self.changes[-1]["rows"] = rows
+        self.save("change.json", self.changes)
+        said = "; ".join(f"item {x['item']} {x['kind']}: {x['final']}" + (f" ({x['owner']})" if x["owner"] else "")
+                         for x in rec["intents"])
+        self.post("adaptation", f"Change {cid}: {said}. Planning documents first: {', '.join(rec['docs']) or 'none'}; "
+                                f"then revise {', '.join(rec['revise']) or 'none'}; new {', '.join(rec['new']) or 'none'}"
+                                + (f"; dropped {', '.join(rec['drop'])}" if rec["drop"] else "") + ". Details in change.json.",
+                  change=cid)
+        self._handoff("adaptation", **start)
+
+    def _change_rows(self, rec, k):
+        """The change plan as J2 workflows to propose, in run order: planning documents, then revisions, then new
+        workflows. A workflow of the run is revised (revises: its latest id; name "<name> (change k)"); a new one keeps
+        its plan name. after: the workflows it reads, by the name they have in this change."""
+        wfs, plan = self._all_wfs(), {w.get("name"): w for w in j2_change._wfs(rec["plan"])}
+        order = rec["docs"] + [n for n in rec["revise"] + rec["new"] if n not in rec["docs"]]
+        latest = {n: j2_change.latest(wfs, j2_change.ix_get(wfs, n)["id"]) for n in order
+                  if n not in rec["new"] and j2_change.ix_get(wfs, n)}
+        named = {n: f"{n} (change {k})" if n in latest else n for n in order}
+        rows = []
+        for n in order:
+            p = plan.get(n) or {}
+            rows.append({"name": named[n], "covers": j2_realization.lst(p.get("delivers")),
+                         "informs": j2_realization.lst(p.get("informs")),
+                         **({"revises": latest[n]["id"], "outputs": latest[n].get("outputs")} if n in latest else {}),
+                         "goal": p.get("goal"), "done_test": p.get("done_test"),
+                         "after": [named.get(d, d) for d in j2_realization.lst(p.get("inputs_from"))]})
+        return rows
+
+    def _change_text(self):
+        c = self.change
+        return (f"\nCHANGE PLAN {c['id']} (change.json; judged before any build): propose exactly these workflows, in "
+                "this order, one J2 workflow each, with the same name and the same covers, revises set to the id given "
+                "(a revision re-runs that workflow's builder on its own output), the same outputs where given, and "
+                "dependencies naming the workflows in after. Planning documents come first: a workflow whose output is "
+                "a file uses only the file check types (file-exists, facts-present, heading-present, "
+                "section-not-empty). Estimate each workflow's budget yourself in estimated_resources.money. Propose "
+                "nothing else: the validator refuses any other workflow while the change is open.\n"
+                + json.dumps(c["rows"], ensure_ascii=False))
+
+    def _mock_change_plan(self):
+        """Mock Adaptation for a change plan: each row as written; a revision copies the atom of what it revises."""
+        out = []
+        for x in self.change["rows"]:
+            t = self._wf_any(x.get("revises"))
+            w = {"name": x["name"], "goal_gap": x.get("goal") or x["name"], "covers": x["covers"],
+                 "outputs": x.get("outputs") or ["index.html"], "completion_check": x.get("done_test") or x["name"],
+                 "dependencies": x["after"], "parts": ["fix"] if t else ["page_section"],
+                 "estimated_resources": {"money": max(1, as_int((t or {}).get("cost"), 5)), "calls": 1, "time_minutes": 3}}
+            if t:
+                w["revises"] = t["id"]
+                w["atoms"] = [{k: v for k, v in a.items() if k not in ("id", "status", "results", "attempts")}
+                              for a in (t.get("atoms") or [])[:1]]
+            out.append(w)
+        return {"say": f"@Priority Change {self.change['id']}: the change plan, planning documents first.",
+                "act": "PROPOSE", "next": "Priority", "workflows": out}
+
+    def _wf_any(self, wid):
+        return next((w for w in self._all_wfs() if w["id"] == wid), None) if wid else None
 
     def _mock_doc_plan(self, fails):
         """Mock Adaptation for a document: one workflow per section in the first cycle; then one fix per failing
@@ -6156,6 +6283,10 @@ class J2Run:
             batch.sort(key=lambda x: plan_ix.get(x.get("name"), 10 ** 6))
         for w in batch:
             c, name = granted(w), w.get("name") or "?"
+            if self.change and self.change["phase"] == "plan" and name not in self.change["allowed"]:
+                refused.append(self._reject(name, f"it is not in the change plan of {self.change['id']} (change.json); "
+                                                  "propose only the workflows the change plan names"))
+                continue
             missing = [f for f in self.REQUIRED if not (w.get(f) or (f == "goal_gap" and w.get("purpose")))]
             atoms = normalise_checks(w.get("atoms") or self.proposed_atoms.get(name))   # Priority or a ruling may drop them
             no_atom = self._atom_problems({"atoms": atoms, "outputs": w.get("outputs"),
@@ -6206,6 +6337,10 @@ class J2Run:
             wf["section"] = src["section"] if src and src["section"] in self.sections and src["section"] not in taken \
                 else wf["id"]
             wf["revises"] = rv if wf["section"] != wf["id"] else None
+            if self.change and name in self.change["allowed"]:
+                wf["change"] = self.change["id"]
+                if src and is_artifact(src) and is_artifact(wf):     # a planning document's revision rewrites its file
+                    wf["revises"] = rv
             if self.real_summary:       # J2_REALIZATION: the plan's stage (a fix keeps the stage of what it revises)
                 st = {x["name"]: x.get("stage") for x in self.real_summary.get("proposal_brief") or []}.get(wf["name"])
                 if st or (src or {}).get("stage"):
@@ -6216,6 +6351,9 @@ class J2Run:
             registered.append(wf)
         self._recalc_spent()
         self.save("workflows.json", self.workflows)
+        if self.change and self.change["phase"] == "plan" and set(self.change["allowed"]) <= {
+                x["name"] for x in self.workflows if x.get("change") == self.change["id"]}:
+            self.change["phase"] = "build"         # every workflow of the change plan is registered
         return registered, refused, defaults
 
     def _lld_check_for(self, ids):

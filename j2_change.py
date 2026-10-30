@@ -562,7 +562,11 @@ def plan_change(base_goal, new_goal, plan, workflows, mocks=None, log=print, out
             if w.get("name") in new:
                 docs += _planning(cur, w)
 
-    # steps 5 and 6: planning docs first; the merged plan is checked on the active charter numbers
+    # steps 5 and 6: planning docs first; the merged plan is checked on the active charter numbers. An edit moves an
+    # item to a new number, so every planning doc that informed the old number (strip took it out) is revised too.
+    if added and removed:
+        docs += [w["name"] for w in _wfs(plan) if w.get("name") in planning(_wfs(plan))
+                 and set(removed) & set(R.lst(w.get("informs")))]
     rec["faults"] = list(dict.fromkeys(rec["faults"] + R.plan_faults(cur, goal, items=active)))
     order = [w.get("name") for w in _wfs(cur)]
     rec["docs"] = [n for n in order if n in docs]

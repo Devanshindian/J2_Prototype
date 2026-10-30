@@ -519,11 +519,17 @@ def placement(stages=(), workflows=()):
 # 1. Rename the levels: A on Levels and new game (remove + add, one edit); Product plan first
 rec, n, dec = change(goal_with(RENAMED, drop=[3]), match=[mt(11, "Levels and new game")],
                      edits={"Levels and new game": ({"goal": "Renamed levels"}, ["Product plan"])})
-ok(dec == {3: "A", 11: "A"} and rec["docs"] == ["Product plan"] and rec["revise"] == ["Levels and new game"]
-   and not rec["new"] and not rec["replan"], "rename the levels: A on Levels and new game; Product plan first")
+ok(dec == {3: "A", 11: "A"} and rec["docs"] == ["Product plan", "Technical design"]
+   and rec["revise"] == ["Levels and new game"] and not rec["new"] and not rec["replan"],
+   "rename the levels: A on Levels and new game; Product plan first (and Technical design, which informed item 3)")
 ok(rec["calls"] == 3 and n["edit"] == 1, "an A intent takes at most 3 calls (match, score, edit with its docs list)")
 ok(wf_of(rec["plan"], "Levels and new game")["delivers"] == [11] and rec["intents"][0]["owner"] == "Levels and new game",
    "the removed number's owner comes from the run's workflows; the added one replaces it")
+
+rec, n, dec = change(goal_with(RENAMED, drop=[3]), match=[mt(11, "Levels and new game")],
+                     edits={"Levels and new game": ({"goal": "Renamed levels"}, [])})
+ok(rec["docs"] == ["Product plan", "Technical design"],
+   "an edit moves the item to a new number: every planning doc that informed the old number is revised")
 
 # 2. Add dark mode: A on Look and layout; Style guide and Technical design first
 rec, n, dec = change(goal_with("Dark mode"), match=[mt(11, "Look and layout")],
@@ -623,5 +629,102 @@ ok(rec["intents"][0]["final"] == "C" and rec["new"] and not rec["replan"], "the 
 with tempfile.TemporaryDirectory() as td:
     ch.plan_change(SUDOKU, goal_with("Dark mode"), PLAN, SUDOKU_WFS, log=quiet, out_dir=td)
     ok(json.load(open(os.path.join(td, "change.json"), encoding="utf-8"))["trail"], "change.json keeps every call")
+
+# ---- Task 7: into the run (mock J2 with realization on): J2_CHANGE=1 routes a change after done through Identity,
+# plan_change and a fixed hand-off to Adaptation
+import j2_flow_test as F      # noqa: E402  (sets J2's test env: temp runs and memory)
+j2 = F.j2
+j2.j2_check.tap_targets, j2.j2_check.behavior = F.fake_tap_targets, F.fake_behavior
+j2.j2_check.check, j2.j2_check.find_chrome = F.fake_check, lambda: None
+os.environ["J2_REALIZATION"] = "1"
+BASE_CH_MOCKS = ch.default_mocks
+
+
+def rename_mocks(goal, plan, added):
+    """The judge finds item 3's builder owns the renamed item (A) and names the planning workflow to revise first."""
+    m = BASE_CH_MOCKS(goal, plan, added)
+    m["match"] = lambda: json.dumps({"intents": [{"item": n, "owner": "Build item 3", "stage": None, "why": "mock"}
+                                                 for n in added]})
+    m["edit"] = lambda owner: json.dumps({"workflow": wf_of(plan, owner), "docs": ["Plan"]})
+    return m
+
+
+def built_run(on=True):
+    os.environ["J2_CHANGE"] = "1" if on else "0"
+    run = j2.J2Run()
+    F.say(run, F.BREW_LAB)
+    F.finish(run)
+    assert run.outcome.startswith("Done") and run.real, run.outcome
+    return run
+
+
+TASKS = []
+
+
+def change_after_done(run, text, charter, mocks=rename_mocks):
+    """The Requester asks for a change; Identity's mock returns charter(old goal) as the updated charter."""
+    call = run.call
+
+    def spy(fn, fmt, task, mock, **kw):
+        TASKS.append((fn, task))
+        if fn == "identity" and "ASKED FOR A CHANGE" in task:
+            mock = lambda: json.dumps({"to_requester": "Charter updated for your change.", "to_agents": "@Adaptation "
+                                       "Charter updated.", "enough": True, "next": "Adaptation", "goal": charter(run.goal)})
+        return call(fn, fmt, task, mock, **kw)
+    run.call, ch.default_mocks = spy, mocks
+    try:
+        n0, c0 = len(run._all_wfs()), len(run.chat)
+        F.say(run, text)
+        F.finish(run)
+    finally:
+        ch.default_mocks = BASE_CH_MOCKS
+    return run._all_wfs()[n0:], run.chat[c0:]
+
+
+def renamed(g):
+    return {**g, "done_when": [("Three levels, renamed: Easy, Medium, Hard" if i == 2 else t)
+                               for i, t in enumerate(g["done_when"])]}
+
+
+run = built_run()
+old = list(run.goal["done_when"])
+new, msgs = change_after_done(run, "Rename the levels", renamed)
+names = [w["name"] for w in new]
+ok(names == ["Plan (change 1)", "Build item 3 (change 1)"] and new[0]["revises"] == "W-1" and new[1]["revises"] == "W-4",
+   "rename: the planning-doc revision is registered before the build revision, and nothing else")
+ok(j2.is_artifact(new[0]) and "Plan (change 1)" in new[1]["dependencies"] and all(w["status"] == "done" for w in new),
+   "the build revision waits for the doc revision; both are built")
+ok(run.outcome.startswith("Done"), "the run ends Done after the change")
+ok(json.load(open(os.path.join(run.dir, "goal.v1.json"), encoding="utf-8"))["done_when"] == old,
+   "the previous charter is kept as goal.v1.json")
+log = json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))
+ok(isinstance(log, list) and len(log) == 1 and log[0]["request"] == "Rename the levels" and log[0]["docs"] == ["Plan"]
+   and log[0]["revise"] == ["Build item 3"] and {x["final"] for x in log[0]["intents"]} == {"A"},
+   "change.json is a list with one record: A on the owner, the planning doc first")
+ok(any(m["who"] == "adaptation" and m.get("change") and "Plan" in m["text"] for m in msgs),
+   "Adaptation posts a one-line summary of the change plan")
+ok(any("CHANGE PLAN" in t for f, t in TASKS if f == "adaptation"),
+   "Adaptation gets the change plan as fixed text")
+run.change["phase"] = "plan"
+_, refused, _ = run._register([{"name": "Extra section"}])
+ok(refused and "not in the change plan" in refused[0], "while a change is open, a workflow not in its plan is refused")
+run.change["phase"] = "closed"
+
+run = built_run()
+new, msgs = change_after_done(run, "Make it nicer", lambda g: dict(g))
+ok(not new and run.outcome.startswith("Done") and not os.path.exists(os.path.join(run.dir, "change.json"))
+   and any(m["who"] == "identity" and m.get("to_user") and "stay as they are" in m["text"] for m in msgs),
+   "no item, rule or standard changed: no plan change, and the Requester is told so")
+run = built_run()
+run.budget += 200           # a full re-plan builds the whole plan again
+new, msgs = change_after_done(run, "No sound effects", lambda g: {**g, "rules": list(g.get("rules") or []) + ["No sound"]})
+ok(any(m["who"] == "identity" and m.get("to_user") and "rules or standards" in m["text"] and "whole plan" in m["text"]
+       for m in msgs) and run.outcome.startswith("Done"),
+   "a rule-only change is a full re-plan, and the Requester is told why")
+run = built_run(on=False)
+new, msgs = change_after_done(run, "Rename the levels", renamed)
+ok(not os.path.exists(os.path.join(run.dir, "change.json")) and not any(w["name"].endswith("(change 1)") for w in new),
+   "J2_CHANGE=0: a change after done takes today's path")
+os.environ.pop("J2_CHANGE", None)
 
 print(f"change_test: {passed} checks passed")
