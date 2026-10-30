@@ -7049,13 +7049,8 @@ def map_tree():
             o = render_node(snap, docs={"docs": {}, "map": mp, "tree": {"open": st["id"]}})
             ot = o["tree"]
             fo = ot["focus"]
-            svg = o["map"][o["map"].index('<svg class="treesvg'):o["map"].index("</svg>", o["map"].index('<svg class="treesvg'))]
-            if fo["mode"] == "graph":      # a team with workflows opens as a graph (graph_map checks it); the Tree's own nodes are not drawn under it
-                gw = sorted(x["id"] for x in fo["g"]["nodes"] if x["kind"] == "wf")
-                assert ot["open"] == st["id"] and gw == sorted(st["workflows"]) and svg.count('class="tnode twf') == len(st["workflows"]), (name, st["id"], "the open team is a graph of its workflows")
-                circled |= set(gw)
-                continue
             assert ot["open"] == st["id"] and fo["mode"] == "oval" and sorted(x["id"] for x in fo["nodes"] if x["role"] == "wf") == sorted(st["workflows"]), (name, st["id"])
+            svg = o["map"][o["map"].index('<svg class="treesvg'):o["map"].index("</svg>", o["map"].index('<svg class="treesvg'))]
             shown = {x["id"] for x in fo["nodes"]}
             for n in t["nodes"]:      # the team, what it reads and made keep their words; every other node fades, its words hidden
                 g = re.search(r'<g class="tnode ([^"]*)" data-id="%s"' % re.escape(htmllib.escape(n["id"])), svg)
@@ -7111,15 +7106,15 @@ def map_tree():
               "ev(st, 'click');"
               "setTimeout(() => { r.tfocus = [q('.treesvg.tfocused').length, q('.tpill').length, q('[data-treeopen]').length, q('#pane-map .mappanel').map(x => x.dataset.stagepanel || ''), q('.tnode.open').length]; r.tback = !document.querySelector('[data-treeback]').hidden;"
               " ev(q('[data-treeopen]')[0], 'click'); setTimeout(() => { const g = q('.tnode.tstage').find(x => x.dataset.id === id), svg = document.querySelector('.treesvg');"
-              " r.open = g.classList.contains('open'); r.ring = q('.tring .twf, .gsvg .gwf').length; r.shown = q('.tfit').length; r.back = !document.querySelector('[data-treeback]').hidden;"
+              " r.open = g.classList.contains('open'); r.ring = q('.tring .twf').length; r.shown = q('.tfit').length; r.back = !document.querySelector('[data-treeback]').hidden;"
               " r.dim = q('.tnode.tdim').length; r.all = q('.tnode').length; r.stagePanel = q('#pane-map .mappanel').map(x => x.dataset.stagepanel || '');"
               " r.words = q('.tnode.thide .tlab').filter(x => x.getBoundingClientRect().width > 0).length;"
-              " const w = q('.tring .twf, .gsvg .gwf')[0]; ev(w, 'mouseover'); r.wflow = q('.tflow').length; r.wlinks = q('.tedge.hot').length; ev(w, 'mouseout');"
+              " const w = q('.tring .twf')[0]; ev(w, 'mouseover'); r.wflow = q('.tflow').length; r.wlinks = q('.tedge.hot').length; ev(w, 'mouseout');"
               " ev(w, 'click'); setTimeout(() => { const box = r_ => { const b = r_.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; };"
               " r.focused = q('.treesvg.tfocused').length; r.twf = q('.tfit').map(box); r.svgbox = box(document.querySelector('.treesvg'));"
               " r.panels = q('#pane-map .mappanel').length; r.pb = box(document.querySelector('.treepanel')); r.card = box(document.querySelector('.treebox')); r.chat = box(document.querySelector('#dview .chat')); r.needs = box(document.getElementById('needs'));"
               " r.wfcard = !!document.querySelector('.treepanel [data-wfcard]');"
-              " ev(q('.tnodes > .tnode.tdeck')[0], 'click'); r.second = q('#pane-map .mappanel').map(x => x.dataset.panel || x.dataset.wfpanel || x.dataset.stagepanel);"
+              " ev(q('.tnodes > .tnode.tdeck')[0], 'click'); r.second = q('#pane-map .mappanel').map(x => x.dataset.panel || x.dataset.wfpanel || x.dataset.stagepanel).concat(q('.consvg').map(x => x.dataset.cons));      /* an artifact opens its constellation, no other panel */"
               " document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); r.esc1 = q('#pane-map .mappanel').map(x => x.dataset.stagepanel || x.dataset.panel || x.dataset.wfpanel);"
               " document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));"
               " setTimeout(() => { r.z0 = TREE.zoom; const h = q('.tnode.tstage').find(x => x.dataset.id === id); r.after = [q('.tnode.open').length, q('.tdim').length, h.getAttribute('transform') === 'translate(' + h.dataset.x + ',' + h.dataset.y + ')', q('.twf').length, q('#pane-map .mappanel').length];"
@@ -7139,7 +7134,7 @@ def map_tree():
         # a team: clicking it focuses it (its panel has the button that opens its workflows); opened, its workflows, what it reads and made keep their words and
         # every other node fades with its words hidden; one panel
         assert got["tfocus"][:3] == [1, 1, 1] and got["tfocus"][3] == [got["id"]] and got["tfocus"][4] == 0 and got["tback"], got
-        assert got["open"] and got["ring"] > 0 and got["back"] and got["shown"] >= got["ring"] and got["stagePanel"] == [got["id"]], got
+        assert got["open"] and got["ring"] > 0 and got["back"] and got["shown"] > got["ring"] and got["stagePanel"] == [got["id"]], got
         assert got["words"] == 0 and got["dim"] > 0 and got["dim"] + got["shown"] == got["all"], got
         assert got["wflow"] == got["wlinks"] > 0, ("a circle workflow's line flows on hover", got)
         # the workflow panel: inside the map card, never over the Chat or the Needs you strip; a second item replaces it
@@ -7286,9 +7281,6 @@ def map_focus():
                 o = render_node(snap, docs={"docs": {}, "map": m, "tree": state})
                 svg = o["map"][o["map"].index('<svg class="treesvg'):o["map"].index("</svg>", o["map"].index('<svg class="treesvg'))]
                 F = o["tree"]["focus"]
-                if F["mode"] == "graph":      # the open team: graph_map checks the graph; here, that it replaces the circle
-                    assert label == "open" and 'class="treesvg tfocused gsvg"' in svg and "gedge" in svg and "tring" not in svg and 'class="tedge fedge' not in svg, (name, label, "the open team is the graph")
-                    continue
                 assert 'class="treesvg tfocused"' in svg and f'viewBox="0 0 {F["W"]} {F["H"]}"' in svg and svg.count('class="tedge fedge') == len(F["edges"]), (name, label)
                 for n in F["nodes"]:
                     assert htmllib.escape(n["label"]) in svg or n["label"] in svg, (name, label, n["label"], "labelled on the page")
@@ -7326,7 +7318,7 @@ def map_focus():
             return got
         base = ("const q = s => [...document.querySelectorAll(s)], r = {}, ev = (el, t) => el.dispatchEvent(new MouseEvent(t, {bubbles: true})), vis = el => getComputedStyle(el).display !== 'none', esc = () => document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})),"
                 " rc = el => { const b = el.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; }, stage = () => q('.tnode.tstage').find(x => (MAPTREE.nodes.find(n => n.id === x.dataset.id) || {workflows: []}).workflows.includes('W-8')),"
-                " pos = () => Object.fromEntries(q('[data-k]').map(e => [e.dataset.k, [+e.dataset.ax, +e.dataset.ay]])), w8 = () => q('.tring .twf, .gsvg .gwf').find(x => x.dataset.wf === 'W-8'), t_ = v => Math.round(v * 10) / 10,"
+                " pos = () => Object.fromEntries(q('[data-k]').map(e => [e.dataset.k, [+e.dataset.ax, +e.dataset.ay]])), w8 = () => q('.tring .twf').find(x => x.dataset.wf === 'W-8'), t_ = v => Math.round(v * 10) / 10,"
                 " settled = () => q('[data-k]').every(e => e.getAttribute('transform') === 'translate(' + t_(+e.dataset.ax) + ',' + t_(+e.dataset.ay) + ')'), same = ref => { const p = pos(); return Object.keys(ref).every(k => p[k] && Math.abs(p[k][0] - ref[k][0]) < 0.2 && Math.abs(p[k][1] - ref[k][1]) < 0.2) && settled(); },"
                 " snap = k => { const nodes = q('.treesvg .tnode').filter(vis), items = nodes.map(n => ({id: n.dataset.wf || n.dataset.id, dot: rc(n.querySelector('.tdot')), texts: [...n.querySelectorAll('text')].filter(vis).map(rc)}));"
                 " r[k] = {items, vb: q('.treesvg')[0].getAttribute('viewBox'), data: [q('.treesvg')[0].dataset.w, q('.treesvg')[0].dataset.h], moving: q('.treesvg.tmoving').length, settled: settled(), faded: q('.tnode.thide').length, words: q('.tnode.thide .tlab').filter(vis).length, panel: q('.treepanel').length,"
@@ -7340,13 +7332,13 @@ def map_focus():
             js = (base + "go(["
                   "() => { r.tree0 = pos(); r.treeEdges = q('.tedge').filter(vis).map(e => e.getAttribute('d')); ev(stage(), 'click'); },"
                   "() => { r.teamFlags = [q('.treesvg.tfocused').length, q('.tpill').length, q('[data-treeopen]').length, q('.tflow').length, q('.treepanel a, .treepanel [data-mapgo]').length]; r.teamPanelText = q('.treepanel')[0].textContent; snap('team'); r.teamPeers = q('.tnode.tstage.tfit').length; ev(q('.tpill')[0], 'click'); },"
-                  "() => { r.reopened = [q('.tnode.open').length, q('.gsvg .gwf').length, q('.treesvg.tfocused').length]; ev(q('[data-treeback]')[0], 'click'); },"
+                  "() => { r.reopened = [q('.tnode.open').length, q('.tring .twf').length, q('.treesvg.tfocused').length]; ev(q('[data-treeback]')[0], 'click'); },"
                   "() => { r.reclosed = same(r.tree0); ev(stage(), 'click'); },"
                   "() => { ev(q('.tpill')[0], 'click'); },"
-                  "() => { snap('oval'); r.oval0 = pos(); r.ring = q('.gsvg .gwf').length; r.ovalFocused = q('.treesvg.tfocused').length; ev(w8(), 'click'); r.sync = [q('.treesvg.tmoving').length, q('.tpill').length]; },"
+                  "() => { snap('oval'); r.oval0 = pos(); r.ring = q('.tring .twf').length; r.ovalFocused = q('.treesvg.tfocused').length; ev(w8(), 'click'); r.sync = [q('.treesvg.tmoving').length, q('.tpill').length]; },"
                   "() => { snap('wf'); r.wfFlags = [q('.treesvg.tfocused').length, q('.treepanel [data-wfcard]').length, q('.treepanel [data-agent]').length]; ev(q('.tfit.twf').find(x => x.dataset.wf !== 'W-8'), 'click'); },"
                   "() => { r.moved = q('.tpill.twf').map(x => x.dataset.wf); esc(); },"
-                  "() => { r.esc = [q('.tpill.twf').length, q('.gsvg .gwf').length, same(r.oval0)]; ev(w8(), 'click'); },"
+                  "() => { r.esc = [q('.tpill.twf').length, q('.tring .twf').length, same(r.oval0)]; ev(w8(), 'click'); },"
                   "() => { ev(q('.tpill.twf')[0], 'click'); },"
                   "() => { r.again = [q('.tpill.twf').length, q('.treepanel [data-wfcard]').length, q('.treesvg.tfocused').length]; ev(q('[data-treeback]')[0], 'click'); },"
                   "() => { r.back = [q('.tpill.twf').length, q('.tnode.open').length, same(r.oval0)]; ev(w8(), 'click'); },"
@@ -7364,15 +7356,12 @@ def map_focus():
             assert all(re.fullmatch(r"M[-\d. ]+ (L[-\d. ]+|A[-\d. ]+)", d) for d in got["treeEdges"]), (name, "the Tree's edges on the page are lines or arcs")
             assert got["teamFlags"][:3] == [1, 1, 1] and got["teamFlags"][4] == 0 and got["teamPanelText"].count("Open") == 1 and "Open these workflows" not in got["teamPanelText"], (name, "a team is focused by a click; its panel has one open button", got["teamFlags"], got["teamPanelText"])
             assert got["reopened"][0] == 1 and got["reopened"][1] > 0 and got["reopened"][2] == 1 and got["reclosed"], (name, "a second click on the focused team opens it; Back returns to the Tree", got["reopened"], got["reclosed"])
-            assert got["ring"] > 0 and got["ovalFocused"] == 1 and got["sync"] == [0, 1], (name, "the team is opened as a graph (no glide from it); a click on a workflow focuses it at once", got["ring"], got["sync"])
+            assert got["ring"] > 0 and got["ovalFocused"] == 1 and got["sync"] == [1, 1], (name, "the team is opened; the glide starts at once", got["ring"], got["sync"])
             assert got["wfFlags"] == [1, 1, 1] and got["moved"] and got["moved"] != ["W-8"], (name, "W-8 is focused, with its panel and See conversation and thinking; another workflow moves the focus", got["wfFlags"], got["moved"])
             assert got["esc"] == [0, got["ring"], True] and got["again"] == [1, 1, 1] and got["back"] == [0, 1, True] and got["empty"] == [0, 1, True], (name, "Esc, Back and empty space clear the workflow focus and the nodes return; a second click keeps the focus and shows its details", got["esc"], got["again"], got["back"], got["empty"])
             assert got["closed"] == [0, 0, True] and got["escTeam"] == [0, True] and got["backTeam"] == [0, True] and got["emptyTeam"] == [0, True], (name, "the Tree comes back", got["closed"], got["escTeam"], got["backTeam"], got["emptyTeam"])
             for state in ("team", "oval", "wf"):
                 s_ = got[state]
-                if state == "oval":      # the open team is the graph (screen pixels, no faded nodes, no glide into it); graph_map checks its drawing
-                    assert s_["settled"] and s_["moving"] == 0 and s_["panel"] == 1 and sum(1 for it in s_["items"] if it["id"].startswith("W-")) == got["ring"], (name, state, "the open graph is at rest, with one panel")
-                    continue
                 assert s_["settled"] and s_["moving"] == 0 and s_["vb"] == f"0 0 {s_['data'][0]} {s_['data'][1]}" and s_["faded"] > 0 and s_["words"] == 0 and s_["panel"] == 1, (name, state, "the nodes land on the drawing, the rest fades without words, one panel")
                 rects = [(it["id"], k, r_) for it in s_["items"] for k, r_ in [("dot", it["dot"])] + [("text", t_) for t_ in it["texts"]]]
                 for i in range(len(rects)):
@@ -7762,8 +7751,11 @@ def graph_map():
     frame label); nodes are workflows and artifacts (a section of a multi-section file is its own artifact) and every edge joins one workflow and one artifact
     (artifact -> workflow reads, workflow -> artifact makes), never two workflows; a workflow stands in a later column than every artifact it reads and before every
     artifact it makes (a read-back loop aside); every read of another workflow is an edge from an artifact or section it made, or is listed unresolved; the same run
-    draws the same layout twice. Unresolved reads and cycles are printed, not hidden. With node (page script, stub DOM): the layout of every team is the same twice,
-    no boxes overlap, columns run left to right, and 174314's Web Developer has no edge through a box. With Chrome (--browser): the real page at 1440x900."""
+    draws the same layout twice. Unresolved reads and cycles are printed, not hidden.
+    Constellations (an artifact clicked on the Map): every section and every recorded builder and fix once, ring in run order (chat.jsonl), a workflow with no
+    output in a dashed slot; with node, on every artifact: no label overlaps and no line through a label at rest, an input's focus lights only its own lines, a
+    workflow's exactly its recorded reads (marked consumed), the same layout twice, and the scale rules at their thresholds (synthetic artifacts, one of 60
+    sections and 150 workflows). With Chrome (--browser): 174314's Website on the real page at 1440x900."""
     import html as htmllib
     import shutil
     import socket
@@ -7813,73 +7805,221 @@ def graph_map():
     col = {n["id"]: n["col"] for n in wd["nodes"] if n["kind"] == "wf"}
     assert col["W-6"] < col["W-7"] < col["W-8"] < col["W-9"] < col["W-10"] < col["W-14"] < col["W-15"] < col["W-17"] and col["W-7"] == col["W-13"] and col["W-9"] == col["W-11"] and col["W-10"] == col["W-12"], ("174314 Web Developer columns", col)
     assert any(n["kind"] == "artifact" and n["section"] and n["file"] == "Website" for n in wd["nodes"]) and sum(1 for n in wd["nodes"] if n["kind"] == "artifact" and n["section"]) == 10, "its Website sections are artifacts"
-    # the page's layout, for every team, in node (no browser)
+    # constellations (m["constellations"], j2_map.constellations): the data, on every run and every artifact
+    def run_order(d, ids):
+        first = {}
+        for i, c in enumerate(M._jsonl(d, "chat.jsonl") or []):
+            for k in ("who", "workflow"):
+                if c.get(k) in ids and c[k] not in first:
+                    first[c[k]] = i
+        return sorted(first, key=first.get) + sorted((w for w in ids if w not in first), key=lambda w: int(w.split("-")[1])), set(first)
+    arts_n, no_out, empty_slots, sec_n, fix_n = 0, [], 0, 0, 0
+    for name in names:
+        d = os.path.join(repo, name)
+        wfs = {w["id"]: w for w in json.load(open(os.path.join(d, "workflows.json"), encoding="utf-8"))}
+        no_out += [(name, w) for w, x in wfs.items() if not x.get("outputs")]
+        order, ran = run_order(d, set(wfs))
+        m = maps[name]
+        for n in (x for x in m["nodes"] if x["kind"] == "work" and x["id"] != "work:charter"):
+            C = m["constellations"][n["id"]]
+            arts_n += 1
+            secs = [s["section"] for s in C["slots"] if s["section"]]
+            team = next((t for t in m["teams"] for x in t["nodes"] if x["id"] in secs), None)
+            assert sorted(secs) == sorted(x["id"] for x in (team or {"nodes": []})["nodes"] if x.get("section") and x["file"] == n["label"] and x["id"].startswith(f"sec:{n['id']}:")), (name, n["id"], "every section of the artifact is on its ring")
+            assert len(secs) == len(set(secs)), (name, n["id"], "a section twice")
+            ws = [w for s in C["slots"] for w in [s["builder"]] + s["fixes"]]
+            assert len(ws) == len(set(ws)) and set(ws) == set(n.get("workflows") or []), (name, n["id"], "every workflow on the artifact once, as builder or fix", ws, n.get("workflows"))
+            for s in C["slots"]:
+                k = (s["section"] or "").rsplit(":", 1)[-1]
+                if s["section"]:
+                    assert wfs[s["builder"]].get("section") == k and not wfs[s["builder"]].get("revises") or s["builder"] == k, (name, s, "the builder: section = the key, no revises")
+                    assert all(wfs[f].get("section") == k for f in s["fixes"]), (name, s, "a fix names the section")
+                else:
+                    assert s["empty"] == bool(secs or not wfs[s["builder"]].get("outputs")), (name, s, "an empty slot: no section here, or no recorded output")
+                sec_n += bool(s["section"]); fix_n += len(s["fixes"]); empty_slots += s["empty"]
+            lead = [s["builder"] for s in C["slots"]]
+            assert lead == sorted(lead, key=order.index), (name, n["id"], "ring order is run order (chat.jsonl)", lead)
+            for w, f in C["workflows"].items():
+                assert f["rank"] == order.index(w) and f["ran"] == (w in ran), (name, w, "run order and ran, from chat.jsonl")
+    assert arts_n > 150, ("every artifact of every run", arts_n)
+    # the page's layout (node, page script, stub DOM): every run, every artifact, at rest and every focus; and the scale rules on synthetic artifacts
+    def syn(n_sec, per, n_in, empty=0, cid="work:syn"):
+        """a constellation with n_sec sections (builder W-i and per(i) - 1 fixes; per a number or a function), n_in inputs from 5 teams read by the builders, empty workflows with no output"""
+        per_ = per if callable(per) else (lambda i: per)
+        wid, ref, makes, team_of, chat, k = {}, {}, {}, {}, [], 0
+        file_secs = {cid: {}}
+        arts = {cid: {"label": "Synthetic", "file": None, "sec": False}}
+        for j in range(n_in):
+            a, o = f"work:in{j}", f"O-{j}"
+            arts[a] = {"label": f"Input {j}", "file": None, "sec": False}
+            makes[o] = [a]
+            team_of[o] = f"Team {j % 5}"
+        for i in range(1, n_sec + 1):
+            b = f"W-{i}"
+            sid = f"sec:{cid}:{b}"
+            file_secs[cid][b] = sid
+            arts[sid] = {"label": f"Part {i} section", "file": "Synthetic", "sec": True}
+            wid[b] = {"id": b, "name": f"build-{i}", "section": b, "outputs": ["index.html"]}
+            ref[b] = [(f"work:in{(i - 1) % n_in}", f"O-{(i - 1) % n_in}")] if n_in else []
+            makes[b] = [sid]
+        k = n_sec
+        for i in range(1, n_sec + 1):
+            for _ in range(per_(i) - 1):
+                k += 1
+                f = f"W-{k}"
+                wid[f] = {"id": f, "name": f"fix-{k}", "section": f"W-{i}", "revises": f"W-{i}", "outputs": ["index.html"]}
+                ref[f] = [(f"sec:{cid}:W-{i}", f"W-{i}")]
+        for _ in range(empty):
+            k += 1
+            wid[f"W-{k}"] = {"id": f"W-{k}", "name": f"empty-{k}", "outputs": []}
+        ran = [f"W-{i}" for i in range(1, k + 1) if wid[f"W-{i}"].get("outputs")]
+        ran = ran[:10][::-1] + ran[10:]      # the first ten ran in reverse: ring order follows the run, not the number
+        chat = [{"who": w, "t": "12:00:00"} for w in ran]
+        node_of = {cid: {"id": cid, "label": "Synthetic", "workflows": sorted(wid, key=lambda w: int(w[2:]))}}
+        return M.constellations(wid, node_of, file_secs, arts, makes, ref, team_of, chat)
+    big = syn(60, lambda i: 4 if i <= 25 else 2 if i <= 35 else 1, 15, empty=5)      # 60 sections, 150 workflows: 60 builders, 85 fixes (25 sections with 3), 5 with no output
+    assert len(big["work:syn"]["workflows"]) == 150 and sum(1 for s in big["work:syn"]["slots"] if s["section"]) == 60, "the synthetic artifact: 60 sections, 150 workflows"
+    sy = {"big": {"constellations": big, "states": [{"id": "work:syn", "part": 0}, {"id": "work:syn", "part": 0, "fan": {"sec:work:syn:W-1": True}}, {"id": "work:syn", "part": 0, "grp": {"Team 0": True}}]},
+          "ring24": {"constellations": syn(24, 1, 0)}, "ring25": {"constellations": syn(25, 1, 0)}, "wf3": {"constellations": syn(2, 3, 0)}, "wf4": {"constellations": syn(2, 4, 0)},
+          "in12": {"constellations": syn(12, 1, 12)}, "in13": {"constellations": syn(13, 1, 13)}, "n30": {"constellations": syn(14, 1, 1)}, "n31": {"constellations": syn(15, 1, 0)}}
     layout_note = "node not found: layout steps skipped"
     node = shutil.which("node")
     if node:
-        tmp = tempfile.mkdtemp(prefix="j2-graph-")
+        tmp = tempfile.mkdtemp(prefix="j2-cons-")
         try:
-            mp = os.path.join(tmp, "maps.json")
-            json.dump(maps, open(mp, "w"))
-            run_ = lambda: json.loads(subprocess.run([node, os.path.join(here, "j2_graph_layout.js"), os.path.join(here, "j2_ui.html"), mp], capture_output=True, text=True, timeout=300, check=True).stdout)
-            lay, lay2 = run_(), run_()
+            run_ = lambda x: json.loads(subprocess.run([node, os.path.join(here, "j2_graph_layout.js"), os.path.join(here, "j2_ui.html"), x], capture_output=True, text=True, timeout=600, check=True).stdout)
+            mp, sp = os.path.join(tmp, "maps.json"), os.path.join(tmp, "syn.json")
+            json.dump({k: {"constellations": v["constellations"]} for k, v in maps.items()}, open(mp, "w"))
+            json.dump(sy, open(sp, "w"))
+            lay, lay2, syl = run_(mp), run_(mp), run_(sp)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
-        assert lay == lay2 and len(lay) == teams_n, ("the page lays every team out, the same twice", len(lay), teams_n)
-        meets = lambda a, b: a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+        assert lay == lay2 and len(lay) == arts_n, ("every artifact laid out, the same twice", len(lay), arts_n)
+        meets = lambda a, b: a[0] < b[2] - 0.5 and b[0] < a[2] - 0.5 and a[1] < b[3] - 0.5 and b[1] < a[3] - 0.5
+        inside = lambda p, b: b[0] + 1 < p[0] < b[2] - 1 and b[1] + 1 < p[1] < b[3] - 1
+        dense = lambda pts: [(pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t / 20, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t / 20) for i in range(len(pts) - 1) for t in range(21)]
+        def at_rest(where, v):
+            ids = [n["id"] for n in v["nodes"]]
+            assert len(ids) == len(set(ids)), (where, "a node twice")
+            assert all(isinstance(n["x"], (int, float)) and n["x"] == n["x"] for n in v["nodes"]), (where, "a node without a place")
+            labs = [(n["slot"] or n["id"], n["label"]["box"]) for n in v["nodes"] if n["label"]]
+            if not v["quiet"]:
+                for i, (a, p) in enumerate(labs):
+                    assert not any(meets(p, q) for b, q in labs[i + 1:]), (where, "two labels overlap at rest", a)
+                    assert not any(meets(p, n["box"]) for n in v["nodes"] if (n["slot"] or n["id"]) != a and n["kind"] != "centre"), (where, "a label over a shape at rest", a)
+                for e in v["rest"]:
+                    for a, p in labs:
+                        assert not any(inside(q, p) for q in dense(e["pts"])), (where, "a line through a label at rest", e["from"], e["to"], a)
+            lead = [n for n in v["nodes"] if n["kind"] in ("section", "empty", "part") or (n["kind"] == "wf" and n["role"] == "builder" and not any(m_["slot"] == n["slot"] and m_["kind"] in ("section", "empty") for m_ in v["nodes"]))]
+            import math
+            angs = [(math.atan2(n["x"], -n["y"]) + 2 * math.pi) % (2 * math.pi) for n in lead]
+            assert angs == sorted(angs), (where, "ring order clockwise from the top")
+            return lead
+        quiet_n = 0
         for L in lay:
-            ns = L["nodes"]
-            for i, a in enumerate(ns):
-                assert all(not meets(a["box"], b["box"]) for b in ns[i + 1:]), (L["run"], L["team"], "two boxes overlap", a["id"])
-            xs = {}
-            for n in ns:
-                xs.setdefault(n["col"], set()).add(round(n["x"]))
-            assert all(len(v) == 1 for v in xs.values()) and [min(xs[c]) for c in sorted(xs)] == sorted(min(xs[c]) for c in xs), (L["run"], L["team"], "a column has one x, columns run left to right")
-        crossed = [(L["run"], L["team"], L["unclear"]) for L in lay if L["unclear"]]
-        one = next(L for L in lay if L["run"] == "j2-20261026-174314" and L["team"] == "stage:Web Developer")
-        assert one["unclear"] == 0, ("174314 Web Developer: an edge through a box", [(e["from"], e["to"]) for e in one["edges"] if not e["clear"]])
-        layout_note = f"layout the same twice, no boxes overlap, 174314 Web Developer has no edge through a box ({len(crossed)} of {len(lay)} teams have edges that cross a box: a fan-in with no clear arc)"
-    chrome = j2.j2_check.find_chrome()
-    run = "j2-20261026-174314"
+            C = maps[L["run"]]["constellations"][L["id"]]
+            v, where = L["rest"], (L["run"], L["id"])
+            lead = at_rest(where, v)
+            assert [n["slot"] for n in lead] == [s["section"] or s["builder"] for s in C["slots"]], (where, "the ring is the slots in run order")
+            kinds = {n["id"]: n for n in v["nodes"]}
+            for s in C["slots"]:
+                if s["section"]:
+                    assert kinds[s["section"]]["kind"] == "section", (where, s["section"])
+                if s["empty"]:
+                    assert kinds["slot:" + s["builder"]]["kind"] == "empty", (where, "a workflow with no output has a dashed slot", s["builder"])
+                many = 1 + len(s["fixes"]) > 3
+                assert kinds[s["builder"]]["role"] == "builder" and (("fan:" + (s["section"] or "slot:" + s["builder"])) in kinds if many else all(kinds[f]["role"] == "fix" for f in s["fixes"])), (where, s)
+            quiet_n += v["quiet"]
+            stand = {}
+            for s in C["slots"]:
+                key = s["section"] or "slot:" + s["builder"]
+                stand[s["builder"]] = s["builder"]
+                for f in s["fixes"]:
+                    stand[f] = ("fan:" + key) if 1 + len(s["fixes"]) > 3 else f
+            node_of_art = lambda a: a if a in kinds else None
+            for fid, F in L["focus"].items():
+                n = kinds[fid]
+                reads = {(a, b) for a, b, k in F["lines"] if k == "reads"}
+                if n["kind"] == "input":      # only that input's own lines: to every workflow that read it
+                    want = {(fid, stand[w]) for w, f in C["workflows"].items() if fid in f["reads"]}
+                    assert reads == want and F["eat"] == [fid], (where, fid, "an input lights only its own lines", reads, want)
+                if n["kind"] == "wf":      # exactly its recorded reads, and those are marked consumed
+                    want = {node_of_art(a) for a in C["workflows"][fid]["reads"]} - {None}
+                    assert {a for a, b in reads} == want and all(b == fid for a, b in reads) and set(F["eat"]) == want, (where, fid, "a workflow lights exactly its reads", reads, want, F["eat"])
+                assert set(F["eat"]) <= set(F["lit"]), (where, fid)
+        # the scale rules, at their thresholds
+        S = {(r["run"], json.dumps(r.get("state"), sort_keys=True)): r["rest"] for r in syl}
+        rest = lambda k, st=None: S[(k, json.dumps(st, sort_keys=True))]
+        kinds_of = lambda v, k: [n for n in v["nodes"] if n["kind"] == k]
+        assert not rest("ring24")["parts"] and len(kinds_of(rest("ring24"), "section")) == 24 and rest("ring25")["parts"] == 2 and not kinds_of(rest("ring25"), "section"), "over 24 sections: parts"
+        assert not kinds_of(rest("wf3"), "badge") and len(kinds_of(rest("wf3"), "wf")) == 6 and len(kinds_of(rest("wf4"), "badge")) == 2 and len(kinds_of(rest("wf4"), "wf")) == 2, "over 3 workflows on a section: builder and badge"
+        assert not kinds_of(rest("in12"), "group") and len(kinds_of(rest("in12"), "input")) == 12 and len(kinds_of(rest("in13"), "group")) == 5 and not kinds_of(rest("in13"), "input"), "over 12 inputs: one node per team"
+        assert len(rest("n30")["nodes"]) == 30 and not rest("n30")["quiet"] and len(rest("n31")["nodes"]) == 31 and rest("n31")["quiet"], "over 30 nodes: labels on hover"
+        whole = rest("big")
+        assert whole["parts"] == 3 and len(kinds_of(whole, "part")) == 3 and not kinds_of(whole, "section"), ("the 60-section artifact: three parts", whole["parts"])
+        p0 = rest("big", {"id": "work:syn", "part": 0})
+        assert len(kinds_of(p0, "section")) <= 24 and kinds_of(p0, "badge") and len(kinds_of(p0, "group")) == 5 and p0["quiet"], "a part: its sections, badges, groups of inputs, labels on hover"
+        fan = rest("big", {"id": "work:syn", "part": 0, "fan": {"sec:work:syn:W-1": True}})
+        assert len(kinds_of(fan, "badge")) == len(kinds_of(p0, "badge")) - 1 and len([n for n in kinds_of(fan, "wf") if n["role"] == "fix"]) == 3, "a badge fans its fixes out"
+        assert len(kinds_of(rest("big", {"id": "work:syn", "part": 0, "grp": {"Team 0": True}}), "input")) == 3, "a team's group expands"
+        for r in syl:
+            at_rest((r["run"], r.get("state")), r["rest"])
+        layout_note = f"node: {len(lay)} artifacts at rest and in every focus, the same twice, no label overlaps, no line through a label, ring in run order ({quiet_n} with labels on hover); scale rules at 24/25 sections, 3/4 workflows, 12/13 inputs, 30/31 nodes, and a 60-section 150-workflow artifact"
+    # the real page (Chrome, 1440x900): 174314's Website, clicked on the Tree
     seen = {}
+    run = "j2-20261026-174314"
+    chrome = j2.j2_check.find_chrome()
     if chrome and BROWSER and os.path.isdir(os.path.join(repo, run)):
         ui = open(os.path.join(here, "j2_ui.html"), encoding="utf-8").read()
-        js = ("const s = treeSvg(), q = x => [...document.querySelectorAll(x)], f = x => Math.min(...q(x).map(t => parseFloat(getComputedStyle(t).fontSize))); r.gsvg = !!s && s.classList.contains('gsvg');"
-              " r.wf = q('.gsvg .gwf').length; r.arts = q('.gsvg .gart').length; r.secs = q('.gsvg .gsec').length; r.reads = q('.gsvg .gedge.reads').length; r.makes = q('.gsvg .gedge.makes').length;"
-              " r.markers = q('.gsvg .gedge[marker-end]').length === q('.gsvg .gedge').length; r.team = q('.gsvg .tnode[data-kind=stage], .gsvg .tpill').filter(x => x.getClientRects().length).length;      /* the Tree's own team dots stay in the page, hidden */ r.frame = q('.gsvg .gflab').map(x => x.textContent);"
-              " r.font = f('.gsvg text'); r.fontpx = +s.dataset.fontpx; r.legend = !!document.querySelector('.glegend'); r.sw = [document.documentElement.scrollWidth, innerWidth];"
-              " r.loops = q('.gsvg .gedge.makes.loop').length; r.fit0 = s.dataset.rel; s.__zoom_b.scaleBy(d3.select(s), 2); r.zoom = s.dataset.rel; s.__zoom_b.translateBy(d3.select(s), -80, 0); treeFit(); r.fit1 = treeSvg().dataset.rel;"
-              " q('.gsvg .gwf[data-wf=\"W-7\"]')[0].dispatchEvent(new MouseEvent('click', {bubbles: true})); r.picked = TREE.wf; r.focused = !treeSvg().classList.contains('gsvg') && q('.tpill').length === 1;")
-        tmp = tempfile.mkdtemp(prefix="j2-graphmap-")
-        os.symlink(os.path.join(here, "vendor"), os.path.join(tmp, "vendor"))
-        open(os.path.join(tmp, "j2_ui.html"), "w", encoding="utf-8").write(ui.replace("</body>", "<script>setTimeout(() => { showTab('map'); treeOpen('stage:Web Developer'); setTimeout(() => { const r = {}; " + js
-                                                                                      + " document.body.setAttribute('data-r', JSON.stringify(r)); }, 1500); }, 1500)</script></body>"))
-        sock = socket.socket(); sock.bind(("127.0.0.1", 0)); port = sock.getsockname()[1]; sock.close()
-        keep_here, keep_runs = j2_server.HERE, j2.RUNS_DIR
-        j2_server.HERE, j2.RUNS_DIR = tmp, repo
-        srv = j2_server.http.server.ThreadingHTTPServer(("127.0.0.1", port), j2_server.Handler)
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
-        prof = tempfile.mkdtemp(prefix="j2-graphprof-")
-        try:
-            dom = chrome_dom([chrome, "--headless=new", "--disable-gpu", f"--user-data-dir={prof}", "--no-first-run", "--window-size=1440,900", "--virtual-time-budget=25000", "--dump-dom",
-                              f"http://127.0.0.1:{port}/?view=detail&run={run}&mapview=tree"], capture_output=True, text=True, timeout=120).stdout
-        finally:
-            srv.shutdown()
-            j2_server.HERE, j2.RUNS_DIR = keep_here, keep_runs
-            shutil.rmtree(tmp, ignore_errors=True)
-            shutil.rmtree(prof, ignore_errors=True)
-        hit = re.search(r'data-r="([^"]*)"', dom)
-        assert hit, ("the page did not finish its steps", dom[-300:])
-        r = seen = json.loads(htmllib.unescape(hit.group(1)))
-        assert r["gsvg"] and r["wf"] == 12 and r["secs"] == 10 and r["arts"] >= 10 + 5 and r["reads"] > 20 and r["makes"] >= 12 and r["markers"], ("174314 Web Developer: the graph is drawn", r)
-        assert r["team"] == 0 and r["frame"] == ["Web Developer"], ("no team node: the team is a frame label", r)
-        assert r["font"] >= 11 and r["fontpx"] >= 11 and r["legend"] and r["loops"] == 2, ("labels at least 11px, the legend chip, two read-back loops", r)
-        assert r["sw"][0] <= r["sw"][1], ("no horizontal scroll", r)
-        assert r["zoom"] == "2" and r["fit1"] == "1", ("zoom doubles the fit, Fit returns to it", r)
-        assert r["picked"] == "W-7" and r["focused"], ("a click on a workflow keeps the workflow focus", r)
-    print(f"graph map: {teams_n} teams with workflows over {len(names)} runs ({empty_n} teams with none draw as before): no team node, no workflow-workflow edge, columns follow reads and makes, "
-          f"sections are artifacts ({loops} read-back loops), {len(unresolved)} unresolved reads {[u[:2] + u[3:4] for u in unresolved]}, {len(cycles)} cycles {[c[:2] for c in cycles]}; {layout_note}"
-          + ("; real page at 1440x900: frame label, 12 workflows, 10 sections, reads and makes with arrows, legend, 11px floor, zoom, Fit, click focuses a workflow ok" if seen else " ok"))
+        js = ("const q = x => [...document.querySelectorAll(x)], ev = (el, t) => el.dispatchEvent(new MouseEvent(t, {bubbles: true})), rc = el => { const b = el.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; },"
+              " esc = () => document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})), node = id => q('.consvg .cnode').find(x => x.dataset.cid === id);"
+              " ev(q('.tnodes > .tnode.tdeck').find(x => x.dataset.id === 'work:website'), 'click'); const s = document.querySelector('.consvg'); r.open = s && s.dataset.cons;"
+              " r.labels = q('.consvg .ctext').map(rc); r.font = Math.min(...q('.consvg text').map(t => parseFloat(getComputedStyle(t).fontSize))) * (+s.dataset.fontpx / 11 || 1); r.fontpx = +s.dataset.fontpx; r.rest = q('.consvg .cline.lit').length;"
+              " r.inLines = q('.consvg .cline.reads').length; r.sw = [document.documentElement.scrollWidth, innerWidth];"
+              " ev(node('W-8'), 'click'); r.w8 = [q('.consvg.focusing').length, q('.consvg .cline.lit.reads').map(x => x.dataset.from).sort(), q('.consvg .cline.lit.makes').map(x => x.dataset.to), q('.consvg .cnode.eat').map(x => x.dataset.cid).sort(), q('.consvg .ceatf').length, !!document.querySelector('.conspanel')];"
+              " r.anim = getComputedStyle(q('.consvg .ceatf')[0]).animationName; esc(); r.esc = [q('.consvg.focusing').length, !!document.querySelector('.consvg')];"
+              " ev(node('work:W-1'), 'click'); r.spec = [q('.consvg .cline.lit.reads').map(x => x.dataset.from), q('.consvg .cline.lit.reads').map(x => x.dataset.to).sort(), document.querySelector('.conspanel').textContent.includes('used by')];"
+              " ev(document.querySelector('.consvg'), 'click'); r.empty = q('.consvg.focusing').length; document.querySelector('[data-linezoom=\"1.5\"]').click(); r.zoom = document.querySelector('.consvg').dataset.rel; document.querySelector('[data-linefit]').click(); r.fit = document.querySelector('.consvg').dataset.rel;"
+              " document.querySelector('[data-consback]').click(); r.back = [!!document.querySelector('.consvg'), !!document.querySelector('.treesvg')];")
+
+        def probe(flags=()):
+            tmp = tempfile.mkdtemp(prefix="j2-consmap-")
+            os.symlink(os.path.join(here, "vendor"), os.path.join(tmp, "vendor"))
+            open(os.path.join(tmp, "j2_ui.html"), "w", encoding="utf-8").write(ui.replace("</body>", "<script>setTimeout(() => { const r = {}; try { showTab('map'); " + js
+                                                                                          + " } catch (e) { r.error = String(e.stack || e); } document.body.setAttribute('data-r', JSON.stringify(r)); }, 2500)</script></body>"))
+            keep_here, keep_runs = j2_server.HERE, j2.RUNS_DIR
+            j2_server.HERE, j2.RUNS_DIR = tmp, repo
+            srv = j2_server.http.server.ThreadingHTTPServer(("127.0.0.1", 0), j2_server.Handler)
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+            prof = tempfile.mkdtemp(prefix="j2-consprof-")
+            try:
+                dom = chrome_dom([chrome, "--headless=new", "--disable-gpu", f"--user-data-dir={prof}", "--no-first-run", "--window-size=1440,900", "--virtual-time-budget=15000", *flags, "--dump-dom",
+                                  f"http://127.0.0.1:{srv.server_address[1]}/?view=detail&run={run}&mapview=tree"], capture_output=True, text=True, timeout=120).stdout
+            finally:
+                srv.shutdown()
+                j2_server.HERE, j2.RUNS_DIR = keep_here, keep_runs
+                shutil.rmtree(tmp, ignore_errors=True)
+                shutil.rmtree(prof, ignore_errors=True)
+            hit = re.search(r'data-r="([^"]*)"', dom)
+            assert hit, ("the page did not finish its steps", dom[-300:])
+            got = json.loads(htmllib.unescape(hit.group(1)))
+            assert "error" not in got, got
+            return got
+        r = seen = probe()
+        assert r["open"] == "work:website" and r["rest"] == 0 and r["inLines"] == 0, ("a click on Website opens its constellation; no input lines at rest", r)
+        meets = lambda a, b: a[0] < b[2] - 0.5 and b[0] < a[2] - 0.5 and a[1] < b[3] - 0.5 and b[1] < a[3] - 0.5
+        assert not any(meets(a, b) for i, a in enumerate(r["labels"]) for b in r["labels"][i + 1:]), ("labels overlap on the page at rest", r["labels"])
+        assert r["fontpx"] >= 11 and r["sw"][0] <= r["sw"][1], ("labels at least 11px, no horizontal scroll", r)
+        assert r["w8"][0] == 1 and r["w8"][1] == sorted(["sec:work:website:W-7", "work:W-2", "work:W-3"]) and r["w8"][2] == ["sec:work:website:W-8"] and r["w8"][3] == r["w8"][1] and r["w8"][4] == 3 and r["w8"][5], ("W-8: its reads, its section, consumed glow, the panel", r["w8"])
+        assert r["anim"] != "none" and r["esc"] == [0, True] and r["empty"] == 0, ("the glow pulses; Esc and empty space clear the focus", r)
+        assert set(r["spec"][0]) == {"work:W-1"} and r["spec"][1] == ["W-12", "W-6", "W-7"] and r["spec"][2], ("Product spec: only its own lines, to who used it", r["spec"])
+        assert r["zoom"] == "1.5" and r["fit"] == "1" and r["back"] == [False, True], ("zoom and Fit as the Line view; Back returns to the Map", r)
+        rm = probe(("--force-prefers-reduced-motion",))
+        assert rm["anim"] == "none" and rm["w8"][4] == 3, ("reduced motion: the frame stays, no pulse", rm["anim"])
+    print(f"graph map: {teams_n} teams with workflows over {len(names)} runs ({empty_n} with none): no team node, no workflow-workflow edge, columns follow reads and makes, "
+          f"sections are artifacts ({loops} read-back loops), {len(unresolved)} unresolved reads, {len(cycles)} cycles; constellations: {arts_n} artifacts, {sec_n} sections, {fix_n} fixes, "
+          f"{empty_slots} empty slots, {len(no_out)} workflows with no recorded output {no_out}; every section and every builder and fix once, ring in run order (chat.jsonl); {layout_note}"
+          + ("; real page at 1440x900: Website opens on a click, no input lines at rest, no label overlaps, 11px, W-8 lights its 3 reads and its section, Product spec only its own lines, Esc / empty space, zoom, Fit, Back, reduced motion" if seen else "") + " ok")
 
 
 def map_every_workflow():

@@ -552,7 +552,7 @@ def build(d, live=None):
         got = {w: s for w, s in got.items() if s}
         if mk and got:
             n["team_reads"] = {"made_by": sorted(mk, key=_num), "read_by": sorted(got, key=_num), "sources": [s for w in sorted(got, key=_num) for s in got[w]]}
-    teams = team_graphs(d, wfs, work, crew, list(dict.fromkeys(st["persona"] for st in steps)), reads, unnamed, secs)
+    teams, cons = team_graphs(d, wfs, work, crew, list(dict.fromkeys(st["persona"] for st in steps)), reads, unnamed, secs, chat)
     for n in work:
         if n.get("tag") == "Send":
             n["send"] = send_word(n.get("detail"))
@@ -581,7 +581,7 @@ def build(d, live=None):
                       "checks": _checks(ats), "reads": sorted({x for x in reads if x != w["id"]}, key=_num), "out": made_of.get(w["id"], [])})
     return {"schema": SCHEMA, "run": os.path.basename(d), "live": bool(live),
             "status": {"state": state, "state_status": state_status, "checks": ch},
-            "nodes": out_nodes, "teams": teams, "workflows": flows, "edges": edges + speaks + lines + board_edges, "legend": LEGEND, "built_from": built_from,
+            "nodes": out_nodes, "teams": teams, "constellations": cons, "workflows": flows, "edges": edges + speaks + lines + board_edges, "legend": LEGEND, "built_from": built_from,
             "not_recorded": list(dict.fromkeys(nr + ["messages to and from workflow agents (W-n) are not drawn",
                                                      "what the work draws on (Knows row, later version)"]))}
 
@@ -595,13 +595,14 @@ def _sec_label(name, key):
     return t if t.lower().endswith("section") else t + " section"
 
 
-def team_graphs(d, wfs, work, crew, team_order, reads, unnamed, secs):
+def team_graphs(d, wfs, work, crew, team_order, reads, unnamed, secs, chat=None):
     """The open-team view as a bipartite graph, one per team: workflows and artifacts, edges only maker -> artifact -> reader. A section of a multi-section
     file (sections.json, stage-<doc>.json) is its own artifact, grouped under its file; a read of another workflow is the artifact or section that workflow
     made, and one that made none is listed in unresolved (never a direct edge). Columns are the longest path from the left (inputs from other teams are
     column 0, outside the frame; what nothing in the team reads is placed in the last column); rows are ordered by barycenter, tie by id, so the same
     run gives the same picture. A workflow that reads an artifact it also makes (a fix that revises a section) is a read-back loop: the makes edge is
-    flagged loop, drawn as one arc, and left out of the layering. Any other cycle is listed in cycles."""
+    flagged loop, drawn as one arc, and left out of the layering. Any other cycle is listed in cycles.
+    Also returns each artifact's constellation (constellations()), built from the same sections, makers and resolved reads."""
     info = {}
     for f in ["sections.json"] + sorted(f for f in os.listdir(d) if re.fullmatch(r"stage-\w+\.json", f)):
         j = _read(d, f, {}) or {}
@@ -716,7 +717,53 @@ def team_graphs(d, wfs, work, crew, team_order, reads, unnamed, secs):
                 nodes.append({"id": i, "kind": "artifact", "label": a["label"], "section": a["sec"], "file": a["file"], "input": i in inputs, "from_team": mk, "col": col[i], "row": row[i]})
         out.append({"id": "stage:" + persona, "label": persona, "workflows": mine, "columns": last + 1, "nodes": nodes, "edges": edges,
                     "unresolved": unres, "cycles": cycles, "loops": sorted({e["to"] for e in edges if e["kind"] == "makes" and e["loop"]})})
-    return out
+    return out, constellations(wid, node_of, file_secs, arts, makes, ref, team_of, chat)
+
+
+def constellations(wid, node_of, file_secs, arts, makes, ref, team_of, chat):
+    """Each artifact as a constellation: its slots in run order (a slot is a section with its builder and its fixes; an artifact with no sections has one
+    slot per workflow that made it; a workflow on the artifact that built no section of it has a slot with no section, drawn empty), its workflows (role,
+    run order, whether they ran and recorded an output, what they read) and its inputs (what those workflows read that is not one of its own sections).
+    Sections: sections.json / stage-<doc>.json keys (owner there is the last writer, so not used). Builder: the workflows.json workflow with section = that
+    key and no revises (else the key's own workflow); fixes: the others with section = that key (they carry revises). Run order: the first
+    chat.jsonl line whose who or workflow is the workflow (its t, file order breaking ties); a workflow with no line never ran and comes last, by number."""
+    first = {}
+    for i, c in enumerate(chat or []):
+        for k in ("who", "workflow"):
+            v = c.get(k)
+            if v in wid and v not in first:
+                first[v] = {"line": i + 1, "t": c.get("t")}
+    rank = {w: i for i, w in enumerate(sorted(first, key=lambda w: first[w]["line"]) + sorted((w for w in wid if w not in first), key=_num))}
+    cons = {}
+    for n in node_of.values():
+        mine = [w for w in n.get("workflows") or [] if w in wid]
+        own = file_secs.get(n["id"], {})
+        slots, placed = [], set()
+        for k, sid in own.items():
+            b = next((w for w in mine if wid[w].get("section") == k and not wid[w].get("revises")), k)
+            fx = [w for w in mine if w != b and wid[w].get("section") == k]
+            slots.append({"section": sid, "label": arts[sid]["label"], "builder": b, "fixes": fx, "empty": False})
+            placed |= {b, *fx}
+        for w in mine:      # not a builder or fix of a section here, or the artifact has no sections: a slot of its own (empty when nothing recorded)
+            if w not in placed:
+                slots.append({"section": None, "label": None, "builder": w, "fixes": [], "empty": bool(own) or not wid[w].get("outputs")})
+                placed.add(w)
+        for sl in slots:
+            sl["fixes"].sort(key=rank.get)
+        slots.sort(key=lambda sl: (rank[sl["builder"]], sl["section"] or ""))
+        secs_here = set(own.values())
+        flows, inputs = {}, {}
+        for sl in slots:
+            for w in [sl["builder"]] + sl["fixes"]:
+                rd = list(dict.fromkeys(a for a, _ in ref.get(w, []) if a != n["id"]))
+                flows[w] = {"name": wid[w].get("name") or w, "role": "builder" if w == sl["builder"] else "fix", "section": sl["section"], "rank": rank[w],
+                            "t": (first.get(w) or {}).get("t"), "ran": w in first, "status": wid[w].get("status"), "output": bool(wid[w].get("outputs")), "reads": rd}
+                for a in rd:
+                    if a not in secs_here and a not in inputs:
+                        mk = sorted({team_of.get(x) for x in makes if a in makes[x]} - {None})
+                        inputs[a] = {"id": a, "label": arts[a]["label"], "file": arts[a]["file"], "section": arts[a]["sec"], "team": (mk or ["another team"])[0]}
+        cons[n["id"]] = {"id": n["id"], "label": n["label"], "slots": slots, "workflows": flows, "inputs": list(inputs.values())}
+    return cons
 
 
 def write(d):
