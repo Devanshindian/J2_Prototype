@@ -490,7 +490,7 @@ CHECKLIST_FMT = """{"items": [{"item": int (done-when number), "question": str}]
 EDIT_FMT = """{"workflow": {the edited workflow, with the same keys as the plan's workflows}, "docs": [name of a planning workflow in the plan whose written decision must change first]}"""
 PLACE_FMT = """{"factors": [new factor, as in the plan], "stages": [new stage, as in the plan; [] when none], "workflows": [new workflow, as in the plan], "why": str}"""
 IMPROVE_FMT = """{"workflows": [each workflow named above, improved, with the same keys as the plan's workflows], "changes": [{"workflow": str, "remedy": str}]}"""
-MATCH_FMT = """{"intents": [{"item": int (charter number), "owner": str|null (the one workflow whose job it is), "too_big": bool (true when taking it on would make the owner need more than one kind of thinking or more than one builder's run), "stage": str|null (when owner is null: the id of the stage in the plan whose kind of thinking it needs, or null), "why": str}]}"""
+MATCH_FMT = """{"intents": [{"item": int (charter number), "owner": str|null (the one workflow whose job it is), "too_big": bool (true when taking it on would make the owner need more than one kind of thinking or more than one builder's run), "stage": str|null (when owner is null: the id, from the stage table, of the stage whose kind of thinking must decide how the item works), "why": str}]}"""
 
 
 def _read(name):
@@ -581,11 +581,13 @@ def edit_task(goal, plan, owner, intents):
             f"change before this workflow is built again; [] when none must.\n\nReply format:\n{EDIT_FMT}")
 
 
-def placement_task(goal, plan, items, routes=None):
+def placement_task(goal, plan, items, routes=None, stages=None):
     """A change's C and D routes: new workflows for these items. routes: {item: "C" | "D"}: a C item goes in a stage
-    already in the plan, a D item in a new stage from the stage table (default C)."""
+    already in the plan, a D item in a new stage from the stage table (default C). stages: {item: the stage the match
+    call named}."""
     where = {"C": "in a stage already in the plan", "D": "in a new stage from the stage table"}
-    new = "\n".join(f"  {n}. {t} ({where[(routes or {}).get(n, 'C')]})" for n, t in numbered(goal) if n in items)
+    new = "\n".join(f"  {n}. {t} ({where[(routes or {}).get(n, 'C')]}"
+                    + (f": {(stages or {})[n]}" if (stages or {}).get(n) else "") + ")" for n, t in numbered(goal) if n in items)
     return (f"CHARTER (from Identity):\n{charter_text(goal, True)}\n\nTHE PLAN (keep it; add to it):\n"
             f"{json.dumps(plan, ensure_ascii=False)}\n\nNEW DONE-WHEN ITEMS no workflow in the plan owns (charter "
             f"numbers, and where each goes):\n{new}\n\nPlace these items only (the Realization section's Steps 1 to 3). "
@@ -629,8 +631,11 @@ def match_task(goal, plan, items):
             "G0: is this item its own job, the same kind of thinking and output as its goal, so that a small edit of it "
             "would deliver the item? Name the one workflow that answers yes as owner, and say in too_big whether taking "
             "it on would make that workflow need more than one kind of thinking or more than one builder's run. When "
-            "no workflow answers yes, owner is null: then name the stage in the plan whose kind of thinking the item "
-            "needs, or null when no stage in the plan has it. Don't plan or score anything.\n\n"
+            "no workflow answers yes, owner is null: then name, from the stage table below, the stage whose kind of "
+            "thinking must decide how the item works (for example what it teaches, how it spreads, what it measures), "
+            "whether or not that stage is in the plan. Name a stage that only makes things (such as build) only when the "
+            "plan's planning workflows already decide everything the item needs and only making is left. Don't plan or "
+            f"score anything.\n\nSTAGE TABLE:\n{stage_table()}\n\n"
             f"Reply format:\n{MATCH_FMT}")
 
 

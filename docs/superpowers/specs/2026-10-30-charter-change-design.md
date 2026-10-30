@@ -94,12 +94,15 @@ equal charter numbers. The change path passes charter numbers (`items=`) instead
   goal = G0 (new, change only) + D1–D4 + K; context = I1, I2; how = M1, M2, Z1; constraints = F; size = S1, S2.
 - Step 3 is one call (match): for each added intent, G0 "is this intent this workflow's job?" asked of every
   workflow; for the owner, `too_big` (would taking it on make the owner exceed one kind of thinking or one builder's
-  run); when no workflow says yes, "which stage in the plan owns this kind of thinking, if any?". Removed intents skip
-  it. The owner is not scored before it is edited (live test, 30 Oct: an unedited owner fails its new item's K and
+  run); when no workflow says yes, "which stage, from the full stage table, must decide how this item works?" (teaching
+  → learning, sharing → growth, what to measure → data; a making stage such as build only when the plan's planning
+  documents already decide everything and only making is left). Code derives whether that stage is in the plan.
+  Removed intents skip it. The owner is not scored before it is edited (live test, 30 Oct: an unedited owner fails its new item's K and
   context questions, so nearly everything went to B).
 - `decide(intent, match, score, after_fix)` (code):
   - removed → A
-  - no owner: a stage in the plan owns it → C, else → D
+  - no owner: the deciding stage is in the plan → C, else → D (with that stage id; live test, 30 Oct: asking for
+    "the stage in the plan" always gave build, so D was never chosen)
   - owner and too_big → C
   - owner that fits → edit it (step 4), then judge the edited owner: ≥ 0.80 → A; weakest part = size → C; else B: one
     improvement given the judge's missing notes, judge again: ≥ 0.80 → B (improved and passed), else → C
@@ -125,7 +128,10 @@ planning workflow. Their revisions come first; build revisions depend on them.
 
 Changed owners were judged at step 4. Judge the new workflows (≥ 0.80); those below get one repair call for those
 workflows only, given the judge's missing notes, then a second judgement. Then `plan_faults(merged, goal,
-items=active)`; a placement is sent back once with its faults named. Still failing: a full re-plan.
+items=active)`; a placement is sent back once with its faults named. A new workflow still below 0.80 after its
+repair is held as not ready, as on a first plan: it and the workflows behind it are left out of the change plan, their
+items are listed as left out with the judge's notes (Adaptation gets them in `left_out`, the Requester is told in plain
+words), and the rest of the change goes ahead. Only plan rule faults the retry did not fix mean a full re-plan.
 
 ### Step 7–9
 

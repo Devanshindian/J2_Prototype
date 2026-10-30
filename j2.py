@@ -5543,23 +5543,31 @@ class J2Run:
         rec = j2_change.plan_change(self.real_base, self.goal, self.real["plan"], self._all_wfs(), log=lambda m: None)
         self.calls += rec["calls"]
         self.changes.append({"id": cid, "request": h.get("change"), "cycle": self.cycle,
-                             **{k: rec[k] for k in ("diff", "intents", "docs", "revise", "new", "drop", "replan",
-                                                    "faults", "calls", "seconds")}})
+                             **{k: rec[k] for k in ("diff", "intents", "docs", "revise", "new", "drop", "held",
+                                                    "left_out", "replan", "faults", "calls", "seconds")}})
         self.save("change.json", self.changes)
         start = {k: v for k, v in (h.get("start") or {}).items() if k != "new_cycle"}
         if rec["replan"]:
             items = rec["diff"]["added"] or rec["diff"]["removed"]
-            return self._replan(start, "The change plan still failed its checks after one retry" if items else
+            return self._replan(start, "The change plan still broke the plan rules after one retry" if items else
                                 "The change alters the charter's rules or standards, not a checklist item")
         rows = self._change_rows(rec, len(self.changes))
+        at = dict(j2_realization.numbered(self.goal))        # left_out names charter numbers, with the judge's notes
+        left = [{"item": x["item"], "reason": x["reason"]} for x in rec["left_out"]]
         self.change = {"id": cid, "rows": rows, "allowed": [r["name"] for r in rows], "phase": "plan", "relayed": [],
-                       "asked": {}, "request": h.get("change")}
+                       "asked": {}, "request": h.get("change"), "left_out": left}
         self.changes[-1]["rows"] = rows
         self.save("change.json", self.changes)
         # the next change starts from this one: its charter and merged plan are the new base, so undoing a change is a
         # change of its own (the old item comes back), not "nothing changed"
         self.real_base, self.real = copy.deepcopy(self.goal), {**self.real, "plan": rec["plan"]}
         self.post("adaptation", f"Change {cid}: {j2_change.summary(rec)} Details in change.json.", change=cid)
+        if left:
+            self.post("identity", "Part of your change isn't ready to build yet, so it is left out for now: "
+                                  + "; ".join(f"\"{at.get(x['item'], x['item'])}\": the plan for it still has a gap "
+                                              f"({x['reason'].split(': ', 1)[-1]})" for x in left)
+                                  + ". Everything else in the change goes ahead.", to_user=True, requester_only=True,
+                      audience="user", change=cid)
         self._handoff("adaptation", **start)
 
     def _change_rows(self, rec, k):
@@ -5590,7 +5598,9 @@ class J2Run:
                 "a file uses only the file check types (file-exists, facts-present, heading-present, "
                 "section-not-empty). Estimate each workflow's budget yourself in estimated_resources.money. Propose "
                 "nothing else: the validator refuses any other workflow while the change is open.\n"
-                + json.dumps(c["rows"], ensure_ascii=False))
+                + json.dumps(c["rows"], ensure_ascii=False)
+                + (f"\nLEAVE OUT these items, in left_out with this reason: {json.dumps(c['left_out'], ensure_ascii=False)}"
+                   if c.get("left_out") else ""))
 
     def _mock_change_plan(self):
         """Mock Adaptation for a change plan: each row as written; a revision copies the atom of what it revises."""
@@ -5607,7 +5617,7 @@ class J2Run:
                               for a in (t.get("atoms") or [])[:1]]
             out.append(w)
         return {"say": f"@Priority Change {self.change['id']}: the change plan, planning documents first.",
-                "act": "PROPOSE", "next": "Priority", "workflows": out}
+                "act": "PROPOSE", "next": "Priority", "workflows": out, "left_out": self.change.get("left_out") or []}
 
     def _wf_any(self, wid):
         return next((w for w in self._all_wfs() if w["id"] == wid), None) if wid else None

@@ -146,6 +146,13 @@ ok(ch.owner_index(SUDOKU_WFS)[2] == "W-15", "a revision replaces its original as
   gives new workflows below the gate one `improve()` call, then a second judgement, then re-plan. Intents record
   `path`, `score`, `after_fix`, `final`; `summary(rec)` is the one-line text j2 posts. `fix()` and `web=` are gone;
   `revise_task(only=)` stays but is unused.
+- Revised again after the re-check of 87cf06d (B worked; D was never chosen; one weak workflow re-planned the whole
+  change): with no owner, the match call names the stage from the full stage table whose thinking must decide the
+  item (a making stage only when the plan's docs already decide everything); code sets `stage_in_plan` (C) or not
+  (D), and placement is told the stage id (`placement_faults(stages=)` keeps a D item in it). After the step-6
+  repair a workflow still below 0.80 is held (`R.holds`: it and whatever reads it), its items go in `left_out` with
+  the judge's notes, and the change goes on; `replan` is only for plan rule faults. j2 hands Adaptation the left-out
+  items (LEAVE OUT, as `_realization_plan`) and tells the Requester which items wait and why.
 
 ### Task 7: Into the run
 

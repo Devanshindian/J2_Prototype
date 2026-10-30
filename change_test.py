@@ -154,7 +154,10 @@ import j2_realization as R               # noqa: E402  (only for settle's real o
 OWNED, NONE = {"owner": "Hint", "stage": None}, {"owner": None, "stage": None}
 HIGH, LOW, SIZE = {"score": 0.95, "weakest_part": None}, {"score": 0.77, "weakest_part": "how"},     {"score": 0.62, "weakest_part": "size"}
 ok(ch.decide("removed", NONE, None) == "A" and ch.decide("removed", OWNED, LOW) == "A", "removed → A, whatever the scores")
-ok(ch.decide("added", {"owner": None, "stage": "build"}, None) == "C", "no owner, a stage in the plan owns it → C")
+ok(ch.decide("added", {"owner": None, "stage": "build", "stage_in_plan": True}, None) == "C",
+   "no owner, the stage that must decide it is in the plan → C")
+ok(ch.decide("added", {"owner": None, "stage": "learning", "stage_in_plan": False}, None) == "D",
+   "no owner, the stage that must decide it is not in the plan → D")
 ok(ch.decide("added", NONE, None) == "D", "no owner and no stage → D")
 ok(ch.decide("added", OWNED, {"score": 0.80, "weakest_part": "how"}) == "A", "owner at the gate → A")
 ok(ch.decide("added", OWNED, SIZE) == "C", "weakest part size → C straight away, no fix")
@@ -335,7 +338,17 @@ ok(sess.calls == 2 and m[11]["unread"] and m[12]["unread"] and ch.decide("added"
 m = ch.match(R.Session(log=quiet), TWO, PLAN, [11, 12],
              lambda: json.dumps({"intents": [{"item": 11, "owner": None, "stage": "growth", "why": "x"},
                                              {"item": 12, "owner": None, "stage": None, "why": "y"}]}))
-ok(m[11]["stage"] is None and ch.decide("added", m[11], None) == "D", "a stage not in the plan is no stage: D")
+ok(m[11]["stage"] == "growth" and not m[11]["stage_in_plan"] and ch.decide("added", m[11], None) == "D"
+   and ch.decide("added", m[12], None) == "D", "the deciding stage is not in the plan (or none is named): D")
+sess = R.Session(log=quiet)
+m = ch.match(sess, TWO, PLAN, [11, 12], lambda: json.dumps({"intents": [{"item": 11, "owner": None, "stage": "social",
+                                                                          "why": ""}, {"item": 12, "owner": "Hint"}]}))
+ok(sess.calls == 2 and m[11]["unread"] and "'social' is not a stage id" in sess.trail[1]["user"],
+   "a stage id not in the stage table is sent back once")
+mt_ = R.match_task(TWO, PLAN, [11])
+ok("STAGE TABLE" in mt_ and "`learning`" in mt_ and "whether or not that stage is in the plan" in mt_
+   and "only when the plan's planning workflows already decide everything" in mt_,
+   "the match call names the deciding stage from the full stage table; a making stage only when the docs decide all")
 SCENARIO = re.compile(r"sudoku|hint|level|puzzle|board|product plan|style guide|technical design|engineering|design",
                       re.I)
 
@@ -343,6 +356,7 @@ SCENARIO = re.compile(r"sudoku|hint|level|puzzle|board|product plan|style guide|
 def wording(task, goal, plan, *texts):
     """A prompt without the run's own text (charter, plan, item texts): what code wrote."""
     out = task.replace(R.charter_text(goal, True), "").replace(json.dumps(plan, ensure_ascii=False), "")
+    out = out.replace(R.stage_table(), "")
     for t in texts:
         out = out.replace(t, "")
     return out
@@ -471,7 +485,8 @@ ok(any("item 11 goes in a stage already in the plan" in f for f in ch.placement_
    and any("add no new stage" in f for f in ch.placement_faults(json.loads(placed()), PLAN, {11: "C"})),
    "a C item placed in a new stage is a fault")
 build_new_ok = {**build_new, "workflows": [P("Streaks", "build", [11], inputs=["Product plan"])]}
-ok(any("item 11 goes in a new stage" in f for f in ch.placement_faults(build_new_ok, PLAN, {11: "D"}))
+ok(any("item 11 goes in the new stage" in f for f in ch.placement_faults(build_new_ok, PLAN, {11: "D"}))
+   and any("goes in the new stage growth" in f for f in ch.placement_faults(json.loads(placed("learning")), PLAN, {11: "D"}, {11: "growth"}))
    and not ch.placement_faults(build_new_ok, PLAN, {11: "C"}) and not ch.placement_faults(json.loads(placed()), PLAN, {11: "D"}),
    "a D item placed in a stage of the plan is a fault; each in its own place passes")
 sess = R.Session(log=quiet)
@@ -615,11 +630,12 @@ GROW = [D("Growth plan", "growth", [13], ["Product plan"]),
         P("Share result", "growth", [13], inputs=["Growth plan", "Board and number pad"]),
         P("Daily streak", "build", [12], inputs=["Product plan", "Levels and new game"])]
 daily = goal_with("A daily puzzle, the same for everyone", "A daily streak", "Share the day's result")
-rec, n, dec = change(daily, match=[mt(11, "Levels and new game"), mt(12, None, "build"), mt(13)],
+rec, n, dec = change(daily, match=[mt(11, "Levels and new game"), mt(12, None, "build"), mt(13, None, "growth")],
                      edits={"Levels and new game": ({}, ["Product plan"])},
                      places=[placement([GROWTH], GROW)])
 ok(dec == {11: "A", 12: "C", 13: "D"} and rec["new"] == ["Growth plan", "Share result", "Daily streak"]
    and rec["docs"] == ["Product plan", "Growth plan"] and not rec["replan"], "daily challenge: A, C, D (growth)")
+ok(not rec["held"] and not rec["left_out"], "nothing held when every new workflow passes")
 ok(R.plan_faults(rec["plan"], daily, items=range(1, 14)) == [] and rec["calls"] == 5,
    "three intents in five calls; the merged plan passes the rules on charter numbers")
 
@@ -629,23 +645,54 @@ LESSONS = [D("Lesson plan", "learning", [11, 12], ["Product plan"]),
            P("Lessons", "learning", [11], inputs=["Lesson plan", "Page shell"]),
            P("Practice sets", "learning", [12], inputs=["Lesson plan", "Puzzle engine"])]
 learn = goal_with("Learn mode with guided lessons", "Practice puzzles per technique", "Hints link to the lesson")
-rec, n, dec = change(learn, match=[mt(11), mt(12), mt(13, "Hint")],
+rec, n, dec = change(learn, match=[mt(11, None, "learning"), mt(12, None, "learning"), mt(13, "Hint")],
                      places=[{"factors": [], "stages": [dict(LEARN, inputs_from=["product"])], "workflows": LESSONS}])
 ok(dec == {11: "D", 12: "D", 13: "A"} and "learning" in [s_["id"] for s_ in rec["plan"]["stages"]]
    and rec["docs"] == ["Product plan", "Lesson plan"] and rec["revise"] == ["Hint"] and not rec["replan"],
    "learn mode: D (learning), D, A")
 # step 6: new workflows below the gate get one improvement call for those workflows only, then a second look
-rec, n, dec = change(learn, match=[mt(11), mt(12), mt(13, "Hint")], fails=[None, {"Lessons": ["I1"]}],
+rec, n, dec = change(learn, match=[mt(11, None, "learning"), mt(12, None, "learning"), mt(13, "Hint")], fails=[None, {"Lessons": ["I1"]}],
                      improve={"inputs_from": ["Lesson plan", "Page shell", "Practice sets"]},
                      places=[{"factors": [], "stages": [dict(LEARN, inputs_from=["product"])], "workflows": LESSONS}])
 ok(not rec["replan"] and n["improve"] == 1 and n["judge"] == 3 and "Practice sets" in wf_of(rec["plan"], "Lessons")["inputs_from"],
    "a new workflow missing an input: one repair call, judged again, kept")
 ok("Lessons" in rec["new"] and json.loads(scripted(improve={})[0]["improve"](["Lessons"]))["workflows"][0]["name"] == "Lessons",
    "the repair reply holds only the low workflows")
-rec, n, dec = change(learn, match=[mt(11), mt(12), mt(13, "Hint")], fails=[None, {"Lessons": ["I1"]}, {"Lessons": ["I1"]}],
+rec, n, dec = change(learn, match=[mt(11, None, "learning"), mt(12, None, "learning"), mt(13, "Hint")], fails=[None, {"Lessons": ["I1"]}, {"Lessons": ["I1"]}],
                      places=[{"factors": [], "stages": [dict(LEARN, inputs_from=["product"])], "workflows": LESSONS}])
-ok(rec["replan"] and n["improve"] == 1 and any("Lessons is still below" in f for f in rec["faults"]),
-   "still below the gate after its repair → full re-plan")
+x = rec["intents"][0]
+ok(not rec["replan"] and n["improve"] == 1 and rec["held"] == {"Lessons": "not_ready"}
+   and rec["left_out"] == [{"item": 11, "reason": "Lessons is not ready (0.70): no step for the goal"}]
+   and x["left_out"] and rec["new"] == ["Lesson plan", "Practice sets"] and rec["intents"][1]["final"] == "D",
+   "still below the gate after its repair: held as not ready, its item left out with the judge's note, the rest goes on")
+ok("item 11 left out for now" in ch.summary(rec), "the summary says the item is left out")
+# a held planning workflow holds what reads it too
+rec, n, dec = change(daily, match=[mt(11, "Levels and new game"), mt(12, None, "build"), mt(13, None, "growth")],
+                     fails=[None, {"Growth plan": ["M1"]}, {"Growth plan": ["M1"]}], places=[placement([GROWTH], GROW)])
+ok(not rec["replan"] and rec["held"] == {"Growth plan": "not_ready", "Share result": "waiting_on_dependency"}
+   and [x["item"] for x in rec["left_out"]] == [13] and "waits on" in rec["left_out"][0]["reason"]
+   and rec["new"] == ["Daily streak"] and "Growth plan" not in rec["docs"],
+   "workflows behind a held one are held; only their items are left out")
+# D is chosen when the deciding stage is missing, and placement is told its id
+mocks, n = scripted(match=[mt(11, None, "learning"), mt(12, None, "learning"), mt(13, "Hint")],
+                    places=[{"factors": [], "stages": [dict(LEARN, inputs_from=["product"])], "workflows": LESSONS}])
+rec = ch.plan_change(SUDOKU, learn, PLAN, SUDOKU_WFS, mocks=mocks, log=quiet)
+ok([x["final"] for x in rec["intents"]] == ["D", "D", "A"] and [x["stage"] for x in rec["intents"]][:2] == ["learning"] * 2,
+   "the deciding stage (learning) is not in the plan → D with that stage")
+with tempfile.TemporaryDirectory() as td:
+    ch.plan_change(SUDOKU, learn, PLAN, SUDOKU_WFS, mocks=scripted(
+        match=[mt(11, None, "learning"), mt(12, None, "build"), mt(13, "Hint")],
+        places=[{"factors": [], "stages": [dict(LEARN, inputs_from=["product"])], "workflows": [
+            LESSONS[0], LESSONS[1], P("Practice sets", "build", [12], inputs=["Lesson plan", "Puzzle engine"])]}])[0],
+        log=quiet, out_dir=td)
+    trail = json.load(open(os.path.join(td, "change.json"), encoding="utf-8"))["trail"]
+    pt = next(t["user"] for t in trail if "NEW DONE-WHEN ITEMS no workflow" in t["user"])
+    ok("(in a new stage from the stage table: learning)" in pt and "(in a stage already in the plan: build)" in pt,
+       "placement is told each item's route and stage: D with the new stage's id, C with the plan stage")
+# replan only for plan rule faults the retry did not fix
+rec, n, dec = change(goal_with("Dark mode"), match=[mt(11, None, "build")], fails=[{"Dark theme": ["D1"]}] * 3,
+                     places=[placement(workflows=[P("Dark theme", "build", [11], inputs=["Style guide"])])])
+ok(not rec["replan"] and rec["left_out"][0]["item"] == 11 and not rec["faults"], "a weak workflow alone never re-plans")
 
 # 9-11. Online races (Identity asks, the charter is unchanged), ship by tonight (nothing in the charter moves), Killer
 for label, new in (("online races", changed()), ("ship by tonight", changed(open_inputs=["ship by tonight"]))):
@@ -837,6 +884,28 @@ plan_text = next(t for f, t in TASKS if f == "adaptation" and "CHANGE PLAN" in t
 relay_text = next(t for f, t in TASKS if f.startswith("W-") and "JUST REVISED" in t).split("ARTIFACTS YOU READ")[0]
 ok(not SCENARIO.search(plan_text) and not SCENARIO.search(relay_text.split("\n", 1)[1].replace("artifacts/plan.md", "")),
    "the change plan's hand-off and the relay question name no scenario")
+
+
+def weak_mocks(goal, plan, added):
+    """No workflow owns the new item; its new workflow stays below the gate after its one repair."""
+    m = BASE_CH_MOCKS(goal, plan, added)
+    m["judge"] = lambda spec: R.mock_judge(spec, fail={n: ["I1"] for n in spec if n.startswith("Change item")})
+    return m
+
+
+run = built_run()
+TASKS.clear()
+new, msgs = change_after_done(run, "Add a print button",
+                              lambda g: {**g, "done_when": list(g["done_when"]) + ["A print button"]}, weak_mocks)
+log = json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))[-1]
+n_new = len(run.goal["charter_items"])
+ok(not log["replan"] and [x["item"] for x in log["left_out"]] == [n_new] and log["held"],
+   "J2: a new workflow still below the gate is held and its item left out; no re-plan")
+told = [m for m in msgs if m["who"] == "identity" and m.get("to_user") and "left out for now" in m["text"]]
+ok(told and '"A print button"' in told[0]["text"] and "Everything else in the change goes ahead" in told[0]["text"],
+   "the Requester is told in plain words which item is left out and why")
+ok(any("LEAVE OUT these items" in t for f, t in TASKS if f == "adaptation") and not any(
+    w["name"].startswith("Change item") for w in new), "Adaptation's change plan leaves the held item out")
 
 os.environ.pop("J2_CHANGE", None)
 
