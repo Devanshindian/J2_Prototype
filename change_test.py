@@ -350,4 +350,119 @@ ok(not SCENARIO.search(wording(R.match_task(TWO, PLAN, [11]), TWO, PLAN, "Daily 
 ok(not SCENARIO.search(R.CHANGE_QUESTIONS[0][3] + prompt.split("CHANGE: ")[1].split(":\n")[0]),
    "G0 and the judge's change note name no scenario")
 
+# ---- Task 5: act. A edits the owner (or drops it), B makes one fix, C and D place new workflows
+def names_of(p):
+    return [w["name"] for w in p["workflows"]]
+
+
+def wf_of(p, name):
+    return next(w for w in p["workflows"] if w["name"] == name)
+
+
+NO_SAVE = changed(done_when=ITEMS[:6] + ITEMS[7:])                     # item 7 removed
+ok(R.plan_faults(PLAN, NO_SAVE, items=[1, 2, 3, 4, 5, 6, 8, 9, 10])[:1] == ["workflow Technical design: item 7 does not exist "
+   "(done-when items are 1, 2, 3, 4, 5, 6, 8, 9, 10)"], "plan_faults(items=) checks charter numbers, not positions")
+ok(R.plan_faults(PLAN, SUDOKU, items=range(1, 11)) == [] and R.plan_faults(PLAN, NO_SAVE) != [],
+   "items= on the first plan's numbers is the default check")
+
+# A, remove: the owner is left with nothing, so it is dropped without a call; whatever read it stops reading it
+sess = R.Session(log=quiet)
+a = ch.edit(sess, NO_SAVE, PLAN, "Save and resume", [], [7], lambda: "never asked")
+ok(sess.calls == 0 and "Save and resume" not in names_of(a["plan"]) and a["dropped"] == ["Save and resume"],
+   "A remove drops the workflow left delivering nothing, with no call")
+ok(a["readers"] == ["Reasons to come back", "Page wiring"]
+   and all("Save and resume" not in w["inputs_from"] for w in a["plan"]["workflows"]), "its readers stop reading it")
+ok(a["docs"] == ["Technical design"] and 7 not in wf_of(a["plan"], "Technical design")["informs"]
+   and R.plan_faults(a["plan"], NO_SAVE, items=[1, 2, 3, 4, 5, 6, 8, 9, 10]) == [],
+   "the planning docs it read are revised first; the plan passes on the charter numbers left")
+ok(PLAN["workflows"][10]["name"] == "Save and resume", "the caller's plan is not changed")
+
+# A, an edit (remove + add): one call; the reply's docs are the planning docs to revise; code keeps delivers right
+RENAMED_GOAL = changed(charter_items=ITEMS + [RENAMED], done_when=ITEMS[:2] + [RENAMED] + ITEMS[3:])
+levels = dict(wf_of(PLAN, "Levels and new game"), goal="Three renamed levels and New Game", delivers=[3])
+sess = R.Session(log=quiet)
+a = ch.edit(sess, RENAMED_GOAL, PLAN, "Levels and new game", [11], [3],
+            lambda: json.dumps({"workflow": levels, "docs": ["Product plan"]}))
+w = wf_of(a["plan"], "Levels and new game")
+ok(sess.calls == 1 and w["delivers"] == [11] and w["goal"] == "Three renamed levels and New Game" and a["docs"] == ["Product plan"],
+   "A edit: one call; the removed number leaves delivers and the added one joins")
+ok(a["ok"] and R.plan_faults(a["plan"], RENAMED_GOAL, items=[1, 2, 4, 5, 6, 7, 8, 9, 10, 11]) == [], "the edited plan passes")
+et = sess.trail[0]["user"]
+ok("  11. " + RENAMED in et and f"item 3 ({ITEMS[2]})" in et
+   and not SCENARIO.search(wording(et.split("THE PLAN:")[0] + et.split("THE CHANGE FOR")[1], RENAMED_GOAL, PLAN,
+                                   RENAMED, ITEMS[2], "Levels and new game")),
+   "the edit prompt names the added and removed items by charter number, and no scenario")
+sess = R.Session(log=quiet)
+a = ch.edit(sess, RENAMED_GOAL, PLAN, "Levels and new game", [11], [3],
+            lambda: json.dumps({"workflow": levels, "docs": ["Nope"]}))
+ok(sess.calls == 2 and not a["ok"], "docs naming no planning workflow: sent back once, then the edit fails")
+
+# B: one fix (one revise call), judged again on the owner only; still below → C
+TEACH = changed(charter_items=ITEMS + ["Hints teach the technique"], done_when=ITEMS + ["Hints teach the technique"])
+ck = R.checklist_items(None, TEACH, items=[11])
+low_hint = {"Hint": R.settle(json.loads(R.mock_judge(R.judge_spec(PLAN, ck, ["Hint"], {"Hint": [11]}),
+                                                     fail={"Hint": ["M2", "D3"]}))["answers"][0],
+                             R.judge_spec(PLAN, ck, ["Hint"], {"Hint": [11]})["Hint"])}
+ok(low_hint["Hint"]["score"] == 0.77, "the fixture's B case: Hint 0.77")
+hint2 = dict(wf_of(PLAN, "Hint"), approach="Teach the named technique behind each hint.", delivers=[6, 11])
+seen.clear()
+sess = R.Session(log=quiet)
+mocks = {"revise": lambda owner: json.dumps({**PLAN, "workflows": [hint2]}), "judge": jmock({"Hint": ["D1"]})}
+plan_b, after = ch.fix(sess, TEACH, PLAN, "Hint", [11], low_hint, ck, mocks)
+ok(sess.calls == 2 and [x["who"] for x in sess.trail] == ["adaptation", "judge"] and list(seen[-1]) == ["Hint"],
+   "B: exactly one revise call, then the judge on the owner only")
+ok(after["score"] == 0.70 and ch.decide("added", {"owner": "Hint"}, {"score": 0.77, "weakest_part": "goal"}, after) == "C",
+   "B still below the gate after its fix → C, not another round")
+ok("Revise only" in sess.trail[0]["user"] and "11. Hints teach the technique" in sess.trail[0]["user"],
+   "the one fix is scoped to the owner and reads charter numbers")
+sess = R.Session(log=quiet)
+plan_b, after = ch.fix(sess, TEACH, PLAN, "Hint", [11], low_hint, ck, {**mocks, "judge": jmock()})
+ok(after["score"] >= 0.80 and wf_of(plan_b, "Hint")["delivers"] == [6, 11] and len(names_of(plan_b)) == len(names_of(PLAN)),
+   "B passing: the fixed owner replaces the old one and nothing else changes")
+sess = R.Session(log=quiet)
+plan_b, after = ch.fix(sess, TEACH, PLAN, "Hint", [11], low_hint, ck, {**mocks, "revise": lambda owner: "not json"})
+ok(sess.calls == 1 and after["score"] == 0 and plan_b == PLAN, "an unreadable fix is a failed fix (→ C), not a second try")
+
+# C/D: placement. A new stage from stages.json holds its own planning workflow; new workflows read their stage's one
+SHARE = changed(charter_items=ITEMS + ["Share result"], done_when=ITEMS + ["Share result"])
+ACTIVE = list(range(1, 12))
+GROWTH = {"id": "growth", "thinking": "reach and sharing", "tiers": ["feature"], "goal": "people share",
+          "done_test": "a share path exists", "method": "share loop", "owns_factors": [], "inputs_from": ["product"]}
+
+
+def placed(stage_id="growth", inputs=("Growth plan",), planning=True):
+    st = dict(GROWTH, id=stage_id)
+    wfs = ([D("Growth plan", stage_id, [11], ["Product plan"])] if planning else []) + [
+        P("Share result", stage_id, [11], inputs=list(inputs) + ["Board and number pad"])]
+    return json.dumps({"factors": [], "stages": [st], "workflows": wfs})
+
+
+sess = R.Session(log=quiet)
+merged, new, faults = ch.place(sess, SHARE, PLAN, [11], ACTIVE, lambda: placed())
+ok(sess.calls == 1 and not faults and [s_["id"] for s_ in merged["stages"]][-1] == "growth"
+   and names_of(merged)[-2:] == ["Growth plan", "Share result"] and R.kind(wf_of(merged, "Growth plan")) == "decide",
+   "placement of a sharing item adds stage growth with its planning workflow")
+ok(names_of(merged)[:len(PLAN["workflows"])] == names_of(PLAN) and R.plan_faults(merged, SHARE, items=ACTIVE) == [],
+   "the plan is kept and the merged plan passes the rules")
+pt = sess.trail[0]["user"]
+ok(not SCENARIO.search(wording(pt.split("Reply format:")[0], SHARE, PLAN, "Share result")),
+   "the placement prompt names no scenario")
+tries = []
+sess = R.Session(log=quiet)
+merged, new, faults = ch.place(sess, SHARE, PLAN, [11], ACTIVE,
+                               lambda: (tries.append(1), placed("social" if len(tries) == 1 else "growth"))[1])
+ok(sess.calls == 2 and not faults and "growth" in [s_["id"] for s_ in merged["stages"]]
+   and "'social' is not one of" in sess.trail[1]["user"], "unknown stage social → one retry with the fault named")
+ok(any("needs its own decide workflow" in f for f in ch.placement_faults(json.loads(placed(planning=False)), PLAN)),
+   "a new stage without a planning workflow is a fault")
+ok(any("Growth plan" in f and "inputs_from" in f for f in ch.placement_faults(json.loads(placed(inputs=())), PLAN)),
+   "a new workflow that does not read its stage's planning workflow is a fault")
+build_new = {"factors": [], "stages": [], "workflows": [P("Streaks", "build", [11], inputs=["Page shell"])]}
+ok(any("decide workflow" in f for f in ch.placement_faults(build_new, PLAN))
+   and not ch.placement_faults({**build_new, "workflows": [P("Streaks", "build", [11], inputs=["Product plan"])]}, PLAN),
+   "in a stage without a planning workflow, a new workflow reads one of the plan's planning workflows")
+sess = R.Session(log=quiet)
+merged, new, faults = ch.place(sess, SHARE, PLAN, [11], ACTIVE, lambda: "{}")
+ok(sess.calls == 2 and faults and any("R1: item 11" in f for f in faults), "an empty placement keeps its faults (→ re-plan)")
+
 print(f"change_test: {passed} checks passed")

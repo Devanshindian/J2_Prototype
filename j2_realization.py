@@ -146,13 +146,16 @@ def _cycle(wfs):
     return next((n for n in deps if state.get(n) is None and visit(n)), None)
 
 
-def plan_faults(p, goal):
-    """What a plan breaks: [] when it follows the Realization and Certainty sections. Each fault names what to fix."""
+def plan_faults(p, goal, items=None):
+    """What a plan breaks: [] when it follows the Realization and Certainty sections. Each fault names what to fix.
+    items: the active charter numbers (a change); by default done-when positions 1 to n."""
     out = []
     for k in ("factors", "unplaced", "stages", "workflows", "open_facts"):
         if not isinstance(p.get(k), list):
             out.append(f"{k} must be a list")
-    items = set(range(1, len(goal.get("done_when") or []) + 1))
+    span = None if items is None else ", ".join(map(str, sorted(set(items))))
+    items = set(range(1, len(goal.get("done_when") or []) + 1)) if items is None else set(items)
+    span = span or f"1 to {len(items)}"
     factors = [f for f in lst(p.get("factors")) if isinstance(f, dict)]
     stages = [s for s in lst(p.get("stages")) if isinstance(s, dict)]
     wfs = [w for w in lst(p.get("workflows")) if isinstance(w, dict)]
@@ -223,7 +226,7 @@ def plan_faults(p, goal):
                 out.append(f"workflow {n}: {k} is empty")
         for i in lst(w.get("delivers")) + lst(w.get("informs")):
             if i not in items:
-                out.append(f"workflow {n}: item {i} does not exist (done-when items are 1 to {len(items)})")
+                out.append(f"workflow {n}: item {i} does not exist (done-when items are {span})")
         for i in lst(w.get("delivers")):
             delivered.setdefault(i, []).append(n)
         for d in lst(w.get("inputs_from")):
@@ -356,6 +359,17 @@ def question_spec(p, checklist, names=None):
     return spec
 
 
+def judge_spec(p, checklist, names=None, change=None):
+    """question_spec, plus on a change ({workflow: the charter numbers it is asked to take on}) G0 and the K questions
+    of those items for each of those workflows."""
+    spec = question_spec(p, checklist, names)
+    for n, its in (change or {}).items():
+        if n in spec:
+            spec[n].update({i: (c, wt, t) for i, c, wt, t in CHANGE_QUESTIONS})
+            spec[n].update({k["id"]: ("done_test", ITEM_WEIGHT, k["question"]) for k in checklist if k["item"] in its})
+    return spec
+
+
 def judge_faults(r, spec):
     """Answers by workflow name, and what the judge's reply lacks. Unanswered questions count as no."""
     got, out = {}, []
@@ -473,6 +487,8 @@ PLAN_FMT = """{
 REVISE_FMT = PLAN_FMT[:-2] + ',\n "changes": [{"workflow": str, "weakest": str, "remedy": str, "axis": "ask"|"research:find"|"research:method"|"certainty:analyze"|"certainty:experiment"|"certainty:stabilize"|"certainty:reread"|"realization:add"|"realization:deepen"|"realization:split"|"rewrite"}]\n}'
 JUDGE_FMT = """{"answers": [{"workflow": str, "a": {"<question id>": {"answer": "yes"|"no"|"n/a", "note": str (required for no: what is missing; start with ask:, research: or probe: when it is missing information)}}, "compare": "better"|"same"|"worse"|null (only for workflows listed under REVISED)}]}"""
 CHECKLIST_FMT = """{"items": [{"item": int (done-when number), "question": str}]}"""
+EDIT_FMT = """{"workflow": {the edited workflow, with the same keys as the plan's workflows}, "docs": [name of a planning workflow in the plan whose written decision must change first]}"""
+PLACE_FMT = """{"factors": [new factor, as in the plan], "stages": [new stage, as in the plan; [] when none], "workflows": [new workflow, as in the plan], "why": str}"""
 MATCH_FMT = """{"intents": [{"item": int (charter number), "owner": str|null (the one workflow whose job it is), "stage": str|null (when owner is null: the id of the stage in the plan whose kind of thinking it needs, or null), "why": str}]}"""
 
 
@@ -531,15 +547,52 @@ def plan_task(goal, web, extra=""):
             f"judge will score each workflow afterwards; you don't score.\n\nReply format:\n{PLAN_FMT}")
 
 
-def revise_task(goal, web, plan, low, extra=""):
+def revise_task(goal, web, plan, low, extra="", only=None):
+    """only (a change's one small fix): revise just these workflows, keeping their names; the charter by number."""
+    if only is not None:
+        low = {n: s for n, s in low.items() if n in only}
     lines = [f"- {n}: score {s['score']:.2f}, weakest {s['weakest']}; missing: " + ("; ".join(s["missing"]) or "-")
              for n, s in low.items()]
-    return (f"CHARTER (from Identity):\n{charter_text(goal)}\n\n{_web_note(web)}{extra}\n\nYOUR CURRENT PLAN:\n"
+    how = ("Revise the plan (the Realization section's Step 5): for each workflow above, apply the remedy "
+           "for its weakest check. Keep every other workflow exactly as it is, with the same name. Keep a revised "
+           "workflow's name unless you split it." if only is None else
+           "Revise only the workflows above, as one small fix (the Realization section's Step 5): apply the remedy for "
+           "each one's weakest check without splitting it, and keep its name. Keep every other workflow exactly as it "
+           "is, with the same name.")
+    return (f"CHARTER (from Identity):\n{charter_text(goal, only is not None)}\n\n{_web_note(web)}{extra}\n\nYOUR CURRENT PLAN:\n"
             f"{json.dumps(plan, ensure_ascii=False)}\n\nTHE JUDGE SCORED THESE WORKFLOWS BELOW {THRESHOLD:.2f}:\n"
-            + "\n".join(lines) + "\n\nRevise the plan (the Realization section's Step 5): for each workflow above, apply the remedy "
-            "for its weakest check. Keep every other workflow exactly as it is, with the same name. Keep a revised "
-            "workflow's name unless you split it. Name each change in changes.\n\nReply with the full plan in this "
+            + "\n".join(lines) + f"\n\n{how} Name each change in changes.\n\nReply with the full plan in this "
             f"format:\n{REVISE_FMT}")
+
+
+def edit_task(goal, plan, owner, intents):
+    """A change's A route: a scoped edit of one workflow. intents: [{"item": charter number, "kind": "added"|"removed"}]."""
+    texts = dict(enumerate(goal.get("charter_items") or goal.get("done_when") or [], 1))
+    lines = [f"- it now also delivers item {x['item']}: {texts.get(x['item'], '')}" if x["kind"] == "added" else
+             f"- item {x['item']} ({texts.get(x['item'], '')}) is no longer in the charter: it stops delivering and "
+             "informing it" for x in intents]
+    return (f"CHARTER (from Identity):\n{charter_text(goal, True)}\n\nTHE PLAN:\n{json.dumps(plan, ensure_ascii=False)}"
+            f"\n\nTHE CHANGE FOR WORKFLOW {owner!r}:\n" + "\n".join(lines) + "\n\nEdit only this workflow, as little as the "
+            "change needs: modify, extend or remove. Rewrite its goal, approach and done-test to match, add the new items "
+            "to delivers and take the removed ones out of delivers and informs. Keep its name, stage and certainty zone. "
+            "If it is left with nothing to deliver or inform, return it with both empty: it is dropped. In docs, name the "
+            "planning workflows of the plan (decide workflows that set a stage's direction) whose written decision must "
+            f"change before this workflow is built again; [] when none must.\n\nReply format:\n{EDIT_FMT}")
+
+
+def placement_task(goal, plan, items):
+    """A change's C and D routes: new workflows (and, when no stage of the plan fits, a new stage) for these items."""
+    new = "\n".join(f"  {n}. {t}" for n, t in numbered(goal) if n in items)
+    return (f"CHARTER (from Identity):\n{charter_text(goal, True)}\n\nTHE PLAN (keep it; add to it):\n"
+            f"{json.dumps(plan, ensure_ascii=False)}\n\nNEW DONE-WHEN ITEMS no workflow in the plan owns (charter "
+            f"numbers):\n{new}\n\nPlace these items only (the Realization section's Steps 1 to 3). Put new workflows in "
+            "a stage of the plan whose kind of thinking they need. Add a stage from the stage table only when no stage "
+            "in the plan has that kind of thinking, and give each new stage its own decide workflow that sets its "
+            "direction. Every new workflow lists in inputs_from a decide workflow of its stage (in a stage without one, "
+            "a decide workflow of the plan it follows). Each new item is delivered by exactly one new workflow; each "
+            "new workflow gets its certainty zone, read from its own signals. Add factors only for what is new and "
+            "consequential. Don't repeat or change anything already in the plan.\n\n"
+            f"Reply format:\n{PLACE_FMT}")
 
 
 def checklist_task(goal, items=None):
@@ -638,11 +691,7 @@ class Session:
         lower result counts. names: judge only these workflows. change (a charter change, j2_change): {workflow: the
         charter numbers it is asked to take on}; those workflows also get G0 and the K questions of those items, and
         the charter is shown by charter number ({} for numbers alone)."""
-        spec = question_spec(plan, checklist, names)
-        for n, its in (change or {}).items():
-            if n in spec:
-                spec[n].update({i: (c, wt, t) for i, c, wt, t in CHANGE_QUESTIONS})
-                spec[n].update({k["id"]: ("done_test", ITEM_WEIGHT, k["question"]) for k in checklist if k["item"] in its})
+        spec = judge_spec(plan, checklist, names, change)
         revised, kept = {}, {}
         if previous:
             old = {w.get("name"): w for w in lst(previous["plan"].get("workflows")) if isinstance(w, dict)}

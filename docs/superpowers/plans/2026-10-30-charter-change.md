@@ -114,8 +114,13 @@ ok(ch.owner_index(SUDOKU_WFS)[2] == "W-15", "a revision replaces its original as
   workflow lists its stage's planning workflow in `inputs_from`. Merge, `plan_faults(merged, goal, items=active)`,
   one retry with faults named.
 
-- [ ] Tests: A remove drops Save; B makes one revise call and then routes C on failure; placement of "Share result"
+- [x] Tests: A remove drops Save; B makes one revise call and then routes C on failure; placement of "Share result"
       adds stage `growth` with a planning workflow; unknown stage `social` → retry. Commit.
+- Notes: a planning workflow is a decide workflow that reads no workflow of its own stage (a build-stage decide
+  workflow such as written help is not one); in a stage without one (build), a new workflow reads any planning
+  workflow of the plan. The edit reply names its `docs` (planning workflows to revise first), so an A intent stays
+  within match, score and edit. A removed item whose owner is left with nothing is dropped in code, with no call.
+  B's revise reply that is unreadable is a failed fix (→ C), never a second revise call.
 
 ### Task 6: plan_change orchestrator (steps 2–6)
 

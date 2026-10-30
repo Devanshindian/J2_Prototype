@@ -269,3 +269,162 @@ def match(s, goal, plan, items, mock):
     got, _ = ask_checked(s, "judge", R.judge_system(), R.match_task(goal, plan, items), mock, check)
     return {n: got.get(n) or {"owner": None, "stage": None, "why": "the match reply was unreadable", "unread": True}
             for n in items}
+
+
+# ---- step 4, act: A edits the owner (a workflow left with nothing is dropped), B makes one fix, C and D place new
+# workflows. Each takes the current plan and returns a new one; the caller's plan is never changed.
+def _wfs(plan):
+    return [w for w in R.lst(plan.get("workflows")) if isinstance(w, dict)]
+
+
+def planning(wfs):
+    """Names of the planning workflows: decide workflows that set their stage's direction, so they read no workflow of
+    their own stage (a decide workflow that reads its stage's builds, such as written help, is not one)."""
+    stage = {w.get("name"): w.get("stage") for w in wfs}
+    return [w["name"] for w in wfs if R.kind(w) == "decide"
+            and not any(stage.get(d) == w.get("stage") for d in R.lst(w.get("inputs_from")))]
+
+
+def _planning(plan, w):
+    """The planning workflows w reads (inputs_from), in plan order."""
+    return [n for n in planning(_wfs(plan)) if n in R.lst(w.get("inputs_from"))]
+
+
+def _put(plan, w):
+    """The plan with the workflow of w's name replaced by w."""
+    return {**plan, "workflows": [w if x.get("name") == w.get("name") else x for x in _wfs(plan)]}
+
+
+def strip(plan, removed):
+    """The plan with removed charter numbers taken out of every workflow's delivers and informs."""
+    gone = set(removed)
+    return {**plan, "workflows": [{**w, "delivers": [i for i in R.lst(w.get("delivers")) if i not in gone],
+                                   "informs": [i for i in R.lst(w.get("informs")) if i not in gone]} for w in _wfs(plan)]}
+
+
+def _drop(plan, name):
+    """(plan without the workflow, the workflows that read it): its readers stop reading it."""
+    readers = [w["name"] for w in _wfs(plan) if name in R.lst(w.get("inputs_from"))]
+    wfs = [{**w, "inputs_from": [d for d in R.lst(w.get("inputs_from")) if d != name]} for w in _wfs(plan)
+           if w.get("name") != name]
+    facts = [o for o in R.lst(plan.get("open_facts")) if not (isinstance(o, dict) and o.get("workflow") == name)]
+    return {**plan, "workflows": wfs, "open_facts": facts}, readers
+
+
+def edit(s, goal, plan, owner, added, removed, mock):
+    """A: the owner takes on the added charter numbers and lets go of the removed ones. Removed only and left with
+    nothing: dropped, no call. Otherwise one scoped edit call (sent back once); code keeps delivers right whatever the
+    reply says. {"plan", "docs", "dropped", "readers", "ok"}; ok False when the edit reply stayed unreadable (the
+    removal still happens in code; the added items are the caller's to place)."""
+    plan = strip(plan, removed)
+    w = next(x for x in _wfs(plan) if x.get("name") == owner)
+    out = {"plan": plan, "docs": [], "dropped": [], "readers": [], "ok": True}
+    if not added and not R.lst(w.get("delivers")) and not R.lst(w.get("informs")):
+        out["plan"], out["readers"] = _drop(plan, owner)
+        out.update(docs=_planning(plan, w), dropped=[owner])
+        return out
+    decide = planning(_wfs(plan))
+
+    def check(r):
+        new, docs = (r or {}).get("workflow"), (r or {}).get("docs")
+        faults = [] if isinstance(new, dict) else ["workflow must be the edited workflow, as one object"]
+        if not isinstance(docs, list) or any(d not in decide for d in docs):
+            faults.append(f"docs must name planning workflows of the plan only: {', '.join(decide)}")
+        return (new, docs), faults
+
+    intents = [{"item": n, "kind": "removed"} for n in removed] + [{"item": n, "kind": "added"} for n in added]
+    (new, docs), faults = ask_checked(s, "adaptation", R.planner_system(), R.edit_task(goal, plan, owner, intents),
+                                      mock, check)
+    if faults:
+        out.update(docs=_planning(plan, w), ok=False)
+        return out
+    new = {**w, **new, "name": owner}
+    new["delivers"] = [i for i in R.lst(new.get("delivers")) if i not in removed] + [
+        i for i in added if i not in R.lst(new.get("delivers"))]
+    new["informs"] = [i for i in R.lst(new.get("informs")) if i not in removed]
+    out["plan"], out["docs"] = _put(plan, new), [d for d in decide if d in docs]
+    if not new["delivers"] and not new["informs"]:
+        out["plan"], out["readers"] = _drop(out["plan"], owner)
+        out["dropped"] = [owner]
+    return out
+
+
+def fix(s, goal, plan, owner, items, scores, checklist, mocks, web=False):
+    """B: one small fix of the owner (one revise call, never a second), then the judge on the owner only, against its
+    last version. (plan, {"score", "weakest_part"}); an unreadable fix scores 0 and leaves the plan as it was."""
+    texts = dict(R.numbered(goal))
+    extra = (f"\n\nCHANGE: workflow {owner!r} takes on done-when item(s) "
+             + "; ".join(f"{n}: {texts.get(n, '')}" for n in items) + ". The judge scored it with them added.")
+    r = s.ask("adaptation", R.planner_system(), R.revise_task(goal, web, plan, {owner: scores[owner]}, extra, only=[owner]),
+              lambda: mocks["revise"](owner))
+    w = next((x for x in R.lst((r or {}).get("workflows")) if isinstance(x, dict) and x.get("name") == owner), None)
+    if not w:
+        return plan, {"score": 0.0, "weakest_part": None}
+    w = {**w, "delivers": R.lst(w.get("delivers")) + [i for i in items if i not in R.lst(w.get("delivers"))]}
+    new = _put(plan, w)
+    change = {owner: list(items)}
+    sc, _ = s.judge(goal, new, checklist, mocks["judge"], previous={"plan": plan, "scores": scores}, names=[owner],
+                    change=change)
+    return new, {"score": sc[owner]["score"],
+                 "weakest_part": weakest_part(sc[owner], R.judge_spec(new, checklist, [owner], change)[owner])}
+
+
+def placement_faults(placed, plan):
+    """What a placement breaks beyond the plan rules: new stages are new and each holds its own planning workflow;
+    every new workflow reads a planning workflow of its stage (in a stage without one, any planning workflow of the
+    plan); new names are new."""
+    out = [f"{k} must be a list" for k in ("factors", "stages", "workflows") if not isinstance(placed.get(k), list)]
+    new = [w for w in R.lst(placed.get("workflows")) if isinstance(w, dict)]
+    if not new:
+        out.append("workflows is empty: place every new item")
+    have = {x.get("id") for x in R.lst(plan.get("stages")) if isinstance(x, dict)}
+    for st in R.lst(placed.get("stages")):
+        i = st.get("id") if isinstance(st, dict) else None
+        if i in have:
+            out.append(f"stage {i} is already in the plan: add only new stages")
+        elif not any(w.get("stage") == i and w.get("name") in planning(new) for w in new):
+            out.append(f"new stage {i} needs its own decide workflow")
+    old = [w.get("name") for w in _wfs(plan)]
+    every = _wfs(plan) + new
+    plans = planning(every)
+    for w in new:
+        n, reads = w.get("name"), R.lst(w.get("inputs_from"))
+        if n in old:
+            out.append(f"workflow {n}: the plan already has a workflow of that name")
+        own = [x["name"] for x in every if x.get("name") in plans and x.get("stage") == w.get("stage") and x is not w]
+        if own and n not in plans and not set(own) & set(reads):
+            out.append(f"workflow {n}: list its stage's decide workflow ({', '.join(own)}) in inputs_from")
+        elif not own and n not in plans and not set(plans) & set(reads):
+            out.append(f"workflow {n}: its stage has no planning decide workflow, so list one of the plan's "
+                       f"({', '.join(plans)}) in inputs_from")
+    return out
+
+
+def merge(plan, placed):
+    """The plan with the placement's factors, stages and workflows added; a new factor owned by a stage already in
+    the plan is added to that stage's owns_factors."""
+    factors = [f for f in R.lst(placed.get("factors")) if isinstance(f, dict)]
+    stages = [{**x, "owns_factors": R.lst(x.get("owns_factors")) + [f["name"] for f in factors if x.get("id") in
+                                                                     R.lst(f.get("stages")) and f.get("name") not in
+                                                                     R.lst(x.get("owns_factors"))]}
+              for x in R.lst(plan.get("stages")) if isinstance(x, dict)]
+    return {**plan, "factors": R.lst(plan.get("factors")) + factors,
+            "stages": stages + [x for x in R.lst(placed.get("stages")) if isinstance(x, dict)],
+            "workflows": _wfs(plan) + [w for w in R.lst(placed.get("workflows")) if isinstance(w, dict)]}
+
+
+def place(s, goal, plan, items, active, mock, named=()):
+    """C and D: one placement call for the items no workflow owns, checked on the merged plan (placement_faults and
+    plan_faults on the active charter numbers) and sent back once with its faults named. named: faults from an
+    earlier check to name in the first call. (merged plan, the new workflows' names, faults still open)."""
+    task = R.placement_task(goal, plan, items)
+    if named:
+        task += "\n\nTHE LAST PLACEMENT FAILED THE CHECK:\n- " + "\n- ".join(named) + "\nPlace the items again."
+
+    def check(r):
+        placed = r if isinstance(r, dict) else {}
+        merged = merge(plan, placed)
+        return (merged, placed), placement_faults(placed, plan) + R.plan_faults(merged, goal, items=active)
+
+    (merged, placed), faults = ask_checked(s, "adaptation", R.planner_system(), task, mock, check)
+    return merged, [w.get("name") for w in R.lst(placed.get("workflows")) if isinstance(w, dict)], faults
