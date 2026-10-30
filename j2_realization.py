@@ -489,7 +489,8 @@ JUDGE_FMT = """{"answers": [{"workflow": str, "a": {"<question id>": {"answer": 
 CHECKLIST_FMT = """{"items": [{"item": int (done-when number), "question": str}]}"""
 EDIT_FMT = """{"workflow": {the edited workflow, with the same keys as the plan's workflows}, "docs": [name of a planning workflow in the plan whose written decision must change first]}"""
 PLACE_FMT = """{"factors": [new factor, as in the plan], "stages": [new stage, as in the plan; [] when none], "workflows": [new workflow, as in the plan], "why": str}"""
-MATCH_FMT = """{"intents": [{"item": int (charter number), "owner": str|null (the one workflow whose job it is), "stage": str|null (when owner is null: the id of the stage in the plan whose kind of thinking it needs, or null), "why": str}]}"""
+IMPROVE_FMT = """{"workflows": [each workflow named above, improved, with the same keys as the plan's workflows], "changes": [{"workflow": str, "remedy": str}]}"""
+MATCH_FMT = """{"intents": [{"item": int (charter number), "owner": str|null (the one workflow whose job it is), "too_big": bool (true when taking it on would make the owner need more than one kind of thinking or more than one builder's run), "stage": str|null (when owner is null: the id of the stage in the plan whose kind of thinking it needs, or null), "why": str}]}"""
 
 
 def _read(name):
@@ -580,19 +581,33 @@ def edit_task(goal, plan, owner, intents):
             f"change before this workflow is built again; [] when none must.\n\nReply format:\n{EDIT_FMT}")
 
 
-def placement_task(goal, plan, items):
-    """A change's C and D routes: new workflows (and, when no stage of the plan fits, a new stage) for these items."""
-    new = "\n".join(f"  {n}. {t}" for n, t in numbered(goal) if n in items)
+def placement_task(goal, plan, items, routes=None):
+    """A change's C and D routes: new workflows for these items. routes: {item: "C" | "D"}: a C item goes in a stage
+    already in the plan, a D item in a new stage from the stage table (default C)."""
+    where = {"C": "in a stage already in the plan", "D": "in a new stage from the stage table"}
+    new = "\n".join(f"  {n}. {t} ({where[(routes or {}).get(n, 'C')]})" for n, t in numbered(goal) if n in items)
     return (f"CHARTER (from Identity):\n{charter_text(goal, True)}\n\nTHE PLAN (keep it; add to it):\n"
             f"{json.dumps(plan, ensure_ascii=False)}\n\nNEW DONE-WHEN ITEMS no workflow in the plan owns (charter "
-            f"numbers):\n{new}\n\nPlace these items only (the Realization section's Steps 1 to 3). Put new workflows in "
-            "a stage of the plan whose kind of thinking they need. Add a stage from the stage table only when no stage "
-            "in the plan has that kind of thinking, and give each new stage its own decide workflow that sets its "
-            "direction. Every new workflow lists in inputs_from a decide workflow of its stage (in a stage without one, "
+            f"numbers, and where each goes):\n{new}\n\nPlace these items only (the Realization section's Steps 1 to 3). "
+            "Put each item's new workflows where it says: in a stage of the plan whose kind of thinking they need, or "
+            "in a new stage (add no new stage for any other item). Give each new stage its own decide workflow that "
+            "sets its direction. Every new workflow lists in inputs_from a decide workflow of its stage (in a stage without one, "
             "a decide workflow of the plan it follows). Each new item is delivered by exactly one new workflow; each "
             "new workflow gets its certainty zone, read from its own signals. Add factors only for what is new and "
             "consequential. Don't repeat or change anything already in the plan.\n\n"
             f"Reply format:\n{PLACE_FMT}")
+
+
+def improve_task(goal, plan, low):
+    """A change's improvement round: only the workflows in low ({name: the judge's settled result}) are rewritten."""
+    lines = [f"- {n}: score {s['score']:.2f}, weakest {s['weakest']}; missing: " + ("; ".join(s["missing"]) or "-")
+             for n, s in low.items()]
+    return (f"CHARTER (from Identity):\n{charter_text(goal, True)}\n\nTHE PLAN:\n{json.dumps(plan, ensure_ascii=False)}"
+            f"\n\nTHE JUDGE SCORED THESE WORKFLOWS BELOW {THRESHOLD:.2f}:\n" + "\n".join(lines) + "\n\nImprove only "
+            "these workflows, once (the Realization section's Step 5): close the gaps named, for example by reading a "
+            "workflow of the plan that makes what is missing (inputs_from) or by making the done-test checkable. Keep "
+            "each one's name, stage and delivers; don't split it. Reply with only these workflows.\n\n"
+            f"Reply format:\n{IMPROVE_FMT}")
 
 
 def checklist_task(goal, items=None):
@@ -612,9 +627,10 @@ def match_task(goal, plan, items):
     return (f"CHARTER (from Identity):\n{charter_text(goal, True)}\n\nTHE PLAN:\n{json.dumps(plan, ensure_ascii=False)}"
             f"\n\nNEW DONE-WHEN ITEMS (charter numbers):\n{new}\n\nFor each new item, ask every workflow in the plan "
             "G0: is this item its own job, the same kind of thinking and output as its goal, so that a small edit of it "
-            "would deliver the item? Name the one workflow that answers yes as owner. When none does, owner is null: "
-            "then name the stage in the plan whose kind of thinking the item needs, or null when no stage in the plan "
-            "has it. Don't plan or score anything.\n\n"
+            "would deliver the item? Name the one workflow that answers yes as owner, and say in too_big whether taking "
+            "it on would make that workflow need more than one kind of thinking or more than one builder's run. When "
+            "no workflow answers yes, owner is null: then name the stage in the plan whose kind of thinking the item "
+            "needs, or null when no stage in the plan has it. Don't plan or score anything.\n\n"
             f"Reply format:\n{MATCH_FMT}")
 
 
@@ -625,9 +641,9 @@ def judge_task(goal, plan, spec, revised, change=None):
         rev = ("\n\nREVISED since the last round: say in compare whether each new version closes the gaps named then "
                "(better, same or worse):\n" + json.dumps(revised, ensure_ascii=False))
     if change:
-        rev += ("\n\nCHANGE: the charter changed. Each workflow below is asked to take on the done-when items listed for "
-                "it (charter numbers). Answer its questions for the workflow with those items added and its done-test "
-                "extended to verify them; G0 asks whether they are its job at all:\n" + json.dumps(change))
+        rev += ("\n\nCHANGE: the charter changed. Each workflow below was edited to take on the done-when items listed "
+                "for it (charter numbers); judge it as written now. G0 asks whether those items are its job at all:\n"
+                + json.dumps(change))
     return (f"CHARTER (from Identity):\n{charter_text(goal, change is not None)}\n\n"
             f"THE PLAN:\n{json.dumps(plan, ensure_ascii=False)}\n\n"
             f"QUESTIONS, per workflow (answer every id):\n{json.dumps(qs, ensure_ascii=False)}{rev}\n\n"

@@ -35,7 +35,7 @@ same way: planning docs first, check, build, Relay, audit.
 |---|---|
 | Rename the levels | A on Levels and new game; Product plan first |
 | Add dark mode | A on Look and layout; Style guide, Technical design first |
-| Teach techniques in hints | B → A on Hint (one fix) |
+| Teach techniques in hints | B on Hint (edit, one improvement) |
 | Remove save and resume | A remove; Save dropped; Technical design re-homes storage first |
 | Richer come-back features | C directly (size), 2–3 new build workflows, no improve rounds |
 | Import a newspaper puzzle | C + A |
@@ -45,7 +45,7 @@ same way: planning docs first, check, build, Relay, audit.
 | Ship by tonight | no plan change |
 | Make it Killer Sudoku | full re-plan |
 
-Judge-and-plan calls for one A intent: at most 3 (match, score, docs list). For one C intent: at most 5.
+Judge-and-plan calls for one A intent: at most 3 (match, edit with its docs list, judge). For one B intent: 5. For one C intent: at most 5.
 
 ## Non-goals (deferred, one at a time later)
 
@@ -92,24 +92,29 @@ equal charter numbers. The change path passes charter numbers (`items=`) instead
 
 - Questions grouped by work-atom part (a label over the existing checks; weights unchanged):
   goal = G0 (new, change only) + D1–D4 + K; context = I1, I2; how = M1, M2, Z1; constraints = F; size = S1, S2.
-- Call 1 (match): for each added intent, G0 "is this intent this workflow's job?" asked of every workflow, plus, when
-  no workflow says yes, "which stage in the plan owns this kind of thinking, if any?" Removed intents skip it.
-- Call 2 (score): the full questions for each owner found, with K questions for its changed items only.
-- `decide(intent, match, score)` (code):
+- Step 3 is one call (match): for each added intent, G0 "is this intent this workflow's job?" asked of every
+  workflow; for the owner, `too_big` (would taking it on make the owner exceed one kind of thinking or one builder's
+  run); when no workflow says yes, "which stage in the plan owns this kind of thinking, if any?". Removed intents skip
+  it. The owner is not scored before it is edited (live test, 30 Oct: an unedited owner fails its new item's K and
+  context questions, so nearly everything went to B).
+- `decide(intent, match, score, after_fix)` (code):
   - removed → A
   - no owner: a stage in the plan owns it → C, else → D
-  - owner score ≥ 0.80 → A
-  - weakest part = size → C
-  - else → B (one fix, judge again: ≥ 0.80 → A, else → C)
+  - owner and too_big → C
+  - owner that fits → edit it (step 4), then judge the edited owner: ≥ 0.80 → A; weakest part = size → C; else B: one
+    improvement given the judge's missing notes, judge again: ≥ 0.80 → B (improved and passed), else → C
+- A reply (edit, improvement or judge) that lacks the expected workflow sends the intent to C with a note.
 - The border second look (±0.05) stays as today.
 
 ### Step 4. Act
 
-- A: scoped revise of the owner: modify, extend or remove. A workflow left delivering nothing is dropped.
-- B: `revise_task(..., only=[owner])`, one round, judged with compare.
-- C, D: `placement_task(goal, plan, items)` with the current plan as context: new workflows (and for D a new stage
-  with its planning workflow), each with stage, certainty zone, delivers, inputs_from naming its stage's planning
-  workflow. Realization and certainty run here only.
+- Edit (A and B): one call returning only the owner, modified, extended or reduced, plus the planning docs to revise
+  first. A workflow left delivering nothing is dropped. B adds one improvement call returning only the owner; if the
+  intent ends in C, the owner keeps its old version (less any removed item).
+- C, D: `placement_task(goal, plan, items, routes)` with the current plan as context, told each item's route: a C item
+  goes in a stage of the plan, a D item in a new stage from `stages.json` with its own planning workflow
+  (`placement_faults` enforces both). Each new workflow has stage, certainty zone, delivers, inputs_from naming its
+  stage's planning workflow. Realization and certainty run here only.
 
 ### Step 5. Planning docs first
 
@@ -118,8 +123,9 @@ planning workflow. Their revisions come first; build revisions depend on them.
 
 ### Step 6. Check
 
-Judge the changed and new workflows (≥ 0.80), and `plan_faults(merged, goal, items=active)`. One retry with the
-faults named; then a full re-plan.
+Changed owners were judged at step 4. Judge the new workflows (≥ 0.80); those below get one repair call for those
+workflows only, given the judge's missing notes, then a second judgement. Then `plan_faults(merged, goal,
+items=active)`; a placement is sent back once with its faults named. Still failing: a full re-plan.
 
 ### Step 7–9
 

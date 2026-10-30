@@ -136,6 +136,16 @@ ok(ch.owner_index(SUDOKU_WFS)[2] == "W-15", "a revision replaces its original as
   after its fix, so A stays within 3 calls. K questions on the change path are the one-per-item fallback (no checklist
   call). A rule or standard change with no item change is a full re-plan (`replan`). `record` adds `final`,
   `weakest_part`, `stage` per intent and `faults`; `plan_change` takes `web=False` (j2 plans with web off).
+- Revised 30 Oct after the live test (six real charters against the real Sudoku plan): owners were scored before
+  their edit, so nearly every intent went to B; `fix()` asked for the whole plan back and crashed when the judge's
+  reply lacked the owner; step 6 re-placed instead of repairing; a C item got a new stage. Now step 3 is the match
+  call only (owner, `too_big`, stage); the owner is edited (one call, only that workflow), then judged; below the gate
+  one `improve()` call (only that workflow, given the judge's notes) and a second judgement: pass → final B, else C;
+  size → C. Any reply lacking the expected workflow → C with a note (`judged()` drops a name the judge didn't answer).
+  Placement gets each item's route; `placement_faults(routes=)` keeps C in plan stages and D in a new stage. Step 6
+  gives new workflows below the gate one `improve()` call, then a second judgement, then re-plan. Intents record
+  `path`, `score`, `after_fix`, `final`; `summary(rec)` is the one-line text j2 posts. `fix()` and `web=` are gone;
+  `revise_task(only=)` stays but is unused.
 
 ### Task 7: Into the run
 

@@ -200,8 +200,8 @@ def owner_index(workflows):
     return out
 
 
-# ---- step 3, the decision: the judge answers, code decides each intent once. A uses the existing workflow, B makes
-# one small fix, C adds a workflow in a stage of the plan, D adds a stage.
+# ---- step 3, the decision: the match call answers, code decides each intent once. A: the owner is edited and passes
+# the judge; B: the edited owner is improved once and passes; C: a new workflow in a stage of the plan; D: a new stage.
 THRESHOLD = 0.80          # as j2_realization.THRESHOLD
 PART = {"done_test": "goal", "inputs": "context", "method": "how", "zone_fit": "how", "factors": "constraints",
         "size": "size", "fits": "goal"}         # a work-atom label over the judge's checks; weights do not change
@@ -218,21 +218,24 @@ def weakest_part(settled, spec):
     return max(lost, key=lost.get) if lost else None
 
 
-def decide(kind, match, score, after_fix=None):
-    """"A" | "B" | "C" | "D" for one intent. kind is "added" or "removed"; match = {"owner", "stage"} from the match
-    call (unread: its reply was malformed twice, so placement looks at it); score = {"score", "weakest_part"} for the
-    owner; after_fix = the owner's score after the one fix (B)."""
+def decide(kind, match, score=None, after_fix=None):
+    """"A" | "B" | "C" | "D" for one intent. kind is "added" or "removed"; match = {"owner", "too_big", "stage"} from the
+    match call (unread: its reply was malformed twice, so placement looks at it); score = {"score", "weakest_part"} of
+    the owner after the edit (None: the edit or the judge's reply lacked it); after_fix = its score after the one
+    improvement. "B" without after_fix means: improve once, then decide again."""
     if kind == "removed":
         return "A"
     if not match.get("owner"):
         return "C" if match.get("stage") or match.get("unread") else "D"
+    if match.get("too_big") or score is None:
+        return "C"
     if score["score"] >= THRESHOLD:
         return "A"
     if score.get("weakest_part") == "size":
         return "C"
     if after_fix is None:
         return "B"
-    return "A" if after_fix["score"] >= THRESHOLD else "C"
+    return "B" if after_fix["score"] >= THRESHOLD else "C"
 
 
 # ---- the calls (j2_realization's Session; every reply is checked here and sent back once with its faults named)
@@ -249,8 +252,8 @@ def ask_checked(s, who, system, task, mock, check):
 
 
 def match(s, goal, plan, items, mock):
-    """{charter number: {"owner", "stage", "why"}} for the added items, from one match call (G0 asked of every
-    workflow). A stage not in the plan counts as none; an item the reply still lacks after one retry is unread."""
+    """{charter number: {"owner", "too_big", "stage", "why"}} for the added items, from one match call (G0 asked of
+    every workflow). A stage not in the plan counts as none; an item the reply still lacks after one retry is unread."""
     names = {w.get("name") for w in R.lst(plan.get("workflows")) if isinstance(w, dict)}
     stages = {x.get("id") for x in R.lst(plan.get("stages")) if isinstance(x, dict)}
 
@@ -262,20 +265,23 @@ def match(s, goal, plan, items, mock):
                 out.append(f"item {n} is not a new item")
             elif x.get("owner") is not None and x["owner"] not in names:
                 out.append(f"item {n}: owner {x['owner']!r} is not a workflow in the plan")
+            elif not isinstance(x.get("too_big", False), bool):
+                out.append(f"item {n}: too_big must be true or false")
             else:
-                got[n] = {"owner": x.get("owner"), "stage": x.get("stage") if x.get("stage") in stages else None,
-                          "why": str(x.get("why") or "")}
+                got[n] = {"owner": x.get("owner"), "too_big": bool(x.get("owner") and x.get("too_big")),
+                          "stage": x.get("stage") if x.get("stage") in stages else None, "why": str(x.get("why") or "")}
         if miss := [n for n in items if n not in got]:
             out.append(f"no answer for item {', '.join(map(str, miss))}")
         return got, out
 
     got, _ = ask_checked(s, "judge", R.judge_system(), R.match_task(goal, plan, items), mock, check)
-    return {n: got.get(n) or {"owner": None, "stage": None, "why": "the match reply was unreadable", "unread": True}
+    return {n: got.get(n) or {"owner": None, "too_big": False, "stage": None, "why": "the match reply was unreadable",
+                              "unread": True}
             for n in items}
 
 
-# ---- step 4, act: A edits the owner (a workflow left with nothing is dropped), B makes one fix, C and D place new
-# workflows. Each takes the current plan and returns a new one; the caller's plan is never changed.
+# ---- step 4, act: the owner is edited (a workflow left with nothing is dropped), judged and improved once if needed;
+# C and D place new workflows. Each takes the current plan and returns a new one; the caller's plan is never changed.
 def _wfs(plan):
     return [w for w in R.lst(plan.get("workflows")) if isinstance(w, dict)]
 
@@ -352,30 +358,36 @@ def edit(s, goal, plan, owner, added, removed, mock):
     return out
 
 
-def fix(s, goal, plan, owner, items, scores, checklist, mocks, web=False):
-    """B: one small fix of the owner (one revise call, never a second), then the judge on the owner only, against its
-    last version. (plan, {"score", "weakest_part"}); an unreadable fix scores 0 and leaves the plan as it was."""
-    texts = dict(R.numbered(goal))
-    extra = (f"\n\nCHANGE: workflow {owner!r} takes on done-when item(s) "
-             + "; ".join(f"{n}: {texts.get(n, '')}" for n in items) + ". The judge scored it with them added.")
-    r = s.ask("adaptation", R.planner_system(), R.revise_task(goal, web, plan, {owner: scores[owner]}, extra, only=[owner]),
-              lambda: mocks["revise"](owner))
-    w = next((x for x in R.lst((r or {}).get("workflows")) if isinstance(x, dict) and x.get("name") == owner), None)
-    if not w:
-        return plan, {"score": 0.0, "weakest_part": None}
-    w = {**w, "delivers": R.lst(w.get("delivers")) + [i for i in items if i not in R.lst(w.get("delivers"))]}
-    new = _put(plan, w)
-    change = {owner: list(items)}
-    sc, _ = s.judge(goal, new, checklist, mocks["judge"], previous={"plan": plan, "scores": scores}, names=[owner],
-                    change=change)
-    return new, {"score": sc[owner]["score"],
-                 "weakest_part": weakest_part(sc[owner], R.judge_spec(new, checklist, [owner], change)[owner])}
+def judged(s, goal, plan, checklist, mock, names, change=None, previous=None):
+    """{name: the judge's settled result + "weakest_part"} for the named workflows the judge's reply answered; a name
+    its reply lacked (after the judge's own retry) is left out, so the caller routes it, never reads a silent 0."""
+    sc, faults = s.judge(goal, plan, checklist, mock, previous=previous, names=list(names), change=change)
+    lacked = {n for f in faults if f.startswith("no answers for ") for n in f[len("no answers for "):].split(", ")}
+    spec = R.judge_spec(plan, checklist, list(names), change)
+    return {n: {**sc[n], "weakest_part": weakest_part(sc[n], spec[n])} for n in names if n in sc and n not in lacked}
 
 
-def placement_faults(placed, plan):
+def improve(s, goal, plan, low, mock):
+    """One improvement call for the workflows in low ({name: settled result}), given the judge's missing notes; the
+    reply holds only those workflows. Code keeps each one's name, stage and delivers. (plan, names the reply lacked)."""
+    def check(r):
+        got = {w.get("name"): w for w in R.lst((r or {}).get("workflows")) if isinstance(w, dict) and w.get("name") in low}
+        return got, ([f"no improved workflow for {', '.join(n for n in low if n not in got)}"] if len(got) < len(low)
+                     else [])
+
+    got, _ = ask_checked(s, "adaptation", R.planner_system(), R.improve_task(goal, plan, low), lambda: mock(list(low)),
+                         check)
+    for n, w in got.items():
+        old = next(x for x in _wfs(plan) if x.get("name") == n)
+        plan = _put(plan, {**old, **w, "name": n, "stage": old.get("stage"), "delivers": R.lst(old.get("delivers"))})
+    return plan, [n for n in low if n not in got]
+
+
+def placement_faults(placed, plan, routes=None):
     """What a placement breaks beyond the plan rules: new stages are new and each holds its own planning workflow;
     every new workflow reads a planning workflow of its stage (in a stage without one, any planning workflow of the
-    plan); new names are new."""
+    plan); new names are new. routes ({item: "C" | "D"}): a C item is delivered in a stage of the plan, a D item in a
+    new stage, and a new stage is added only for a D item."""
     out = [f"{k} must be a list" for k in ("factors", "stages", "workflows") if not isinstance(placed.get(k), list)]
     new = [w for w in R.lst(placed.get("workflows")) if isinstance(w, dict)]
     if not new:
@@ -387,6 +399,18 @@ def placement_faults(placed, plan):
             out.append(f"stage {i} is already in the plan: add only new stages")
         elif not any(w.get("stage") == i and w.get("name") in planning(new) for w in new):
             out.append(f"new stage {i} needs its own decide workflow")
+    if routes is not None:
+        d_items = [n for n, r in routes.items() if r == "D"]
+        if R.lst(placed.get("stages")) and not d_items:
+            out.append("add no new stage: every item here goes in a stage already in the plan")
+        for w in new:
+            for i in R.lst(w.get("delivers")):
+                if routes.get(i) == "C" and w.get("stage") not in have:
+                    out.append(f"workflow {w.get('name')}: item {i} goes in a stage already in the plan, not "
+                               f"{w.get('stage')}")
+                elif routes.get(i) == "D" and w.get("stage") in have:
+                    out.append(f"workflow {w.get('name')}: item {i} goes in a new stage from the stage table, not "
+                               f"{w.get('stage')}")
     old = [w.get("name") for w in _wfs(plan)]
     every = _wfs(plan) + new
     plans = planning(every)
@@ -416,20 +440,17 @@ def merge(plan, placed):
             "workflows": _wfs(plan) + [w for w in R.lst(placed.get("workflows")) if isinstance(w, dict)]}
 
 
-def place(s, goal, plan, items, active, mock, named=()):
-    """C and D: one placement call for the items no workflow owns, checked on the merged plan (placement_faults and
-    plan_faults on the active charter numbers) and sent back once with its faults named. named: faults from an
-    earlier check to name in the first call. (merged plan, the new workflows' names, faults still open)."""
-    task = R.placement_task(goal, plan, items)
-    if named:
-        task += "\n\nTHE LAST PLACEMENT FAILED THE CHECK:\n- " + "\n- ".join(named) + "\nPlace the items again."
-
+def place(s, goal, plan, items, active, mock, routes=None):
+    """C and D: one placement call for the items no workflow takes on, told each item's route, checked on the merged
+    plan (placement_faults and plan_faults on the active charter numbers) and sent back once with its faults named.
+    (merged plan, the new workflows' names, faults still open)."""
     def check(r):
         placed = r if isinstance(r, dict) else {}
         merged = merge(plan, placed)
-        return (merged, placed), placement_faults(placed, plan) + R.plan_faults(merged, goal, items=active)
+        return (merged, placed), placement_faults(placed, plan, routes) + R.plan_faults(merged, goal, items=active)
 
-    (merged, placed), faults = ask_checked(s, "adaptation", R.planner_system(), task, mock, check)
+    (merged, placed), faults = ask_checked(s, "adaptation", R.planner_system(), R.placement_task(goal, plan, items, routes),
+                                           mock, check)
     return merged, [w.get("name") for w in R.lst(placed.get("workflows")) if isinstance(w, dict)], faults
 
 
@@ -443,11 +464,11 @@ def default_mocks(goal, plan, added):
     new = [{"name": f"Change item {n}", "stage": last.get("stage"), "certainty": "operate", "certainty_signals": ["mock"],
             "approach": "Direct build from the plan.", "goal": f"Item {n} is real", "done_test": f"Item {n} passes its check",
             "delivers": [n], "informs": [], "inputs_from": first, "experiment": None, "research": None} for n in added]
-    return {"match": lambda: json.dumps({"intents": [{"item": n, "owner": None, "stage": last.get("stage"), "why": "mock"}
-                                                     for n in added]}),
+    return {"match": lambda: json.dumps({"intents": [{"item": n, "owner": None, "too_big": False,
+                                                      "stage": last.get("stage"), "why": "mock"} for n in added]}),
             "judge": lambda spec: R.mock_judge(spec, compare="better"),
             "edit": lambda owner: json.dumps({"workflow": next(w for w in wfs if w.get("name") == owner), "docs": []}),
-            "revise": lambda owner: json.dumps(plan),
+            "improve": lambda names: json.dumps({"workflows": [w for w in wfs if w.get("name") in names], "changes": []}),
             "place": lambda: json.dumps({"factors": [], "stages": [], "workflows": new, "why": "mock"})}
 
 
@@ -462,13 +483,29 @@ def _owner(plan, workflows, n):
     return next((w["name"] for w in _wfs(plan) if n in R.lst(w.get("delivers"))), None)
 
 
-def plan_change(base_goal, new_goal, plan, workflows, mocks=None, log=print, out_dir=None, web=False):
-    """Steps 2 to 6 of a charter change on a realization plan (base_goal: the charter of the last full plan; plan: its
-    realization plan; workflows: the run's workflows). Each intent is decided once: A edits its owner, B makes one
-    fix (A when it then passes, else C), C and D place new workflows. Planning docs (planning workflows that a revised
-    or new workflow reads, and new stages' planning workflows) are revised first. A goal change, a rule or standard
-    change with no item change, or a plan that still fails its check after one retry is a full re-plan (replan).
-    mocks: {"match", "judge", "edit", "revise", "place"} callables for offline runs, used only when llm.MOCK."""
+ROUTE = {"A": "the existing workflow takes it", "B": "the existing workflow, improved once", "C": "a new workflow",
+         "D": "a new stage"}
+
+
+def summary(rec):
+    """The change plan in one line for the Requester and the team."""
+    said = "; ".join(f"item {x['item']} " + ("dropped" if x["kind"] == "removed" else ROUTE[x["final"]])
+                     + (f" ({x['owner']})" if x["owner"] and x["final"] in "AB" else "") for x in rec["intents"])
+    return (f"{said}. Planning documents first: {', '.join(rec['docs']) or 'none'}; then revise "
+            f"{', '.join(rec['revise']) or 'none'}; new {', '.join(rec['new']) or 'none'}"
+            + (f"; dropped {', '.join(rec['drop'])}" if rec["drop"] else "") + ".")
+
+
+def plan_change(base_goal, new_goal, plan, workflows, mocks=None, log=print, out_dir=None):
+    """Steps 2 to 6 of a charter change on a realization plan (base_goal: the charter it was planned for; plan: its
+    realization plan; workflows: the run's workflows). Step 3 is one match call; code decides each intent: a removed
+    item is taken off its owner (A); an added item with an owner that can take it on is edited into the owner and
+    judged: passing is A, a size failure is C, else one improvement and a second judgement (B if it passes, else C);
+    no owner, or too big for it, is C in a stage of the plan or D in a new stage. Planning docs (planning workflows
+    that a revised or new workflow reads, and new stages' planning workflows) are revised first. New workflows below
+    the gate get one improvement call. A goal change, a rule or standard change with no item change, or a plan that
+    still fails its check is a full re-plan (replan). mocks: {"match", "judge", "edit", "improve", "place"} callables
+    for offline runs, used only when llm.MOCK."""
     s = R.Session(log)
     d = charter_diff(base_goal, new_goal)
     rec = {"diff": d, "intents": [], "plan": plan, "revise": [], "new": [], "drop": [], "docs": [], "replan": False,
@@ -491,71 +528,80 @@ def plan_change(base_goal, new_goal, plan, workflows, mocks=None, log=print, out
     mocks = mocks or default_mocks(goal, plan, added)
     active = [n for n, _ in R.numbered(goal)]
 
-    # step 3: match the added items, score their owners, decide each intent
+    # step 3: one match call for the added items; the routes that need no edit are decided now
     m = match(s, goal, plan, added, mocks["match"]) if added else {}
-    asked = {}
-    for n in added:
-        if m[n]["owner"]:
-            asked.setdefault(m[n]["owner"], []).append(n)
-    checklist = R.checklist_items(None, goal, items=added)       # one K question per added item, no call
-    scores = s.judge(goal, plan, checklist, mocks["judge"], names=list(asked), change=asked)[0] if asked else {}
-    spec = R.judge_spec(plan, checklist, list(asked), asked)
     for n in removed:
         rec["intents"].append({"item": n, "kind": "removed", "owner": _owner(plan, workflows, n), "stage": None,
-                               "decision": "A", "final": "A", "score": None, "weakest_part": None,
+                               "too_big": False, "path": ["removed"], "score": None, "after_fix": None, "final": "A",
                                "why": "removed from the charter"})
     for n in added:
-        o = m[n]["owner"]
-        sc = {"score": scores[o]["score"], "weakest_part": weakest_part(scores[o], spec[o])} if o else None
-        dec = decide("added", m[n], sc)
-        rec["intents"].append({"item": n, "kind": "added", "owner": o, "stage": m[n]["stage"], "decision": dec,
-                               "final": dec, "score": sc and sc["score"], "weakest_part": sc and sc["weakest_part"],
-                               "why": m[n]["why"]})
+        x = m[n]
+        first = "edit" if x["owner"] and not x["too_big"] else decide("added", x)
+        rec["intents"].append({"item": n, "kind": "added", "owner": x["owner"], "stage": x["stage"],
+                               "too_big": x["too_big"], "path": [first], "score": None, "after_fix": None,
+                               "final": None if first == "edit" else first, "why": x["why"]})
 
-    # step 4: act. A edits (one call per owner, removals and additions together), B one fix each, then C and D
+    # step 4: act. Each owner gets one edit call (its removals and additions together); an owner that took on items
+    # is judged, and improved once when below the gate; then C and D are placed together
     cur, docs, revise = strip(plan, removed), [], []
     by_owner = {}
     for x in rec["intents"]:
-        if x["final"] == "A" and x["owner"]:
-            by_owner.setdefault(x["owner"], {"added": [], "removed": []})[x["kind"]].append(x["item"])
+        if x["owner"] and (x["kind"] == "removed" or x["final"] is None):
+            by_owner.setdefault(x["owner"], {"added": [], "removed": []})[x["kind"]].append(x)
+    checklist = R.checklist_items(None, goal, items=added)       # one K question per added item, no call
     for o, g in by_owner.items():
-        r = edit(s, goal, cur, o, g["added"], g["removed"], lambda o=o: mocks["edit"](o))
-        cur, docs, revise = r["plan"], docs + r["docs"], revise + r["readers"]
-        rec["drop"] += r["dropped"]
-        if not r["dropped"] and (r["ok"] or g["removed"]):
-            (docs if o in planning(_wfs(cur)) else revise).append(o)      # an edited planning workflow is a doc
-        if not r["ok"]:
-            for x in rec["intents"]:
-                if x["kind"] == "added" and x["item"] in g["added"]:
-                    x.update(final="C", why="the edit reply was unreadable")
-    fixes = {}
-    for x in rec["intents"]:
-        if x["final"] == "B":
-            fixes.setdefault(x["owner"], []).append(x)
-    for o, xs in fixes.items():
-        fixed, after = fix(s, goal, cur, o, [x["item"] for x in xs], scores, checklist, mocks, web)
-        for x in xs:
-            x.update(final=decide("added", m[x["item"]], x, after_fix=after), after_fix=after["score"])
-        if xs[0]["final"] == "A":
-            cur, revise, docs = fixed, revise + [o], docs + _planning(fixed, next(w for w in _wfs(fixed) if w["name"] == o))
-    cd = [x["item"] for x in rec["intents"] if x["final"] in ("C", "D")]
-    if cd:
+        items = [x["item"] for x in g["added"]]
         before = cur
-        ck = R.checklist_items(None, goal, items=cd)
-        cur, new, faults = place(s, goal, before, cd, active, mocks["place"])
-        for attempt in (0, 1):
-            if faults:
-                break
-            sc = s.judge(goal, cur, ck, mocks["judge"], names=new, change={})[0]
-            low = [f"workflow {n} scored {x['score']:.2f}, below {R.THRESHOLD:.2f}; missing: "
-                   + ("; ".join(x["missing"][:3]) or "-") for n, x in sc.items() if x["score"] < R.THRESHOLD]
-            if not low:
-                break
-            if attempt:
-                faults = low
-            else:
-                cur, new, faults = place(s, goal, before, cd, active, mocks["place"], named=low)
+        r = edit(s, goal, cur, o, items, [x["item"] for x in g["removed"]], lambda o=o: mocks["edit"](o))
+        route, note, fixed = None, None, r["plan"]
+        if items and not r["ok"]:
+            route, note = "C", "the edit reply lacked the workflow"
+        elif items:
+            change = {o: items}
+            sc = judged(s, goal, fixed, checklist, mocks["judge"], [o], change).get(o)
+            for x in g["added"]:
+                x["score"] = sc and sc["score"]
+                x["path"].append(f"judged {sc['score']:.2f}" if sc else "judge reply lacked it")
+            route = decide("added", {"owner": o}, sc)
+            note = None if sc else "the judge's reply lacked the edited workflow"
+            if route == "B":
+                fixed, lacked = improve(s, goal, fixed, {o: sc}, mocks["improve"])
+                after = None if lacked else judged(s, goal, fixed, checklist, mocks["judge"], [o], change,
+                                                   previous={"plan": r["plan"], "scores": {o: sc}}).get(o)
+                route = decide("added", {"owner": o}, sc, after or {"score": 0.0})
+                note = ("the improvement reply lacked the workflow" if lacked else
+                        None if after else "the judge's reply lacked the improved workflow")
+                for x in g["added"]:
+                    x["after_fix"] = after and after["score"]
+                    x["path"] += ["improved", f"judged {after['score']:.2f}" if after else "lacked"]
+        for x in g["added"]:
+            x["final"], x["why"] = route, note or x["why"]
+            x["path"].append(route)
+        if route == "C":           # the owner keeps what it had, less any removed item; the added items are placed
+            w = next(x for x in _wfs(before) if x.get("name") == o)
+            fixed, r = before, {"docs": _planning(before, w) if g["removed"] else [], "dropped": [], "readers": []}
+            if g["removed"] and not R.lst(w.get("delivers")) and not R.lst(w.get("informs")):
+                (fixed, r["readers"]), r["dropped"] = _drop(before, o), [o]
+        cur, docs, revise = fixed, docs + r["docs"], revise + r["readers"]
+        rec["drop"] += r["dropped"]
+        if not r["dropped"] and (route in ("A", "B") or g["removed"]):
+            (docs if o in planning(_wfs(cur)) else revise).append(o)      # an edited planning workflow is a doc
+    routes = {x["item"]: x["final"] for x in rec["intents"] if x["final"] in ("C", "D")}
+    if routes:
+        cur, new, faults = place(s, goal, cur, list(routes), active, mocks["place"], routes)
         rec["new"], rec["faults"] = new, faults
+        # step 6: the new workflows are judged; those below the gate get one improvement call, then a second look
+        if not faults and new:
+            ck = R.checklist_items(None, goal, items=list(routes))
+            sc = judged(s, goal, cur, ck, mocks["judge"], new, change={})
+            low = {n: sc.get(n) or {"score": 0.0, "weakest": None, "missing": ["the judge's reply lacked it"]}
+                   for n in new if n not in sc or sc[n]["score"] < R.THRESHOLD}
+            if low:
+                cur, lacked = improve(s, goal, cur, low, mocks["improve"])
+                again = judged(s, goal, cur, ck, mocks["judge"], [n for n in low if n not in lacked], change={})
+                rec["faults"] = [f"workflow {n} is still below {R.THRESHOLD:.2f} after one improvement: "
+                                 + ("; ".join(again[n]["missing"][:2]) if n in again else "no readable reply")
+                                 for n in low if n not in again or again[n]["score"] < R.THRESHOLD]
         wfs = _wfs(cur)
         docs += [n for n in planning(wfs) if n in new]
         for w in wfs:
