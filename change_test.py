@@ -705,6 +705,13 @@ ok(any(m["who"] == "adaptation" and m.get("change") and "Plan" in m["text"] for 
    "Adaptation posts a one-line summary of the change plan")
 ok(any("CHANGE PLAN" in t for f, t in TASKS if f == "adaptation"),
    "Adaptation gets the change plan as fixed text")
+d = ch.charter_diff(run.real_base, {**run.goal, "done_when": old})
+ok(run.real_base["done_when"] == run.goal["done_when"] and d["added"] == [3] and d["removed"] == [len(run.goal["charter_items"])],
+   "the next change diffs against this change's charter: undoing the rename brings item 3 back, it is not 'no change'")
+n_new = len(run.goal["charter_items"])
+ok(any(n_new in (w.get("delivers") or []) for w in run.real["plan"]["workflows"])
+   and not any(3 in (w.get("delivers") or []) for w in run.real["plan"]["workflows"]),
+   "and against this change's plan: the owner now delivers the renamed item")
 run.change["phase"] = "plan"
 _, refused, _ = run._register([{"name": "Extra section"}])
 ok(refused and "not in the change plan" in refused[0], "while a change is open, a workflow not in its plan is refused")

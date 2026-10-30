@@ -5556,6 +5556,9 @@ class J2Run:
                        "asked": {}, "request": h.get("change")}
         self.changes[-1]["rows"] = rows
         self.save("change.json", self.changes)
+        # the next change starts from this one: its charter and merged plan are the new base, so undoing a change is a
+        # change of its own (the old item comes back), not "nothing changed"
+        self.real_base, self.real = copy.deepcopy(self.goal), {**self.real, "plan": rec["plan"]}
         said = "; ".join(f"item {x['item']} {x['kind']}: {x['final']}" + (f" ({x['owner']})" if x["owner"] else "")
                          for x in rec["intents"])
         self.post("adaptation", f"Change {cid}: {said}. Planning documents first: {', '.join(rec['docs']) or 'none'}; "
