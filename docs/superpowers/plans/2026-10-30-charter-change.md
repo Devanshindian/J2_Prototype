@@ -56,7 +56,7 @@ Source: `J2_Relay/j2_relay.py:13-197`, tests `J2_Relay/relay_test.py:52-133`.
   `build_candidates(workflows, roots, is_doc)`, `latest(workflows, root)`, `parse_affected(text)`.
   `is_doc` is passed in (j2 passes `is_artifact`) instead of the hard-coded `index.html`.
 
-- [ ] Port the Task 1–2 tests (graph, replies) failing → port code → pass → commit.
+- [x] Port the Task 1–2 tests (graph, replies) failing → port code → pass → commit.
 
 ### Task 2: Intents and owners (code)
 
