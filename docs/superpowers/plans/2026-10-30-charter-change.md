@@ -83,7 +83,7 @@ ok(ch.owner_index(SUDOKU_WFS)[2] == "W-15", "a revision replaces its original as
 - `PART = {"done_test": "goal", "inputs": "context", "method": "how", "zone_fit": "how", "factors": "constraints",
   "size": "size", "fits": "goal"}` and `weakest_part(settled)`.
 
-- [ ] Tests: one per rule row; the four judge-today presets (0.95 → A, 0.77 how → B, 0.70 context → B, 0.62 size →
+- [x] Tests: one per rule row; the four judge-today presets (0.95 → A, 0.77 how → B, 0.70 context → B, 0.62 size →
       C); `after_fix` 0.79 → C. Commit.
 
 ### Task 4: Judge for a change (LLM, mock first)

@@ -192,3 +192,31 @@ def owner_index(workflows):
             for n in live[-1].get("covers") or []:
                 out[int(n)] = live[-1]["id"]
     return out
+
+
+# ---- step 3, the decision: the judge answers, code decides each intent once. A uses the existing workflow, B makes
+# one small fix, C adds a workflow in a stage of the plan, D adds a stage.
+THRESHOLD = 0.80          # as j2_realization.THRESHOLD
+PART = {"done_test": "goal", "inputs": "context", "method": "how", "zone_fit": "how", "factors": "constraints",
+        "size": "size", "fits": "goal"}         # a work-atom label over the judge's checks; weights do not change
+
+
+def weakest_part(settled):
+    """The work-atom part of the check that lost the most in j2_realization.settle's result (None when none lost)."""
+    return PART.get((settled or {}).get("weakest"))
+
+
+def decide(kind, match, score, after_fix=None):
+    """"A" | "B" | "C" | "D" for one intent. kind is "added" or "removed"; match = {"owner", "stage"} from the match
+    call; score = {"score", "weakest_part"} for the owner; after_fix = the owner's score after the one fix (B)."""
+    if kind == "removed":
+        return "A"
+    if not match.get("owner"):
+        return "C" if match.get("stage") else "D"
+    if score["score"] >= THRESHOLD:
+        return "A"
+    if score.get("weakest_part") == "size":
+        return "C"
+    if after_fix is None:
+        return "B"
+    return "A" if after_fix["score"] >= THRESHOLD else "C"

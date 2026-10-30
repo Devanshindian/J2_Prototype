@@ -147,4 +147,40 @@ ok(7 not in ch.owner_index(dropped), "a dropped workflow owns nothing")
 moved = SUDOKU_WFS + [S(16, "Levels and new game r2", [11], "W-8")]
 ok(ch.owner_index(moved)[11] == "W-16" and 3 not in ch.owner_index(moved), "a revision's covers replace its original's")
 
+# ---- Task 3: the decision rule (the judge answers, code decides)
+import j2_realization as R               # noqa: E402  (only for settle's real output shape)
+OWNED, NONE = {"owner": "Hint", "stage": None}, {"owner": None, "stage": None}
+HIGH, LOW, SIZE = {"score": 0.95, "weakest_part": None}, {"score": 0.77, "weakest_part": "how"},     {"score": 0.62, "weakest_part": "size"}
+ok(ch.decide("removed", NONE, None) == "A" and ch.decide("removed", OWNED, LOW) == "A", "removed → A, whatever the scores")
+ok(ch.decide("added", {"owner": None, "stage": "build"}, None) == "C", "no owner, a stage in the plan owns it → C")
+ok(ch.decide("added", NONE, None) == "D", "no owner and no stage → D")
+ok(ch.decide("added", OWNED, {"score": 0.80, "weakest_part": "how"}) == "A", "owner at the gate → A")
+ok(ch.decide("added", OWNED, SIZE) == "C", "weakest part size → C straight away, no fix")
+ok(ch.decide("added", OWNED, LOW) == "B", "below the gate, not size → B (one fix)")
+ok(ch.decide("added", OWNED, LOW, after_fix={"score": 0.86, "weakest_part": None}) == "A", "B judged again ≥ 0.80 → A")
+ok(ch.decide("added", OWNED, LOW, after_fix={"score": 0.79, "weakest_part": "how"}) == "C", "B judged again 0.79 → C")
+ok(ch.PART == {"done_test": "goal", "inputs": "context", "method": "how", "zone_fit": "how", "factors": "constraints",
+               "size": "size", "fits": "goal"} and set(R.CHECKS) <= set(ch.PART), "every check has a work-atom part")
+
+
+def judged(no=()):
+    """settle's real output for one workflow answering "no" to the given question ids and "yes" to the rest."""
+    spec = {i: (check, w, text) for i, check, w, text in R.QUESTIONS}
+    s = R.settle({"a": {i: {"answer": "no" if i in no else "yes", "note": ""} for i in spec}}, spec)
+    return s, {"score": s["score"], "weakest_part": ch.weakest_part(s)}
+
+
+s, sc = judged()
+ok(s["score"] == 0.95 and sc["weakest_part"] is None and ch.decide("added", OWNED, sc) == "A", "judge today 0.95 → A")
+ok(ch.decide("added", OWNED, {"score": 0.77, "weakest_part": ch.weakest_part({"score": 0.77, "weakest": "method"})})
+   == "B", "judge today 0.77, weakest how → B")
+s, sc = judged(no=("I1",))
+ok(s["score"] == 0.70 and sc["weakest_part"] == "context" and ch.decide("added", OWNED, sc) == "B",
+   "judge today 0.70, weakest context → B")
+s, sc = judged(no=("S1", "S2", "M2", "D3", "D4"))
+ok(s["score"] == 0.48 and sc["weakest_part"] == "size" and ch.decide("added", OWNED, sc) == "C",
+   "a low score lost mostly on size → C")
+ok(ch.decide("added", OWNED, {"score": 0.62, "weakest_part": ch.weakest_part({"score": 0.62, "weakest": "size"})}) == "C",
+   "judge today 0.62, weakest size → C")
+
 print(f"change_test: {passed} checks passed")
