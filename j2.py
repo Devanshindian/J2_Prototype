@@ -52,6 +52,7 @@ import j2_board
 import j2_check
 import j2_map
 import j2_realization
+import j2_rules
 import j2_schema
 import j2_send
 import llm
@@ -7720,8 +7721,15 @@ class J2Run:
                 self._artifact_layer_fail(w, attempt, j2_artifact_models.Design.template(), derrs)
                 raise ValueError(f"the style guide doesn't follow {j2_artifact_models.Design.template()}: "
                                  + "; ".join(derrs))
-            guide = j2_artifact_models.style_from_design(d.model_dump(by_alias=True))
-            self.art_data.setdefault("design", {})["Style guide"] = d.model_dump(by_alias=True)
+            dd = d.model_dump(by_alias=True)
+            dbad = j2_rules.failures(j2_rules.run_rules("design", "Style guide", dd, {}))
+            if dbad:
+                state["schema_errors"], state["schema_ok"] = dbad, False
+                self._artifact_layer_fail(w, attempt, j2_artifact_models.Design.template(), dbad)
+                raise ValueError(f"the style guide doesn't follow {j2_artifact_models.Design.template()}: "
+                                 + "; ".join(dbad))
+            guide = j2_artifact_models.style_from_design(dd)
+            self.art_data.setdefault("design", {})["Style guide"] = dd
         if kind == "website":
             state["rendered"] = True
             return (got.get("head") or "", got.get("html") or ""), guide
@@ -7733,6 +7741,33 @@ class J2Run:
                              + ", ".join(j2_artifact_models.SECTION_MODELS[kind]))
         state["rendered"] = True
         return ("", body), guide
+
+    def _artifact_docs(self, kind):
+        """What the rules may check a reference against: this document's data as the run has recorded it so far, and
+        the earlier documents (the chain). Recorded data only: a document the run has nothing for is left out, and
+        the rule reports it as not recorded."""
+        out = {"this": {}}
+        for sec, data in (self.art_data.get(kind) or {}).items():
+            for key, value in (data or {}).items():
+                if key == "assumptions":
+                    continue
+                if isinstance(value, list) and isinstance(out["this"].get(key), list):
+                    out["this"][key] = out["this"][key] + value
+                else:
+                    out["this"][key] = value
+        for other in ("prd", "hld", "lld"):
+            mine = {}
+            for data in (self.art_data.get(other) or {}).values():
+                mine.update({k: v for k, v in (data or {}).items() if k != "assumptions"})
+            if other == kind:
+                mine = out["this"]
+            if not mine:      # no structured data for it: the chain record the stages always kept
+                mine = (self.chain or {}).get(other) or {}
+            if other == "lld" and not mine and self.blueprint:
+                mine = self.blueprint
+            if mine:
+                out[other] = mine
+        return out
 
     def _artifact_layer_fail(self, w, attempt, template, errors, kind="artifact-schema"):
         """The receipt for a layer that failed before anything could be rendered (a reply that doesn't follow its
@@ -7767,21 +7802,25 @@ class J2Run:
             if not st:
                 continue
             data = st.get("data") or {}
-            rules = j2_artifact_models.rule_errors(kind, section, data, self.chain, self.blueprint)
-            st["rules"] = rules
-            n = j2_artifact_models.rules_count(kind, section, data)
+            # layer 2: every rule of this section, answered from the rules data (j2_rules), with what the run has
+            # recorded to check references against
+            results = j2_rules.run_rules(kind, section, data, self._artifact_docs(kind))
+            bad = j2_rules.failures(results)
+            st["rules"], st["rule_results"] = bad, results
+            n = len(results)
             layers = [("artifact-schema", f"The reply follows {model.template()}", st.get("schema_ok"),
                        "; ".join(st.get("schema_errors") or []) or f"the reply follows {model.template()}"
                        + (f" (result subtype {st.get('subtype')})" if st.get("subtype") not in (None, "success")
-                          else "")),
+                          else ""), None),
                       ("artifact-rules", f"Every reference in {model.template()} points at an id that exists",
-                       not rules, "; ".join(rules) or f"{n - len(rules)} of {n} rule(s) met"),
+                       not bad, "; ".join(bad) or f"{n - len(bad)} of {n} rule(s) met", results),
                       ("artifact-render", f"Code rendered {section} from the data", bool(st.get("rendered")),
-                       f"{section} rendered by code" if st.get("rendered") else "nothing was rendered")]
-            for t, text, ok, ev in layers:
+                       f"{section} rendered by code" if st.get("rendered") else "nothing was rendered", None)]
+            for t, text, ok, ev, rules in layers:
                 rec = self._receipt(a, {"text": text, "type": t, "target": section, "expect": True}, attempt,
                                     {"actual": ok, "pass": bool(ok), "evidence": ev},
-                                    template=model.template(), template_version=j2_artifact_models.VERSION)
+                                    template=model.template(), template_version=j2_artifact_models.VERSION,
+                                    **({"rules": rules} if rules else {}))
                 a.setdefault("results", []).append(rec)
                 if not ok:
                     out.append(rec)
