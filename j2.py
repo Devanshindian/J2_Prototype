@@ -5614,6 +5614,78 @@ class J2Run:
     def _wf_any(self, wid):
         return next((w for w in self._all_wfs() if w["id"] == wid), None) if wid else None
 
+    def _change_relay(self):
+        """Relay (J2_CHANGE): once a planning document's revision in the open change is built, each direct reader of it
+        that the change doesn't already revise is asked once "affected? what?". Affected, or no readable reply after one
+        retry: code registers a revision of the reader. A reader that is itself a planning document is followed when its
+        revision is built, so the walk goes down the plan in relay_waves order and stops where a reader says no."""
+        c, wfs = self.change, self._all_wfs()
+        root = lambda i: j2_change._root_id(wfs, i)
+        order = [r for wave in j2_change.relay_waves(j2_change.planning_nodes(wfs, is_artifact)) for r in wave]
+        docs = [w for w in wfs if w.get("change") == c["id"] and w["status"] == "done" and is_artifact(w)
+                and w["id"] not in c["relayed"]]
+        for d in sorted(docs, key=lambda w: order.index(root(w["id"])) if root(w["id"]) in order else len(order)):
+            c["relayed"].append(d["id"])
+            for rid in j2_change.direct_readers(wfs, d["id"]):
+                r = root(rid)
+                if r in c["asked"] or any(root(w["id"]) == r for w in wfs if w.get("change") == c["id"]):
+                    continue
+                reader = self._wf_any(rid)
+                a = self._relay_ask(reader, d, j2_change.ix_get(wfs, r)["name"])
+                c["asked"][r] = {"name": j2_change.ix_get(wfs, r)["name"], "id": rid, "doc": d["name"], **a}
+                if a["affected"]:
+                    self._relay_revise(reader, d, c["asked"][r])
+            self.changes[-1]["relay"] = list(c["asked"].values())
+            self.save("change.json", self.changes)
+
+    def _relay_ask(self, reader, doc, name):
+        """One reader's "affected? what?" (one retry; still unreadable counts as affected)."""
+        c = self.change
+
+        def mock():
+            m = self.relay_script.get(name)
+            if m == "garbage":
+                return "I think it's fine"
+            return json.dumps({"affected": m == "affected", "what": "mock: follow the revised document" if m else ""})
+        task = (f"CHANGE {c['id']}: the Requester asked: {c['request']}\n{artifact_path(doc)} WAS JUST REVISED FOR THIS "
+                "CHANGE, and your workflow reads it. Does your output have to change because of it? Say what must "
+                "change, or that it is not affected." + self._artifact_context(reader))
+        a = None
+        for _ in range(2):
+            a = j2_change.parse_affected(self.call(reader["id"], '{"affected": bool, "what": str}', task, mock,
+                                                   json_reply=False))
+            if a:
+                break
+        a = a or {"affected": True, "what": "no readable answer: check it against the revised document"}
+        self.post(reader["id"], f"@Adaptation {name}: " + (f"affected by {doc['name']}: {a['what']}" if a["affected"]
+                                                          else f"not affected by {doc['name']}."),
+                  relay="affected", change=c["id"], reader=name, affected=a["affected"])
+        return a
+
+    def _relay_revise(self, reader, doc, asked):
+        """Code registers a revision of an affected reader (no Adaptation proposal): the same outputs, checks and cost,
+        what must change as its task, and the revised document in its dependencies so it is built after it."""
+        c, k = self.change, len(self.changes)
+        atom = copy.deepcopy((reader.get("atoms") or [{}])[0])
+        for x in ("id", "status", "results", "attempts"):
+            atom.pop(x, None)
+        how = atom.get("how") if isinstance(atom.get("how"), dict) else {}
+        atom["how"] = {**how, "steps": f"Change {c['id']}: {asked['what']}. Otherwise as before: {how.get('steps') or ''}"}
+        wfs = self._all_wfs()
+        deps = [doc["name"] if j2_change._root_id(wfs, (j2_change.ix_get(wfs, x) or {}).get("id")) ==
+                j2_change._root_id(wfs, doc["id"]) else x for x in reader.get("dependencies") or []]
+        name = f"{asked['name']} (change {k})"
+        c["allowed"].append(name)
+        registered, refused, _ = self._register([{
+            "name": name, "goal_gap": asked["what"], "purpose": f"{doc['name']} was revised: {asked['what']}",
+            "outputs": reader.get("outputs"), "completion_check": reader.get("completion_check") or asked["what"],
+            "dependencies": deps, "revises": reader["id"], "parts": ["fix"], "covers": list(reader.get("covers") or []),
+            "estimated_resources": {"money": max(1, as_int(reader.get("cost"), 1))}, "atoms": [atom]}])
+        asked["revision"] = registered[0]["id"] if registered else None
+        if not registered:
+            self.post("system", f"Change {c['id']}: the revision of {asked['name']} was refused ({'; '.join(refused)}), "
+                                "so its current version stays.", relay="refused", change=c["id"])
+
     def _mock_doc_plan(self, fails):
         """Mock Adaptation for a document: one workflow per section in the first cycle; then one fix per failing
         checklist item, rewriting the section that holds it. ponytail: no mock for change requests to a document."""
@@ -6412,6 +6484,8 @@ class J2Run:
         if h.get("kind") == "dispute":
             return self._turn_dispute("coordination", h)
         self.step = 6
+        if self.change and self.change["phase"] != "closed":
+            self._change_relay()          # J2_CHANGE: the readers of a planning doc revised and built in this change
         todo = [w for w in self.workflows if w["status"] in ("registered", "held")]
         if not todo:
             self.agent_turns["coordination"] -= 1

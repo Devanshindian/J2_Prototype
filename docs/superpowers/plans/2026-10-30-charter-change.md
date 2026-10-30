@@ -154,15 +154,20 @@ ok(ch.owner_index(SUDOKU_WFS)[2] == "W-15", "a revision replaces its original as
   revision, not the original of the same name; a file workflow's revision keeps `revises`. The validator refuses other
   workflows until every row of the change plan is registered (then fixes after Audit go through as usual). A rule or
   standard change with no item change is re-planned in full and Identity tells the Requester why. An edit (remove +
-  add) also revises every planning doc that informed the removed number (j2_change step 5). Prompt during a full
-  re-plan: the new plan's workflows build new sections beside the old ones (check in a real run).
+  add) also revises every planning doc that informed the removed number (j2_change step 5). In a full re-plan the
+  new plan's workflows build new sections beside the old ones (check in a real run).
 
 ### Task 8: Relay from revised docs
 
-- [ ] After a doc revision is built: `direct_readers` not already in the change plan → one "affected? what?" call
+- [x] After a doc revision is built: `direct_readers` not already in the change plan → one "affected? what?" call
       each; affected → revision registered; walk in `relay_waves` order; stop at "no"; unreadable after one retry →
       affected.
-- [ ] Tests: How to play reached through Product plan; garbled reply → revised; "no" stops the walk. Commit.
+- [x] Tests: How to play reached through Product plan; garbled reply → revised; "no" stops the walk. Commit.
+- Notes: the relay runs when Coordination takes the turn after a doc revision of the open change is built
+  (`_change_relay`); readers are asked once each (`change.json` "relay"), documents in `relay_waves` order. An affected
+  reader's revision is registered by code (its atom, outputs and cost, the revised doc in its dependencies). A revision
+  refused for the budget is posted and the walk goes on (no budget question yet). Tests use the mock plan with a second
+  doc (Design reads Plan; Build item 1 reads only Design).
 
 ### Task 9: Record, docs and real runs
 

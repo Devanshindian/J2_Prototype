@@ -725,6 +725,54 @@ run = built_run(on=False)
 new, msgs = change_after_done(run, "Rename the levels", renamed)
 ok(not os.path.exists(os.path.join(run.dir, "change.json")) and not any(w["name"].endswith("(change 1)") for w in new),
    "J2_CHANGE=0: a change after done takes today's path")
+
+# ---- Task 8: Relay from revised docs. After a planning doc's revision is built, each direct reader the change plan
+# doesn't revise is asked once "affected? what?"; affected (or unreadable after one retry) → a revision; "no" stops
+R_BASE = R.default_mocks
+
+
+def doc_chain_mocks(goal):
+    """The mock realization plan with a second planning doc, Design, that reads Plan; Build item 1 reads only Design."""
+    m = R_BASE(goal)
+
+    def plan(rnd):
+        p = R.mock_plan(goal)
+        p["workflows"].insert(1, dict(p["workflows"][0], name="Design", informs=[1], inputs_from=["Plan"]))
+        p["workflows"][2]["inputs_from"] = ["Design"]
+        return json.dumps(p)
+    m.update(plan=plan, revise=plan, judge=lambda rnd, p, spec: R.mock_judge(spec, compare="better"))
+    return m
+
+
+def relay_run(script):
+    R.default_mocks = doc_chain_mocks
+    try:
+        run = built_run()
+    finally:
+        R.default_mocks = R_BASE
+    run.relay_script, run.budget = script, run.budget + 50      # room for the relay's revisions
+    new, msgs = change_after_done(run, "Rename the levels", renamed)
+    asked = {x["name"]: x for x in json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))[-1]["relay"]}
+    return run, [w["name"] for w in new], asked, new
+
+
+run, names, asked, new = relay_run({"Design": "affected", "Build item 1": "garbage"})
+ok(names == ["Plan (change 1)", "Build item 3 (change 1)", "Design (change 1)", "Build item 1 (change 1)"]
+   and run.outcome.startswith("Done"), "relay: the affected doc and the reader behind it are revised, and the run ends Done")
+ok(asked["Design"]["affected"] and asked["Design"]["doc"] == "Plan (change 1)" and asked["Build item 1"]["doc"] == "Design (change 1)"
+   and "Build item 3" not in asked, "a reader linked only through a doc is reached; the change plan's own workflows are not asked")
+ok(asked["Build item 1"]["affected"] and "no readable" in asked["Build item 1"]["what"]
+   and "Design (change 1)" in new[3]["dependencies"] and new[3]["revises"] == "W-3",
+   "a garbled reply after one retry counts as affected: the reader is revised after the doc")
+ok(all(not asked[f"Build item {i}"]["affected"] for i in (2, 4, 5, 6, 7)), "the other readers of Plan said no")
+run, names, asked, new = relay_run({})
+ok(names == ["Plan (change 1)", "Build item 3 (change 1)"] and not asked["Design"]["affected"]
+   and "Build item 1" not in asked and run.outcome.startswith("Done"), "a doc that says no stops the walk below it")
+plan_text = next(t for f, t in TASKS if f == "adaptation" and "CHANGE PLAN" in t).split("CHANGE PLAN")[1].split("\n[")[0]
+relay_text = next(t for f, t in TASKS if f.startswith("W-") and "JUST REVISED" in t).split("ARTIFACTS YOU READ")[0]
+ok(not SCENARIO.search(plan_text) and not SCENARIO.search(relay_text.split("\n", 1)[1].replace("artifacts/plan.md", "")),
+   "the change plan's hand-off and the relay question name no scenario")
+
 os.environ.pop("J2_CHANGE", None)
 
 print(f"change_test: {passed} checks passed")
