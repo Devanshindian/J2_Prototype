@@ -171,6 +171,12 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .treesvg .tnode{cursor:pointer;transition:opacity .3s}.treesvg .tdim{opacity:.2}.treesvg .tlab{fill:#dcddde;font-size:13px;paint-order:stroke;stroke:#16181d;stroke-width:6px;stroke-linejoin:round}.treesvg .tsub{fill:#8a8f98;font-size:11px;paint-order:stroke;stroke:#16181d;stroke-width:6px;stroke-linejoin:round}.treesvg .tglyph{fill:#8a8f98}.treesvg .tglyphl{fill:none;stroke:#8a8f98;stroke-width:1.2}
 .treesvg .tnode:hover .tdot,.treesvg .tnode:focus-visible .tdot,.treesvg .tnode.sel .tdot{filter:drop-shadow(0 0 5px rgba(200,205,215,.6))}.treesvg .tnode:focus{outline:none}
 .treesvg .tgone{display:none}
+/* open-team graph: the team is a lightly shaded frame; reads are blue and thin, makes are purple and solid; a section sits in its file's colour-less box with "in <file>" under it */
+.treesvg .gframe{fill:color-mix(in srgb,var(--vio) 9%,transparent);stroke:color-mix(in srgb,var(--vio) 40%,transparent);stroke-width:1}.treesvg .gflab{fill:var(--vio);font-size:13px;font-weight:600}
+.treesvg.gsvg .tnodes{display:none}.treesvg .gedge{fill:none}.treesvg .gedge.reads{stroke:#5b9bf0;stroke-width:1.2;opacity:.85}.treesvg .gedge.makes{stroke:var(--vio);stroke-width:2}.treesvg .garr.reads{fill:#5b9bf0}.treesvg .garr.makes{fill:var(--vio)}
+.treesvg .gart .tdot{stroke-dasharray:none}.treesvg .gin .tdot{opacity:.9}.treesvg .gart{cursor:default}
+.glegend{position:absolute;left:12px;bottom:12px;display:flex;gap:8px;align-items:center;padding:3px 10px;font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:99px;pointer-events:none}
+.glegend .gedge{fill:none}.glegend .gedge.reads{stroke:#5b9bf0;stroke-width:1.2}.glegend .gedge.makes{stroke:var(--vio);stroke-width:2}
 .treesvg .tedge.hot.fin{stroke:var(--flowin);opacity:.95}.treesvg .tedge.hot.fout{stroke:var(--flowout);opacity:.95}
 .treesvg .tflow{pointer-events:none}.treesvg .tflow.fin,.treesvg .tarr.fin{fill:var(--flowin)}.treesvg .tflow.fout,.treesvg .tarr.fout{fill:var(--flowout)}
 .treesvg .tpill .tdot{filter:drop-shadow(0 0 6px rgba(200,205,215,.45))}.treesvg .tedges{transition:opacity .25s}.treesvg.tmoving .tedges{opacity:0}
@@ -1786,6 +1792,58 @@ function treeFocusOf(m, L, kind, id, c){      // kind: "stage" (a team in the Tr
 }
 // the workflows of a team, with what the circle draws for each
 function treeWfItems(m, g){ const ws = m.workflows || []; return [...g.workflows].sort((a, b) => wfNum(a) - wfNum(b)).map(id => { const w = ws.find(x => x.id === id) || {id, name: id, status: null, box: null, reads: [], checks: {passed: 0, run: 0}}; return treeWfView(m, w); }); }
+// the open team as a graph (m.teams, from j2_map.team_graphs): workflows and artifacts only, edges only maker -> artifact -> reader. Columns come from the data
+// (longest path from the left); here they get pixels. Inputs from other teams stand outside the frame on the left, what the team made inside it. An edge is a
+// straight line, or one circular arc when a line would cross a box; a read-back loop (a workflow that revises what it reads) is one arc over the top.
+const GR = {h: 44, vgap: 22, hgap: 48, out: 44, pad: 16};
+function gRoute(P, Q, boxes, out0){
+  const free = r => !boxes.some(b => tHit(r.pts, b)), c = Math.hypot(Q.x - P.x, Q.y - P.y) || 1;
+  if (!out0){ const l = tLine(P, Q); if (free(l)) return Object.assign(l, {clear: true}); }
+  let best = null;
+  for (const f of [0.1, 0.16, 0.24, 0.34, 0.5, 0.7, 1]) for (const o of out0 ? [out0] : [{x: 0, y: -1}, {x: 0, y: 1}]){ const r = tArc(P, Q, Math.max(16, f * c), o); if (free(r)) return Object.assign(r, {clear: true}); best = best || r; }
+  return Object.assign(best, {clear: false});
+}
+function treeGraphOf(m, L, id){
+  const T = (m.teams || []).find(t => t.id === id); if (!T || !T.nodes.length) return null;
+  const by = mapById(m), ws = Object.fromEntries((m.workflows || []).map(w => [w.id, w])), makers = {};
+  T.edges.filter(e => e.kind === "makes").forEach(e => { (makers[e.to] = makers[e.to] || []).push(e.from); });
+  const wst = w => ws[w] ? treeWfStatus(m, ws[w]) : "idle";
+  const nodes = T.nodes.map(n => { let l1, l2, st;
+    if (n.kind === "wf"){ const v = ws[n.id] ? treeWfView(m, ws[n.id]) : {st: "idle", word: ""}; l1 = `${n.id} · ${treeTrim(n.label, 26)}`; l2 = v.word; st = v.st; }
+    else { const mk = makers[n.id] || (n.section ? [n.id.split(":").pop()] : []), d = by[n.id];
+      st = d ? d.status : mk.length ? mk.map(wst).sort((a, b) => tRank(a) - tRank(b))[0] : "idle";
+      l1 = treeTrim(n.label, 28); l2 = n.section ? `in ${treeTrim(n.file, 22)}` : n.input ? `from ${n.from_team && n.from_team.length ? treeTrim(n.from_team.join(", "), 22) : "another team"}` : d ? (MAPS[d.status] || "") : ""; }
+    const w = Math.round(Math.max(l1.length * 7.4, l2.length * 6.3) + 26);
+    return Object.assign({}, n, {l1, l2, st, w, h: GR.h}); });
+  const cols = [], colW = [], X = [], step = GR.h + GR.vgap;
+  nodes.forEach(n => { (cols[n.col] = cols[n.col] || []).push(n); });
+  for (let c = 0; c < cols.length; c++){ cols[c] = (cols[c] || []).sort((a, b) => a.row - b.row); colW[c] = Math.max(0, ...cols[c].map(n => n.w)); }
+  let x = 0; for (let c = 0; c < cols.length; c++){ X[c] = x; x += colW[c] + (c === 0 && colW[0] ? GR.hgap + GR.out : GR.hgap); }
+  nodes.forEach(n => { const k = cols[n.col].length; n.x = X[n.col] + colW[n.col] / 2; n.y = (n.row - (k - 1) / 2) * step; });
+  const inside = nodes.filter(n => !n.input), ext = (list, f) => f(...list);
+  let fx0 = ext(inside.map(n => n.x - n.w / 2), Math.min) - GR.pad, fx1 = ext(inside.map(n => n.x + n.w / 2), Math.max) + GR.pad, fy0 = ext(inside.map(n => n.y - n.h / 2), Math.min) - GR.pad - 22, fy1 = ext(inside.map(n => n.y + n.h / 2), Math.max) + GR.pad;
+  const x0 = Math.min(fx0, ...nodes.map(n => n.x - n.w / 2)), y0 = Math.min(fy0, ...nodes.map(n => n.y - n.h / 2)), dx = 20 - x0, dy = 20 - y0;      // everything 20 from the corner
+  nodes.forEach(n => { n.x = tRd(n.x + dx); n.y = tRd(n.y + dy); n.box = [n.x - n.w / 2, n.y - n.h / 2, n.x + n.w / 2, n.y + n.h / 2]; });
+  fx0 += dx; fx1 += dx; fy0 += dy; fy1 += dy;
+  const lab = [fx0 + 6, fy0 + 2, fx0 + 14 + (T.label.length + 8) * 7.4, fy0 + 22], at = Object.fromEntries(nodes.map(n => [n.id, n])), boxes = nodes.map(n => n.box).concat([lab]);
+  const edges = T.edges.map(e => { const a = at[e.from], b = at[e.to]; if (!a || !b) return null;
+    const loop = e.loop && e.kind === "makes", P = loop ? {x: a.x, y: a.box[1]} : {x: a.box[2], y: a.y}, Q = loop ? {x: b.x, y: b.box[1]} : {x: b.box[0], y: b.y};
+    const r = gRoute(P, Q, boxes.filter(q => q !== a.box && q !== b.box), loop ? {x: 0, y: -1} : null);
+    return {from: e.from, to: e.to, kind: e.kind, loop: !!e.loop, d: r.d, pts: r.pts, clear: r.clear, tip: e.kind === "reads" ? `${b.l1} reads ${a.l1}` : `${a.l1} made ${b.l1}`}; }).filter(Boolean);
+  const W = Math.round(Math.max(fx1, ...nodes.map(n => n.box[2])) + 20), H = Math.round(Math.max(fy1, ...nodes.map(n => n.box[3])) + 20);
+  return {kind: "stage", id, mode: "graph", W, H, nodes: [], edges: [], others: [], pos: {}, g: {team: T, nodes, edges, frame: [fx0, fy0, fx1, fy1], label: lab, unclear: edges.filter(e => !e.clear).length}};
+}
+const graphHtml = (m, G) => {
+  const look = st => mapLook(st), fr = G.frame, t = x => mapWords(x);
+  const frame = `<rect class="gframe" x="${tRd(fr[0])}" y="${tRd(fr[1])}" width="${tRd(fr[2] - fr[0])}" height="${tRd(fr[3] - fr[1])}" rx="14"/><text class="gflab" x="${tRd(fr[0] + 12)}" y="${tRd(fr[1] + 17)}">${t(G.team.label)}</text>`;
+  const edges = G.edges.map(e => `<path class="tedge gedge ${e.kind}${e.loop ? " loop" : ""}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" d="${e.d}" marker-end="url(#garr-${e.kind})"><title>${t(e.tip)}</title></path>`).join("");
+  const nodes = G.nodes.map(n => { const k = look(n.st), cls = n.kind === "wf" ? "tnode twf gwf tfit" : "gart" + (n.section ? " gsec" : "") + (n.input ? " gin" : ""), isDeck = n.kind !== "wf" && mapById(m)[n.id];
+    const attrs = n.kind === "wf" ? ` data-wf="${esc(n.id)}" data-k="${esc(n.id)}" data-ax="${n.x}" data-ay="${n.y}" tabindex="0" role="button" aria-label="${esc(t(n.l1))}: focus it"` : ` data-gid="${esc(n.id)}"`;
+    return `<g class="${cls}"${attrs} transform="translate(${n.x},${n.y})"><title>${t(n.kind === "wf" ? n.l1 + " · " + n.l2 : n.l1 + " · " + n.l2)}</title>`
+      + `<rect class="tdot" x="${-n.w / 2}" y="${-n.h / 2}" width="${n.w}" height="${n.h}" rx="${n.kind === "wf" ? 22 : 7}" fill="#1d2026" stroke="${k.stroke}" stroke-width="${Math.max(1.6, k.width)}"${k.dash}/>`
+      + `<text class="tlab" y="-3" text-anchor="middle">${t(n.l1)}</text><text class="tsub" y="12" text-anchor="middle">${t(n.l2)}</text></g>`; }).join("");
+  return `<g class="gframeg">${frame}</g><g class="gedges">${edges}</g><g class="gnodes">${nodes}</g>`;
+};
 // the open team (nothing focused): the team in the middle, its workflows, what it reads and what it made on an ellipse round it, evenly spaced; what it reads
 // on the left, what it made on the right; the ellipse grows until no label, shape or line meets another
 function treeOvalOf(m, L, id, c){
@@ -1821,7 +1879,7 @@ const treeFocusAll = m => { const L = mapTree(m), o = {stages: {}, wfs: {}, oval
 function treeHtml(m, other){      // other: the panel of a deliverable picked on the tree (only one panel shows at a time)
   const L = mapTree(m), by = mapById(m), open = L.at[TREE.open] && L.at[TREE.open].kind === "stage" ? TREE.open : "";
   const items = open ? treeWfItems(m, L.stages[open]) : [], pick = items.find(x => x.id === TREE.wf), fteam = !open && L.at[TREE.focus] && L.at[TREE.focus].kind === "stage" ? TREE.focus : "";
-  const c0 = L.at[open || fteam] || null, F = pick ? treeFocusOf(m, L, "wf", pick.id, c0) : open ? treeOvalOf(m, L, open, c0) : fteam ? treeFocusOf(m, L, "stage", fteam, c0) : null;
+  const c0 = L.at[open || fteam] || null, F = pick ? treeFocusOf(m, L, "wf", pick.id, c0) : open ? (treeGraphOf(m, L, open) || treeOvalOf(m, L, open, c0)) : fteam ? treeFocusOf(m, L, "stage", fteam, c0) : null;
   const byId = F ? Object.fromEntries(F.nodes.map(n => [n.id, n])) : {}, P = id => F && F.pos[id] ? F.pos[id] : L.at[id], hide = id => F && !byId[id] ? " tdim thide" : "";      // a focus keeps the words of what it shows only
   MAPTREE = {nodes: L.nodes.map(t => ({id: t.id, kind: t.kind, row: t.row, x: t.x, y: t.y, r: t.r, label: t.label, sub: t.sub, box: t.box, tag: t.n.tag, workflows: t.kind === "stage" ? t.n.workflows : t.n.workflows || []})),
     links: L.links.map(l => ({from: l.from, to: l.to, kind: l.kind, side: !!l.side, tip: l.tip, d: l.d, clear: l.clear})), crossings: L.crossings, pairs: L.pairs, W: L.W, H: L.H, open, focus: F};
@@ -1852,10 +1910,10 @@ function treeHtml(m, other){      // other: the panel of a deliverable picked on
     return `<g class="tnode twf${TREE.wf === n.id ? " sel" : ""}${faded ? " tdim thide" : " tfit"}${pill ? " tpill" : ""}" data-wf="${esc(n.id)}" data-k="${esc(n.id)}" data-ax="${tRd(p.x)}" data-ay="${tRd(p.y)}" transform="translate(${tRd(p.x)},${tRd(p.y)})" tabindex="0" role="button" aria-label="${mapWords(aria)}">${body}</g>`; };
   const wfHtml = F ? `<g class="tring">` + F.nodes.filter(n => n.kind === "wf").map(n => wfEl(n, false)).join("") + F.others.filter(o => o.kind === "wf").map(o => wfEl(Object.assign({}, o, {st: (items.find(x => x.id === o.id) || {}).st}), true)).join("") + `</g>` : "";
   const fedges = F ? F.edges.map(e => `<path class="tedge fedge ${e.kind}" data-from="${esc(e.from)}" data-to="${esc(e.to)}"${e.wf ? ` data-wf="${esc(e.wf)}"` : ""} d="${e.d}"><title>${mapWords(e.tip)}</title></path>`).join("") : "";
-  const z = TREE.zoom, VW = F ? F.W : L.W, VH = F ? F.H : L.H;
-  const svg = `<svg class="treesvg${F ? " tfocused" : ""}" viewBox="0 0 ${VW} ${VH}" data-w="${VW}" data-h="${VH}" data-crossings="${L.crossings}" role="group" aria-label="Map, tree view: the Charter, the teams and what each made">`
-    + `<g class="tview"${z ? ` transform="translate(${tRd(z.x)},${tRd(z.y)}) scale(${z.k})"` : ""}><g class="tedges">${L.links.map(edge).join("")}${fedges}</g><g class="tnodes">${L.nodes.map(dot).join("")}${wfHtml}</g><g class="tflows"></g></g>`
-    + `<defs>${["fin", "fout"].map(k => `<marker id="tarr-${k}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="tarr ${k}" d="M0 0 L8 4 L0 8 z"/></marker>`).join("")}</defs></svg>`;
+  const z = TREE.zoom, VW = F ? F.W : L.W, VH = F ? F.H : L.H, GR_ = !!(F && F.mode === "graph");
+  const svg = `<svg class="treesvg${F ? " tfocused" : ""}${GR_ ? " gsvg" : ""}" viewBox="0 0 ${VW} ${VH}" data-w="${VW}" data-h="${VH}" data-crossings="${L.crossings}" role="group" aria-label="Map, tree view: the Charter, the teams and what each made">`
+    + `<g class="tview"${z ? ` transform="translate(${tRd(z.x)},${tRd(z.y)}) scale(${z.k})"` : ""}>${GR_ ? graphHtml(m, F.g) + `<g class="tnodes">${L.nodes.map(dot).join("")}</g>` : `<g class="tedges">${L.links.map(edge).join("")}${fedges}</g><g class="tnodes">${L.nodes.map(dot).join("")}${wfHtml}</g>`}<g class="tflows"></g></g>`
+    + `<defs>${GR_ ? ["reads", "makes"].map(k => `<marker id="garr-${k}" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="8" markerHeight="8" orient="auto"><path class="garr ${k}" d="M0 0 L8 4 L0 8 z"/></marker>`).join("") : ""}${["fin", "fout"].map(k => `<marker id="tarr-${k}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="tarr ${k}" d="M0 0 L8 4 L0 8 z"/></marker>`).join("")}</defs></svg>`;
   const ws = pick && !TREE.nopanel && pick.w, readers = ws ? (m.workflows || []).filter(w => (w.reads || []).includes(ws.id)).map(w => w.id) : [], box = ws && by[ws.box];
   const panel = ws ? `<aside class="mappanel treepanel" data-wfpanel="${esc(ws.id)}" aria-label="Details of ${esc(ws.id)}"><div class="mappanelhead"><b>${mapWords(ws.id)} · ${mapWords(ws.name)}</b><button type="button" class="linkbtn" data-treewfclose>Close (Esc)</button></div>`
     + [`status: ${mapWords(pick.word && pick.word !== MAPS[pick.st] ? pick.word : MAPW[pick.st] || pick.st)}${ws.status ? " (workflow " + mapWords(ws.status) + ")" : ""}`, `delivers: ${box ? mapWords(box.label) : "not recorded"}`,
@@ -1870,27 +1928,29 @@ function treeHtml(m, other){      // other: the panel of a deliverable picked on
   const stagePanel = g && !pick ? `<aside class="mappanel treepanel" data-stagepanel="${esc(tid)}" aria-label="Details of ${esc(g.label)}"><div class="mappanelhead"><b>${mapWords(g.label)}</b><button type="button" class="linkbtn" data-treeback>Close (Esc)</button></div>`
     + [`${g.workflows.length} workflow${g.workflows.length === 1 ? "" : "s"}: ${g.workflows.map(x => mapWords(x)).join(", ")}`, `made: ${made.map(x => mapWords(x.label)).join(", ") || "not recorded"}`, MAPW[g.status] || ""].filter(Boolean).map(x => `<div class="sub">${x}</div>`).join("")
     + `<div class="sub">${fteam ? `<button type="button" class="gobtn" data-treeopen="${esc(fteam)}">Open its workflows</button> ` : ""}${open ? `<button type="button" class="linkbtn" data-mapgo="${esc(g.steps[0])}">${mapWords(mapGoLabel(by[g.steps[0]]))}</button> Click a workflow in the circle to focus it.` : ""}</div></aside>` : "";
-  return `<div class="treebox">${bar}${svg}${panel || (other || "").replace('class="mappanel"', 'class="mappanel treepanel"') || stagePanel}</div>`;
+  return `<div class="treebox">${bar}${svg}${GR_ ? `<div class="glegend" aria-label="Legend"><svg viewBox="0 0 22 8" width="22" height="8" aria-hidden="true"><path class="gedge reads" d="M0 4 H22"/></svg> reads <svg viewBox="0 0 22 8" width="22" height="8" aria-hidden="true"><path class="gedge makes" d="M0 4 H22"/></svg> makes</div>` : ""}${panel || (other || "").replace('class="mappanel"', 'class="mappanel treepanel"') || stagePanel}</div>`;
 }
 // Tree view at run time: pan and zoom (d3-zoom), the 300 ms move of a stage to the middle and back, and the clicks. renderMap draws
 // the state in TREE; these only animate between two drawn states and then repaint.
-function paintMap(){ paint($("pane-map"), renderMap(MAP)); treeMount(); treeAvoid(); lineMount(); }
+function paintMap(){ paint($("pane-map"), renderMap(MAP)); treeMount(); treeAvoid(); lineMount(); graphMount(); }
 // Line view: the same pan and zoom as the Tree, in screen pixels (the viewBox is the card's size, so the labels stay vector and crisp). Fit scales the drawing's
 // content box to the card with a margin; when that would make a label smaller than 11px, it holds 11px and the side that overflows pans instead. Zoom is 0.25x to 4x of the fit.
 const LINE = {zoom: {}}, LINEM = 12, LINEMIN = 11, LINEBOT = 44,      // LINEBOT: the legend chip sits in the bottom-left corner; the fit leaves its strip clear
    lineKey = svg => svg.classList.contains("mapvert") ? "v" : "h";
 const lineSvgs = () => [...$("pane-map").querySelectorAll(".mapsvgwrap[data-view=line] .mapsvg")];
 function lineFitOf(svg){
-  const g = svg.querySelector(".lview"), cw = svg.clientWidth, ch = svg.clientHeight, M = LINEM, tf = g.getAttribute("transform");
-  g.removeAttribute("transform"); const b = g.getBBox(); if (tf) g.setAttribute("transform", tf);      // text metrics shift a fraction of a pixel with the scale: always measure at 1
+  const g = svg.querySelector(".lview") || svg.querySelector(".tview"), cw = svg.clientWidth - (svg.__padR || 0), ch = svg.clientHeight, M = LINEM, tf = g.getAttribute("transform");
+  g.removeAttribute("transform"); let b = g.getBBox(); if (tf) g.setAttribute("transform", tf);
+  const gn = g.querySelector(".gnodes"), gf = g.querySelector(".gframeg");      // the team's graph is fitted to its boxes and frame; an arc that bows out is reached by panning
+  if (gn && gf){ const p = gn.getBBox(), q = gf.getBBox(), x0 = Math.min(p.x, q.x), y0 = Math.min(p.y, q.y); b = {x: x0, y: y0, width: Math.max(p.x + p.width, q.x + q.width) - x0, height: Math.max(p.y + p.height, q.y + q.height) - y0}; }      // text metrics shift a fraction of a pixel with the scale: always measure at 1
   const f = Math.min(...[...g.querySelectorAll("text")].map(t => parseFloat(getComputedStyle(t).fontSize)).filter(x => x > 0), 12);
   const bot = LINEBOT, kw = (cw - 2 * M) / b.width, kc = Math.min(kw, (ch - M - bot) / b.height), kmin = LINEMIN / f, all = kc >= kmin, k = all ? kc : Math.max(kw, kmin);      // never under 11px: the side that overflows pans
   const ox = b.width * k > cw - 2 * M, oy = b.height * k > ch - M - bot;
   return {k, all, f, x: ox ? M - k * b.x : (cw - k * b.width) / 2 - k * b.x, y: oy ? M - k * b.y : (M + ch - bot - k * b.height) / 2 - k * b.y};
 }
 function lineShow(svg, t){      // draw transform t; the readout is the zoom of the fit
-  svg.querySelector(".lview").setAttribute("transform", `translate(${t.x},${t.y}) scale(${t.k})`);
-  svg.dataset.k = t.k; svg.dataset.rel = Math.round(t.k / svg.__fit.k * 100) / 100;
+  (svg.querySelector(".lview") || svg.querySelector(".tview")).setAttribute("transform", `translate(${t.x},${t.y}) scale(${t.k})`);
+  svg.dataset[svg.classList.contains("gsvg") ? "zk" : "k"] = t.k; svg.dataset.rel = Math.round(t.k / svg.__fit.k * 100) / 100;
   const z = document.querySelector("[data-linez]"); if (z) z.textContent = Math.round(t.k / svg.__fit.k * 100) + "%";
 }
 function lineMountOne(svg, refit){
@@ -1912,12 +1972,26 @@ function lineMount(resized){      // the wide drawing when the card is as wide a
     if (!cw || !h) return; if (!h.__w0) h.__w0 = h.viewBox.baseVal.width; w.dataset.layout = cw - 2 * LINEM >= h.__w0 ? "h" : "v"; });
   lineSvgs().forEach(s => { if (!resized || s.__size !== s.clientWidth + "x" + s.clientHeight) lineMountOne(s, !!resized); });
 }
+// the open team's graph: the same pan and zoom, fit and 11px floor as the Line view (screen pixels); the details panel, when it floats over the card, is kept clear
+const GRAPHZ = {};
+function graphMount(refit){
+  const svg = treeSvg(); if (!svg || !svg.classList.contains("gsvg") || typeof d3 === "undefined" || !d3.zoom) return;
+  const cw = svg.clientWidth, ch = svg.clientHeight; if (!cw || !ch) return;
+  const pn = $("pane-map").querySelector(".treepanel"), key = TREE.open + "|" + (pn ? 1 : 0), size = cw + "x" + ch;
+  svg.__padR = pn && getComputedStyle(pn).position === "absolute" ? pn.offsetWidth + 20 : 0; svg.setAttribute("viewBox", `0 0 ${cw} ${ch}`); svg.__size = size;
+  const fit = svg.__fit = lineFitOf(svg); svg.dataset.fit = fit.all ? "all" : "pan"; svg.dataset.fontpx = Math.round(fit.k * fit.f * 100) / 100;
+  svg.__zoom_b = d3.zoom().scaleExtent([0.25 * fit.k, 4 * fit.k]).clickDistance(4).on("zoom", e => { GRAPHZ[key] = {k: e.transform.k, x: e.transform.x, y: e.transform.y, size}; lineShow(svg, e.transform); });
+  d3.select(svg).call(svg.__zoom_b).on("dblclick.zoom", null);
+  const z = GRAPHZ[key], t = !refit && z && z.size === size ? z : fit;
+  d3.select(svg).property("__zoom", d3.zoomIdentity.translate(t.x, t.y).scale(t.k)); lineShow(svg, t); if (!z || refit) GRAPHZ[key] = {k: t.k, x: t.x, y: t.y, size};
+}
+typeof window !== "undefined" && window.addEventListener("resize", () => { clearTimeout(GRAPHZ.t); GRAPHZ.t = setTimeout(() => graphMount(true), 80); });
 function lineZoomBy(f){ const s = lineSvgs().find(x => x.clientWidth); if (s && s.__zoom_b) s.__zoom_b.scaleBy(d3.select(s), f); }
 function lineFit(){ lineSvgs().forEach(s => lineMountOne(s, true)); }
 const treeReduce = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const treeSvg = () => $("pane-map").querySelector && $("pane-map").querySelector(".treesvg");
 function treeMount(){
-  const svg = treeSvg(); if (!svg || svg.__zoom_on || typeof d3 === "undefined" || !d3.zoom) return; svg.__zoom_on = true;
+  const svg = treeSvg(); if (!svg || svg.__zoom_on || svg.classList.contains("gsvg") || typeof d3 === "undefined" || !d3.zoom) return; svg.__zoom_on = true;
   const view = svg.querySelector(".tview");
   const zoom = d3.zoom().scaleExtent([0.25, 4]).clickDistance(4).on("zoom", e => { view.setAttribute("transform", e.transform.toString()); if (svg === treeSvg()) TREE.zoom = {k: e.transform.k, x: e.transform.x, y: e.transform.y}; });
   svg.__zoom_b = zoom; const s = d3.select(svg).call(zoom).on("dblclick.zoom", null);
@@ -1959,13 +2033,13 @@ function treeZoomTo(svg, t){
     set(d3.zoomIdentity.translate(m(a.x, t.x), m(a.y, t.y)).scale(m(a.k, t.k))); if (e < 1) requestAnimationFrame(frame); else end(); };
   requestAnimationFrame(frame);
 }
-function treeFit(){ const svg = treeSvg(); TREE.zoom = null; delete TREE.before; if (!svg || !svg.__zoom_b) return paintMap(); treeZoomTo(svg, d3.zoomIdentity); }
+function treeFit(){ const svg = treeSvg(); if (svg && svg.classList.contains("gsvg")){ graphMount(true); return; } TREE.zoom = null; delete TREE.before; if (!svg || !svg.__zoom_b) return paintMap(); treeZoomTo(svg, d3.zoomIdentity); }
 // every change of what the Tree shows goes through treeGo: the new drawing is painted, then every node glides from where it was to where it now stands
 // (300 ms, eased; the lines fade in once they land); with reduced motion the new drawing is just there. A node that was not drawn before grows out of the
 // node that was clicked.
 function treeSpots(svg){ const pos = {}; svg.querySelectorAll("[data-k]").forEach(el => { pos[el.dataset.k] = {x: +el.dataset.ax, y: +el.dataset.ay}; }); return {pos, vb: [+svg.dataset.w, +svg.dataset.h]}; }
 function treeGo(fn, key){
-  const svg = treeSvg(), prev = svg && svg.querySelector("[data-k]") ? treeSpots(svg) : null;
+  const svg = treeSvg(), prev = svg && !svg.classList.contains("gsvg") && svg.querySelector("[data-k]") ? treeSpots(svg) : null;      // the team's graph is in screen pixels: no glide to or from it
   fn(); TREE.nopanel = false; MAPPIN = ""; TREE.zoom = null; delete TREE.before; paintMap();
   if (prev && !treeReduce()) treeGlide(prev, key);
   const s2 = treeSvg(), n = s2 && key && [...s2.querySelectorAll("[data-k]")].find(x => x.dataset.k === key); if (n && n.focus) n.focus();
@@ -1975,7 +2049,7 @@ const treeFocusTeam = id => treeGo(() => { TREE.focus = id; TREE.open = ""; TREE
 const treeOpen = id => treeGo(() => { TREE.open = id; TREE.wf = ""; TREE.focus = ""; }, id);
 const treeClose = () => { const id = TREE.open; treeGo(() => { TREE.open = ""; TREE.wf = ""; TREE.focus = ""; }, id); };
 function treeGlide(prev, key){
-  const svg = treeSvg(); if (!svg) return;
+  const svg = treeSvg(); if (!svg || svg.classList.contains("gsvg")) return;
   const els = [...svg.querySelectorAll("[data-k]")], vb = [+svg.dataset.w, +svg.dataset.h];
   const at = el => ({x: +el.dataset.ax, y: +el.dataset.ay}), origin = prev.pos[key] || {x: prev.vb[0] / 2, y: prev.vb[1] / 2};
   const put = (el, p) => el.setAttribute("transform", `translate(${tRd(p.x)},${tRd(p.y)})`), id = TREE.glide = (TREE.glide || 0) + 1;
@@ -2008,7 +2082,7 @@ function treeClick(e){
 // lines into it ("reads") and out of it ("read by") in two colours. Nothing moves at rest; with reduced motion, arrowheads instead.
 function treeFlow(svg, id){
   svg.querySelectorAll(".tflow").forEach(x => x.remove());
-  svg.querySelectorAll(".tedge.hot").forEach(x => { x.classList.remove("hot", "fin", "fout"); x.removeAttribute("marker-end"); });
+  svg.querySelectorAll(".tedge.hot").forEach(x => { x.classList.remove("hot", "fin", "fout"); if (!x.classList.contains("gedge")) x.removeAttribute("marker-end"); });
   if (!id) return;
   const es = [...svg.querySelectorAll(".tedge:not(.tgone)")].filter(x => x.dataset.from === id || x.dataset.to === id).map(x => [x, x.dataset.to === id ? "fin" : "fout"]);
   const layer = svg.querySelector(".tflows"), NS = "http://www.w3.org/2000/svg";
