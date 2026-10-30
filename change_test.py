@@ -6,6 +6,7 @@ item owners, and the decision rule. No AI calls.
 import os
 import re
 import sys
+import tempfile
 
 os.environ["STUDIO_MOCK"] = "1"          # before llm is imported
 os.environ.pop("STUDIO_PROVIDER", None)
@@ -187,7 +188,6 @@ ok(s["score"] == 0.72 and sc["weakest_part"] == "size" and ch.decide("added", OW
    "judge today 0.72, weakest size → C")
 
 # ---- Task 4: the judge for a change. A realization plan shaped like runs/sudoku4/j2-20261026-121214 realization.json
-import copy                              # noqa: E402
 import hashlib                           # noqa: E402
 import json                              # noqa: E402
 
@@ -464,5 +464,164 @@ ok(any("decide workflow" in f for f in ch.placement_faults(build_new, PLAN))
 sess = R.Session(log=quiet)
 merged, new, faults = ch.place(sess, SHARE, PLAN, [11], ACTIVE, lambda: "{}")
 ok(sess.calls == 2 and faults and any("R1: item 11" in f for f in faults), "an empty placement keeps its faults (→ re-plan)")
+
+# ---- Task 6: plan_change, the eleven Sudoku prompts as scripted mock scenarios (spec, Success table)
+def goal_with(*new, drop=()):
+    """The charter after Identity: new item texts take the next charter numbers; drop: charter numbers removed."""
+    keep = [t for i, t in enumerate(ITEMS, 1) if i not in drop]
+    return changed(charter_items=ITEMS + list(new), done_when=keep + list(new))
+
+
+def scripted(match=(), fails=(), edits=None, revise=None, places=()):
+    """Mock replies and a count of each kind of call. match: the match reply's intents; fails: per judge call,
+    {workflow: [question ids answered no]}; edits: {owner: (fields changed, docs)}; revise: fields the one fix changes;
+    places: placement replies, in order."""
+    n = {"match": 0, "judge": 0, "edit": 0, "revise": 0, "place": 0}
+
+    def judge(spec):
+        n["judge"] += 1
+        return R.mock_judge(spec, fail=fails[n["judge"] - 1] if n["judge"] <= len(fails) else None, compare="better")
+
+    def edit(owner):
+        n["edit"] += 1
+        fields, docs = edits[owner]
+        return json.dumps({"workflow": dict(wf_of(PLAN, owner), **fields), "docs": docs})
+
+    def rev(owner):
+        n["revise"] += 1
+        return json.dumps({**PLAN, "workflows": [dict(wf_of(PLAN, owner), **revise)]})
+
+    def place():
+        n["place"] += 1
+        return json.dumps(places[min(n["place"], len(places)) - 1])
+
+    def m():
+        n["match"] += 1
+        return json.dumps({"intents": list(match)})
+
+    return {"match": m, "judge": judge, "edit": edit, "revise": rev, "place": place}, n
+
+
+def change(new, **script):
+    mocks, n = scripted(**script)
+    rec = ch.plan_change(SUDOKU, new, PLAN, SUDOKU_WFS, mocks=mocks, log=quiet)
+    return rec, n, {x["item"]: x["final"] for x in rec["intents"]}
+
+
+def mt(item, owner=None, stage=None):
+    return {"item": item, "owner": owner, "stage": stage, "why": "scripted"}
+
+
+def placement(stages=(), workflows=()):
+    return {"factors": [], "stages": list(stages), "workflows": list(workflows), "why": "scripted"}
+
+
+# 1. Rename the levels: A on Levels and new game (remove + add, one edit); Product plan first
+rec, n, dec = change(goal_with(RENAMED, drop=[3]), match=[mt(11, "Levels and new game")],
+                     edits={"Levels and new game": ({"goal": "Renamed levels"}, ["Product plan"])})
+ok(dec == {3: "A", 11: "A"} and rec["docs"] == ["Product plan"] and rec["revise"] == ["Levels and new game"]
+   and not rec["new"] and not rec["replan"], "rename the levels: A on Levels and new game; Product plan first")
+ok(rec["calls"] == 3 and n["edit"] == 1, "an A intent takes at most 3 calls (match, score, edit with its docs list)")
+ok(wf_of(rec["plan"], "Levels and new game")["delivers"] == [11] and rec["intents"][0]["owner"] == "Levels and new game",
+   "the removed number's owner comes from the run's workflows; the added one replaces it")
+
+# 2. Add dark mode: A on Look and layout; Style guide and Technical design first
+rec, n, dec = change(goal_with("Dark mode"), match=[mt(11, "Look and layout")],
+                     edits={"Look and layout": ({}, ["Technical design", "Style guide"])})
+ok(dec == {11: "A"} and rec["docs"] == ["Style guide", "Technical design"] and rec["revise"] == ["Look and layout"]
+   and rec["calls"] == 3 and not rec["replan"], "dark mode: A on Look and layout; Style guide, Technical design first")
+
+# 3. Teach techniques in hints: B → A on Hint, one fix
+rec, n, dec = change(goal_with("Hints teach the technique"), match=[mt(11, "Hint")], fails=[{"Hint": ["Z1"]}],
+                     revise={"approach": "Teach the technique behind each hint."})
+x = rec["intents"][0]
+ok(x["decision"] == "B" and x["final"] == "A" and x["score"] == 0.70 and n["revise"] == 1 and rec["calls"] == 4,
+   "teach techniques: B → A on Hint with exactly one revise call")
+ok(rec["revise"] == ["Hint"] and rec["docs"] == ["Product plan", "Technical design"] and not rec["new"],
+   "the fixed owner's planning docs come first")
+# Review focus 2: on a second failure the intent goes to C, not another round
+rec, n, dec = change(goal_with("Hints teach the technique"), match=[mt(11, "Hint")],
+                     fails=[{"Hint": ["Z1"]}, {"Hint": ["Z1"]}], revise={"approach": "Same."},
+                     places=[placement(workflows=[P("Technique lessons", "build", [11], inputs=["Product plan", "Hint"])])])
+ok(dec == {11: "C"} and n["revise"] == 1 and n["place"] == 1 and rec["new"] == ["Technique lessons"]
+   and wf_of(rec["plan"], "Hint") == wf_of(PLAN, "Hint") and not rec["replan"],
+   "B still below after its one fix → C; the failed fix is not kept")
+
+# 4. Remove save and resume: A remove; Save dropped; Technical design re-homes storage first; no call
+rec, n, dec = change(goal_with(drop=[7]))
+ok(dec == {7: "A"} and rec["drop"] == ["Save and resume"] and rec["docs"] == ["Technical design"]
+   and rec["revise"] == ["Reasons to come back", "Page wiring"] and rec["calls"] == 0 and not rec["replan"],
+   "remove save: dropped with no call; Technical design first, then the workflows that read it")
+
+# 5. Richer come-back features: C directly (size), 2 new build workflows, no revise call
+COMEBACK = [P("Play history", "build", informs=[11], inputs=["Technical design", "Page shell"]),
+            P("Come-back panel", "build", [11], inputs=["Product plan", "Play history", "Board and number pad"])]
+rec, n, dec = change(goal_with("Streaks, best times and a daily goal"), match=[mt(11, "Reasons to come back")],
+                     fails=[{"Reasons to come back": ["S1", "S2"]}], places=[placement(workflows=COMEBACK)])
+x = rec["intents"][0]
+ok(x["decision"] == "C" and x["weakest_part"] == "size" and n["revise"] == 0 and n["place"] == 1
+   and rec["new"] == ["Play history", "Come-back panel"] and rec["calls"] == 4 and not rec["replan"],
+   "richer come-back: size → C straight away, no revise call, two new workflows (≤ 5 calls)")
+ok(rec["docs"] == ["Product plan", "Technical design"] and not rec["revise"], "the new workflows' planning docs first")
+
+# 6. Import a newspaper puzzle: C + A
+rec, n, dec = change(goal_with("Type in a puzzle from a newspaper", "An entered puzzle is checked for one solution"),
+                     match=[mt(11, None, "build"), mt(12, "Puzzle engine")],
+                     edits={"Puzzle engine": ({}, ["Technical design"])},
+                     places=[placement(workflows=[P("Puzzle entry", "build", [11], inputs=["Product plan", "Puzzle engine"])])])
+ok(dec == {11: "C", 12: "A"} and rec["new"] == ["Puzzle entry"] and rec["revise"] == ["Puzzle engine"]
+   and rec["docs"] == ["Product plan", "Technical design"] and rec["calls"] == 5 and not rec["replan"],
+   "import a puzzle: C + A")
+
+# 7. Daily Challenge: A, C, D (growth), decided independently; the merged plan passes plan_faults(items=)
+GROW = [D("Growth plan", "growth", [13], ["Product plan"]),
+        P("Share result", "growth", [13], inputs=["Growth plan", "Board and number pad"]),
+        P("Daily streak", "build", [12], inputs=["Product plan", "Levels and new game"])]
+daily = goal_with("A daily puzzle, the same for everyone", "A daily streak", "Share the day's result")
+rec, n, dec = change(daily, match=[mt(11, "Levels and new game"), mt(12, None, "build"), mt(13)],
+                     edits={"Levels and new game": ({}, ["Product plan"])},
+                     places=[placement([GROWTH], GROW)])
+ok(dec == {11: "A", 12: "C", 13: "D"} and rec["new"] == ["Growth plan", "Share result", "Daily streak"]
+   and rec["docs"] == ["Product plan", "Growth plan"] and not rec["replan"], "daily challenge: A, C, D (growth)")
+ok(R.plan_faults(rec["plan"], daily, items=range(1, 14)) == [] and rec["calls"] == 5,
+   "three intents in five calls; the merged plan passes the rules on charter numbers")
+
+# 8. Learn mode: D (learning), D, A
+LEARN = {**GROWTH, "id": "learning", "thinking": "teaching", "goal": "people learn the techniques"}
+LESSONS = [D("Lesson plan", "learning", [11, 12], ["Product plan"]),
+           P("Lessons", "learning", [11], inputs=["Lesson plan", "Page shell"]),
+           P("Practice sets", "learning", [12], inputs=["Lesson plan", "Puzzle engine"])]
+rec, n, dec = change(goal_with("Learn mode with guided lessons", "Practice puzzles per technique",
+                               "Hints link to the lesson"),
+                     match=[mt(11), mt(12), mt(13, "Hint")], edits={"Hint": ({}, [])},
+                     places=[{"factors": [], "stages": [dict(LEARN, inputs_from=["product"])], "workflows": LESSONS}])
+ok(dec == {11: "D", 12: "D", 13: "A"} and "learning" in [s_["id"] for s_ in rec["plan"]["stages"]]
+   and rec["docs"] == ["Product plan", "Lesson plan"] and rec["revise"] == ["Hint"] and not rec["replan"],
+   "learn mode: D (learning), D, A")
+
+# 9-11. Online races (Identity asks, the charter is unchanged), ship by tonight (nothing in the charter moves), Killer
+for label, new in (("online races", changed()), ("ship by tonight", changed(open_inputs=["ship by tonight"]))):
+    rec, n, dec = change(new)
+    ok(not rec["intents"] and rec["calls"] == 0 and not rec["replan"] and rec["plan"] == PLAN, f"{label}: no plan change")
+rec, n, dec = change(killer)
+ok(rec["replan"] and rec["calls"] == 0 and not rec["intents"], "make it Killer: a full re-plan, no change planning")
+rec, n, dec = change(changed(rules=SUDOKU["rules"] + ["No sound"]))
+ok(rec["replan"] and rec["calls"] == 0, "a rule or standard change with no item change is re-planned in full")
+
+# failures never mean "no change"
+rec, n, dec = change(goal_with("Dark mode"), match=[], places=[placement(
+    workflows=[P("Dark theme", "build", [11], inputs=["Style guide", "Look and layout"])])])
+ok(dec == {11: "C"} and n["match"] == 2 and rec["new"] == ["Dark theme"] and not rec["replan"],
+   "match unreadable twice: the intent is placed (C), not dropped")
+rec, n, dec = change(goal_with("Dark mode"), match=[mt(11, None, "build")], places=[placement()])
+ok(rec["replan"] and n["place"] == 2 and rec["faults"], "a placement still failing after one retry → full re-plan")
+rec, n, dec = change(goal_with("Dark mode"), match=[mt(11, None, "build")], fails=[{"Dark theme": ["D1"]}] * 3,
+                     places=[placement(workflows=[P("Dark theme", "build", [11], inputs=["Style guide"])])])
+ok(rec["replan"] and n["place"] == 2 and n["judge"] == 2, "a new workflow below the gate: placed once more, then re-plan")
+rec = ch.plan_change(SUDOKU, goal_with("Dark mode"), PLAN, SUDOKU_WFS, log=quiet)
+ok(rec["intents"][0]["final"] == "C" and rec["new"] and not rec["replan"], "the default mocks place a new item offline")
+with tempfile.TemporaryDirectory() as td:
+    ch.plan_change(SUDOKU, goal_with("Dark mode"), PLAN, SUDOKU_WFS, log=quiet, out_dir=td)
+    ok(json.load(open(os.path.join(td, "change.json"), encoding="utf-8"))["trail"], "change.json keeps every call")
 
 print(f"change_test: {passed} checks passed")

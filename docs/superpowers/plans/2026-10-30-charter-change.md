@@ -130,8 +130,12 @@ ok(ch.owner_index(SUDOKU_WFS)[2] == "W-15", "a revision replaces its original as
 - docs = planning workflows in `inputs_from` of revised or new workflows, plus new stages' planning workflows.
 - Check: judge changed + new; `plan_faults`; failure after one retry → `replan=True`.
 
-- [ ] Tests: the 11 Sudoku prompts as scripted mock scenarios; assert decision per intent, `docs`, `replan` and call
+- [x] Tests: the 11 Sudoku prompts as scripted mock scenarios; assert decision per intent, `docs`, `replan` and call
       counts (A intent ≤ 3 calls; size → C makes no revise call). Commit.
+- Notes: step 6 judges the new workflows only; an A owner was already scored with its items at step 3 and a B owner
+  after its fix, so A stays within 3 calls. K questions on the change path are the one-per-item fallback (no checklist
+  call). A rule or standard change with no item change is a full re-plan (`replan`). `record` adds `final`,
+  `weakest_part`, `stage` per intent and `faults`; `plan_change` takes `web=False` (j2 plans with web off).
 
 ### Task 7: Into the run
 

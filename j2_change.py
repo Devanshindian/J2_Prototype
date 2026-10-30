@@ -6,6 +6,9 @@ must give, the charter diff on charter numbers, item owners, the decision rule, 
 j2_realization's Session). j2.py does the wiring.
 Nothing here names a stage, a document or a workflow: everything comes from the run. What counts as a planning
 document is the caller's test (is_doc; j2 passes is_artifact)."""
+import json
+import os
+
 import llm
 import j2_realization as R
 
@@ -428,3 +431,143 @@ def place(s, goal, plan, items, active, mock, named=()):
 
     (merged, placed), faults = ask_checked(s, "adaptation", R.planner_system(), task, mock, check)
     return merged, [w.get("name") for w in R.lst(placed.get("workflows")) if isinstance(w, dict)], faults
+
+
+# ---- steps 2 to 6: plan a change
+def default_mocks(goal, plan, added):
+    """Offline replies (llm.MOCK): no workflow owns a new item, so each becomes one new workflow in the stage of the
+    plan's last delivering workflow, reading the plan's first planning workflow; the judge answers yes throughout."""
+    wfs = _wfs(plan)
+    last = next((w for w in reversed(wfs) if R.lst(w.get("delivers"))), wfs[-1] if wfs else {})
+    first = planning(wfs)[:1]
+    new = [{"name": f"Change item {n}", "stage": last.get("stage"), "certainty": "operate", "certainty_signals": ["mock"],
+            "approach": "Direct build from the plan.", "goal": f"Item {n} is real", "done_test": f"Item {n} passes its check",
+            "delivers": [n], "informs": [], "inputs_from": first, "experiment": None, "research": None} for n in added]
+    return {"match": lambda: json.dumps({"intents": [{"item": n, "owner": None, "stage": last.get("stage"), "why": "mock"}
+                                                     for n in added]}),
+            "judge": lambda spec: R.mock_judge(spec, compare="better"),
+            "edit": lambda owner: json.dumps({"workflow": next(w for w in wfs if w.get("name") == owner), "docs": []}),
+            "revise": lambda owner: json.dumps(plan),
+            "place": lambda: json.dumps({"factors": [], "stages": [], "workflows": new, "why": "mock"})}
+
+
+def _owner(plan, workflows, n):
+    """The plan workflow that owns charter number n: the run's owner (its revision chain's original name), else the
+    plan workflow that delivers it."""
+    wid = owner_index(workflows).get(n)
+    name = ix_get(workflows, _root_id(workflows, wid))["name"] if wid else None
+    names = [w.get("name") for w in _wfs(plan)]
+    if name in names:
+        return name
+    return next((w["name"] for w in _wfs(plan) if n in R.lst(w.get("delivers"))), None)
+
+
+def plan_change(base_goal, new_goal, plan, workflows, mocks=None, log=print, out_dir=None, web=False):
+    """Steps 2 to 6 of a charter change on a realization plan (base_goal: the charter of the last full plan; plan: its
+    realization plan; workflows: the run's workflows). Each intent is decided once: A edits its owner, B makes one
+    fix (A when it then passes, else C), C and D place new workflows. Planning docs (planning workflows that a revised
+    or new workflow reads, and new stages' planning workflows) are revised first. A goal change, a rule or standard
+    change with no item change, or a plan that still fails its check after one retry is a full re-plan (replan).
+    mocks: {"match", "judge", "edit", "revise", "place"} callables for offline runs, used only when llm.MOCK."""
+    s = R.Session(log)
+    d = charter_diff(base_goal, new_goal)
+    rec = {"diff": d, "intents": [], "plan": plan, "revise": [], "new": [], "drop": [], "docs": [], "replan": False,
+           "faults": []}
+
+    def done():
+        rec.update(calls=s.calls, seconds=round(s.seconds, 1))
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+            with open(os.path.join(out_dir, "change.json"), "w", encoding="utf-8") as f:
+                json.dump({**rec, "trail": s.trail}, f, ensure_ascii=False, indent=1)
+        return rec
+
+    if diff_empty(d):
+        return done()
+    if d["goal_changed"] or not (d["added"] or d["removed"]):
+        rec["replan"] = True
+        return done()
+    goal, added, removed = new_goal, d["added"], d["removed"]
+    mocks = mocks or default_mocks(goal, plan, added)
+    active = [n for n, _ in R.numbered(goal)]
+
+    # step 3: match the added items, score their owners, decide each intent
+    m = match(s, goal, plan, added, mocks["match"]) if added else {}
+    asked = {}
+    for n in added:
+        if m[n]["owner"]:
+            asked.setdefault(m[n]["owner"], []).append(n)
+    checklist = R.checklist_items(None, goal, items=added)       # one K question per added item, no call
+    scores = s.judge(goal, plan, checklist, mocks["judge"], names=list(asked), change=asked)[0] if asked else {}
+    spec = R.judge_spec(plan, checklist, list(asked), asked)
+    for n in removed:
+        rec["intents"].append({"item": n, "kind": "removed", "owner": _owner(plan, workflows, n), "stage": None,
+                               "decision": "A", "final": "A", "score": None, "weakest_part": None,
+                               "why": "removed from the charter"})
+    for n in added:
+        o = m[n]["owner"]
+        sc = {"score": scores[o]["score"], "weakest_part": weakest_part(scores[o], spec[o])} if o else None
+        dec = decide("added", m[n], sc)
+        rec["intents"].append({"item": n, "kind": "added", "owner": o, "stage": m[n]["stage"], "decision": dec,
+                               "final": dec, "score": sc and sc["score"], "weakest_part": sc and sc["weakest_part"],
+                               "why": m[n]["why"]})
+
+    # step 4: act. A edits (one call per owner, removals and additions together), B one fix each, then C and D
+    cur, docs, revise = strip(plan, removed), [], []
+    by_owner = {}
+    for x in rec["intents"]:
+        if x["final"] == "A" and x["owner"]:
+            by_owner.setdefault(x["owner"], {"added": [], "removed": []})[x["kind"]].append(x["item"])
+    for o, g in by_owner.items():
+        r = edit(s, goal, cur, o, g["added"], g["removed"], lambda o=o: mocks["edit"](o))
+        cur, docs, revise = r["plan"], docs + r["docs"], revise + r["readers"]
+        rec["drop"] += r["dropped"]
+        if not r["dropped"] and (r["ok"] or g["removed"]):
+            (docs if o in planning(_wfs(cur)) else revise).append(o)      # an edited planning workflow is a doc
+        if not r["ok"]:
+            for x in rec["intents"]:
+                if x["kind"] == "added" and x["item"] in g["added"]:
+                    x.update(final="C", why="the edit reply was unreadable")
+    fixes = {}
+    for x in rec["intents"]:
+        if x["final"] == "B":
+            fixes.setdefault(x["owner"], []).append(x)
+    for o, xs in fixes.items():
+        fixed, after = fix(s, goal, cur, o, [x["item"] for x in xs], scores, checklist, mocks, web)
+        for x in xs:
+            x.update(final=decide("added", m[x["item"]], x, after_fix=after), after_fix=after["score"])
+        if xs[0]["final"] == "A":
+            cur, revise, docs = fixed, revise + [o], docs + _planning(fixed, next(w for w in _wfs(fixed) if w["name"] == o))
+    cd = [x["item"] for x in rec["intents"] if x["final"] in ("C", "D")]
+    if cd:
+        before = cur
+        ck = R.checklist_items(None, goal, items=cd)
+        cur, new, faults = place(s, goal, before, cd, active, mocks["place"])
+        for attempt in (0, 1):
+            if faults:
+                break
+            sc = s.judge(goal, cur, ck, mocks["judge"], names=new, change={})[0]
+            low = [f"workflow {n} scored {x['score']:.2f}, below {R.THRESHOLD:.2f}; missing: "
+                   + ("; ".join(x["missing"][:3]) or "-") for n, x in sc.items() if x["score"] < R.THRESHOLD]
+            if not low:
+                break
+            if attempt:
+                faults = low
+            else:
+                cur, new, faults = place(s, goal, before, cd, active, mocks["place"], named=low)
+        rec["new"], rec["faults"] = new, faults
+        wfs = _wfs(cur)
+        docs += [n for n in planning(wfs) if n in new]
+        for w in wfs:
+            if w.get("name") in new:
+                docs += _planning(cur, w)
+
+    # steps 5 and 6: planning docs first; the merged plan is checked on the active charter numbers
+    rec["faults"] = list(dict.fromkeys(rec["faults"] + R.plan_faults(cur, goal, items=active)))
+    order = [w.get("name") for w in _wfs(cur)]
+    rec["docs"] = [n for n in order if n in docs]
+    rec["revise"] = [n for n in order if n in revise and n not in rec["docs"] and n not in rec["new"]]
+    rec.update(plan=cur, replan=bool(rec["faults"]))
+    log("  change: " + ", ".join(f"{x['item']} {x['final']}" for x in rec["intents"]) + f"; docs {rec['docs']}; "
+        f"revise {rec['revise']}; new {rec['new']}; drop {rec['drop']}" + ("; re-plan" if rec["replan"] else ""))
+    return done()
