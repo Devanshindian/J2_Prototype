@@ -924,6 +924,14 @@ ok(raised is not None and reg is not None and raised < reg
    "a change costing more than what's left asks for credits before Priority, then builds docs first")
 ok(not json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))[-1].get("cut"),
    "funded in full: nothing in the change plan is cut")
+# live 1 Nov (runs/j2-20261101-130032): with 0 credits left the loop's out-of-budget check asked first, and after the
+# raise the run went to a plain Adaptation proposal: the change was never planned (no change.json, no docs first)
+run = built_run()
+run.budget = run.spent
+new, msgs = change_after_done(run, "Rename the levels", renamed)
+ok(os.path.exists(os.path.join(run.dir, "change.json"))
+   and [w["name"] for w in new] == ["Plan (change 1)", "Build item 3 (change 1)"],
+   "a change that arrives with nothing left is still planned as a change once the Requester adds credits")
 
 
 def twin(w, name, **kw):

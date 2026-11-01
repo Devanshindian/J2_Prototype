@@ -3416,7 +3416,11 @@ class J2Run:
                              f"cheapest rate-card part ({cheapest}), so no new workflow can be funded.")
                 if limit:
                     self.idle_cycles, self.cycle_registered = 0, True
-                    self._handoff("identity", kind="limit", reason=limit, out_of_budget=limit.startswith("Out of budget"))
+                    # A change asked for with nothing left goes on to change planning after the answer, not to a plain
+                    # proposal that skips the change plan (runs/j2-20261101-130032: no change.json, no docs first)
+                    resume = {"to": "change", "handoff": dict(self.handoff)} if self.turn == "change" else None
+                    self._handoff("identity", kind="limit", reason=limit, out_of_budget=limit.startswith("Out of budget"),
+                                  **({"resume": resume} if resume else {}))
                     continue
                 self._begin_cycle()
             # J2.h after a passing Audit always runs: the cap never asks "keep going?" about a finished site.
@@ -4453,7 +4457,8 @@ class J2Run:
             return self._handoff("audit", kind="audit")
         if limit and h.get("resume"):
             # The decision answered an agent's question mid-cycle (Adaptation's policy question): it goes on there.
-            self._reply(r, h["resume"]["to"])
+            # the change step is code, not an agent: Identity's words go to Adaptation, who gets the change plan next
+            self._reply(r, "adaptation" if h["resume"]["to"] == "change" else h["resume"]["to"])
             h2 = dict(h["resume"]["handoff"])
             h2["why"] = f"{h2.get('why') or ''} The Requester decided: {answer}"
             return self._handoff(h["resume"]["to"], **h2)
