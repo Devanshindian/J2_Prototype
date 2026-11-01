@@ -2377,6 +2377,7 @@ def workable(audit):
     if not audit:
         return ["no site has been audited yet"]
     num = lambda r: r["id"][2:] if FINDING_ID.fullmatch(str(r["id"])) else r["item"]    # F-n is charter item n
+    ok = set(audit.get("accepted") or [])     # design checks and conditions the Requester finished with (_accept_open)
     out = [f"done-when item {num(r)} ({r['id']} {r['verdict']}): {r['criterion']}" for r in audit["results"]
            if not r["pass"]]
     if audit.get("output", "website") != "website":
@@ -2385,9 +2386,10 @@ def workable(audit):
                        if not r["pass"]]
                 + [f"necessary condition {c['id']} not met: {c['text']} ({c['evidence']})"
                    for c in audit.get("conditions") or [] if blocks(c)])
-    out += [f"design rubric {r['id']} ({r['verdict']}): {r['criterion']}" for r in audit.get("rubric", []) if not r["pass"]]
+    out += [f"design rubric {r['id']} ({r['verdict']}): {r['criterion']}" for r in audit.get("rubric", [])
+            if not r["pass"] and r["id"] not in ok]
     out += [f"necessary condition {c['id']} not met: {c['text']} ({c['evidence']})"
-            for c in audit.get("conditions") or [] if blocks(c)]
+            for c in audit.get("conditions") or [] if blocks(c) and c["id"] not in ok]
     mech = audit.get("mechanical") or {}
     if not mech.get("available"):
         return out + [f"render check didn't run, so JS errors, overflow and forms are unverified: {mech.get('note')}"]
@@ -2809,6 +2811,7 @@ class J2Run:
         # J2_CHANGE=1 (j2_change.py): the charter of the last full plan, a full re-plan allowed once, the open change
         # and every change so far (change.json); relay_script: mock replies of the readers asked after a doc revision
         self.real_base, self.real_replan, self.change, self.changes, self.relay_script = None, False, None, [], {}
+        self.accepted = []       # rubric and condition ids the Requester finished with (_accept_open)
         self._begin_cycle(advance=False)
 
     def set_output(self, out):
@@ -2853,6 +2856,18 @@ class J2Run:
         if not fails:
             return self.out["done"]
         return f"Done with open items: shipped as is {why}. Still not workable: {'; '.join(fails)}."
+
+    def _accept_open(self):
+        """The Requester finished with design checks or conditions still failing: they are accepted, so a later change
+        is judged on its own work, not stopped again by what the Requester already took as it is (runs/j2-20261031-
+        213453: R-6, N6 and N8 sent every change round back to the Requester). Checklist items stay open."""
+        last = self.audits[-1] if self.audits else None
+        for x in [r for r in (last or {}).get("rubric") or [] if not r["pass"]] + \
+                [c for c in (last or {}).get("conditions") or [] if blocks(c)]:
+            if x["id"] not in self.accepted:
+                self.accepted.append(x["id"])
+        if self.accepted:
+            self._event("identity", "accepted", ", ".join(self.accepted))
 
     def _turn_cap(self):
         """Turns allowed this cycle, scaled with the work: each workflow registered this cycle needs its own turns."""
@@ -3899,7 +3914,9 @@ class J2Run:
         if change:
             feedback += (f"\nTHE REQUESTER ASKED FOR A CHANGE AFTER THE GOAL WAS REACHED: {change}\nJ2.a for the change: "
                          "is there enough information to make it? If not, ask. If yes, return the updated charter: keep "
-                         "everything already in it, and keep every existing done-when item word for word. Add one new "
+                         "everything already in it, and keep every existing done-when item word for word. Keep the "
+                         "statement and audience word for word too, unless the change alters what the site is for or "
+                         "who it is for. Add one new "
                          "done-when item for each separate outcome the change asks for: a change naming three features "
                          "gives three new items. Reword an existing item only when the change alters that exact "
                          "outcome; a reworded item counts as new. Each new item stands on its own: name the feature it "
@@ -4410,6 +4427,7 @@ class J2Run:
                                                             + (f" Not made: {rest}." if rest else "")), to_user=True,
                       next="user", done=True)
             self.outcome = self._ship_outcome(f"on the Requester's decision ({limit or 'their answer'})")
+            self._accept_open()
             if rest:
                 self.outcome += f" Not made: {rest}."
             self.turn = None
@@ -4716,7 +4734,7 @@ class J2Run:
             if r["criterion"] in crit:
                 out[("item", crit.index(r["criterion"]) + 1)] = r["criterion"]
         for w in self.workflows:
-            if w["status"] != "done":
+            if w["status"] not in ("done", "superseded"):
                 for i in self._wf_items(w):
                     out.setdefault(("item", i), f"{crit[i - 1]} (not built yet)")
         for r in (last or {}).get("rubric", []) if not self.doc else []:     # a document lists its sections only
@@ -5556,6 +5574,7 @@ class J2Run:
         left = [{"item": x["item"], "reason": x["reason"]} for x in rec["left_out"]]
         self.change = {"id": cid, "rows": rows, "allowed": [r["name"] for r in rows], "phase": "plan", "relayed": [],
                        "asked": {}, "request": h.get("change"), "left_out": left}
+        self.change["docs"] = [r["name"] for r in rows[:len(rec["docs"])]]
         self.changes[-1]["rows"] = rows
         self.save("change.json", self.changes)
         # the next change starts from this one: its charter and merged plan are the new base, so undoing a change is a
@@ -5568,7 +5587,27 @@ class J2Run:
                                               f"({x['reason'].split(': ', 1)[-1]})" for x in left)
                                   + ". Everything else in the change goes ahead.", to_user=True, requester_only=True,
                       audience="user", change=cid)
+        need, have = self._change_cost(rows), self.budget - self.spent
+        if need > have:
+            # runs/j2-20261031-213453 msgs 148-151: the change came in with 10 credits left and Priority cut both
+            # planning-doc revisions to fund the build alone. The Requester is asked for the whole change first.
+            self._event("identity", "change", f"change {cid} needs about {need}, {have} left")
+            return self._handoff("identity", kind="limit", out_of_budget=True, budget_needed=need - have,
+                                 reason=f"Out of budget: change {cid} needs about {need} work credits and {have} are "
+                                        "left.", resume={"to": "adaptation", "handoff": start})
         self._handoff("adaptation", **start)
+
+    def _change_cost(self, rows):
+        """The least the change plan costs on the rate card: a revision is a fix; a new workflow the minimum of each
+        item it covers (a page section when it covers none). 0 with the rate card off."""
+        crit = (self.goal or {}).get("charter_items") or (self.goal or {}).get("done_when") or []
+        if not RATES:          # no rate card: what the revised workflow cost, else the run's average workflow
+            costs = [wf_cost(w) for w in self._all_wfs() if wf_cost(w) > 0]
+            avg = sum(costs) // len(costs) if costs else 0
+            return sum(wf_cost(self._wf_any(r.get("revises")) or {}) or avg for r in rows)
+        new = lambda r: (sum(item_min(crit[i - 1]) for i in r.get("covers") or [] if 0 < i <= len(crit))
+                         or RATES.get("page_section", 0))
+        return sum(RATES.get("fix", 0) if r.get("revises") else new(r) for r in rows)
 
     def _change_rows(self, rec, k):
         """The change plan as J2 workflows to propose, in run order: planning documents, then revisions, then new
@@ -5639,6 +5678,8 @@ class J2Run:
                 if r in c["asked"] or any(root(w["id"]) == r for w in wfs if w.get("change") == c["id"]):
                     continue
                 reader = self._wf_any(rid)
+                if reader.get("status") == "superseded":        # never built: nothing of it can be affected
+                    continue
                 a = self._relay_ask(reader, d, j2_change.ix_get(wfs, r)["name"])
                 c["asked"][r] = {"name": j2_change.ix_get(wfs, r)["name"], "id": rid, "doc": d["name"], **a}
                 if a["affected"]:
@@ -6113,12 +6154,12 @@ class J2Run:
             return json.dumps({"say": f"@Adaptation Granted ({cost_of(table)} of {remaining} left).",
                                "decision": "GRANT", "workflows": [env(w) for w in table], "next": "Adaptation",
                                **ask})
-        p = self.call("priority", '{"say": str (address @Adaptation), "decision": "GRANT"|"COUNTER"|"REFUSE", '
-                      '"workflows": ' + self.GRANT_FMT + ' (what you fund, each with its envelope; for COUNTER, your '
-                      'smaller version), '
-                      + next_field(("adaptation", "identity"), f"Adaptation normally; Identity only once {MAX_ATTEMPTS} "
-                                   "exchanges are used") + "}",
-                      f"ON THE TABLE: {json.dumps(table)} (cost {cost_of(table)}, remaining budget {remaining}). "
+        fmt = ('{"say": str (address @Adaptation), "decision": "GRANT"|"COUNTER"|"REFUSE", '
+               '"workflows": ' + self.GRANT_FMT + ' (what you fund, each with its envelope; for COUNTER, your '
+               'smaller version), '
+               + next_field(("adaptation", "identity"), f"Adaptation normally; Identity only once {MAX_ATTEMPTS} "
+                            "exchanges are used") + "}")
+        task = (f"ON THE TABLE: {json.dumps(table)} (cost {cost_of(table)}, remaining budget {remaining}). "
                       f"COST PER DONE-WHEN ITEM: {json.dumps(self._per_item(table), ensure_ascii=False)}. Question any "
                       "plan whose cost per item is far below the rate-card minimums (many items bundled into one cheap "
                       "workflow, or a fix priced as a cheaper part): COUNTER or REFUSE with that reason. "
@@ -6126,7 +6167,12 @@ class J2Run:
                       f"Exchange {self.exchanges + 1} of {MAX_ATTEMPTS}; after that Identity rules on both final "
                       "positions." + (" Prices are fixed by the rate card: to spend less, remove parts or whole "
                                       "workflows, not the price." if RATES else "")
-                      + self._priority_file_note(table), mock)
+                      + (f" CHANGE {self.change['id']}: its planning-document revisions ({', '.join(self.change['docs'])})"
+                         " come first by the change rule; never cut them. If the change plan doesn't fit, REFUSE and "
+                         "say how much more it needs." if self.change and self.change["phase"] == "plan"
+                         and self.change.get("docs") else "")
+                      + self._priority_file_note(table))
+        p = self.call("priority", fmt, task, mock)
         for _ in range(2):      # a GRANT carries a price; the reply, not the workflow, is re-asked when it doesn't
             dec = str(p.get("decision") or "").lower()
             wfs = norm(p.get("workflows")) or (table if dec == "grant" else [])
@@ -6427,14 +6473,44 @@ class J2Run:
                     wf["stage"] = st or src["stage"]
             add_workflow_agent(wf["id"])
             wf["agent"] = NAMES[wf["id"]]
+            self._supersede(wf)
             self.workflows.append(wf)
             registered.append(wf)
         self._recalc_spent()
         self.save("workflows.json", self.workflows)
-        if self.change and self.change["phase"] == "plan" and set(self.change["allowed"]) <= {
-                x["name"] for x in self.workflows if x.get("change") == self.change["id"]}:
-            self.change["phase"] = "build"         # every workflow of the change plan is registered
+        c = self.change
+        mine = {x["name"] for x in self.workflows if c and x.get("change") == c["id"]}
+        if c and c["phase"] == "plan" and mine:
+            # The change plan has been through Priority and the validator: a row it doesn't hold now was cut or
+            # refused. Waiting for it kept the change "plan" for good, so every later fix was refused as out of scope
+            # (runs/j2-20261031-213453 msgs 168-187). It is recorded as cut, and the change builds.
+            c["phase"], cut = "build", [n for n in c["allowed"] if n not in mine]
+            if cut:
+                c["cut"] = self.changes[-1]["cut"] = cut
+                self.save("change.json", self.changes)
+                docs = [n for n in cut if n in (c.get("docs") or [])]
+                self.post("system", f"Change {c['id']}: not funded or refused, so not built: {', '.join(cut)}."
+                          + (f" The planning documents {', '.join(docs)} are not revised, so they no longer match "
+                             "what is built." if docs else ""), change=c["id"])
         return registered, refused, defaults
+
+    def _supersede(self, wf):
+        """A workflow still waiting (registered or held, never run) that a new one replaces: the same name, or held
+        with the same items. It is superseded: not built, not charged, not waiting work, its items not "not built".
+        runs/j2-20261031-213453: W-13..W-15 waited on a renamed dependency, W-17..W-19 replaced them, and they stayed
+        held, so Identity listed their items as not built and Coordination never handed the queue to Audit."""
+        if wf.get("revises"):
+            return
+        base = lambda n: re.sub(r" \(change \d+\)$", "", str(n or "")).strip().lower()
+        items = set(self._wf_items(wf))
+        for old in self.workflows:
+            if old["status"] not in ("registered", "held"):
+                continue
+            if base(old["name"]) == base(wf["name"]) or (old["status"] == "held" and items
+                                                         and set(self._wf_items(old)) == items):
+                old["status"], old["superseded_by"], old["charged"] = "superseded", wf["id"], False
+                self.post("system", f"{old['id']} {old['name']} is replaced by {wf['id']} {wf['name']}, so it is not "
+                                    "built.")
 
     def _lld_check_for(self, ids):
         return {"text": f"The page matches LLD section(s) {', '.join(ids)}: ids, selectors and form fields as specified",
@@ -8202,6 +8278,8 @@ class J2Run:
                  and not any(blocks(c) for c in extra.get("conditions") or []), **extra}
         if self.blueprint and not self.doc:
             audit["lld"] = self._lld_compare(site)
+        if self.accepted:
+            audit["accepted"] = list(self.accepted)
         self.audits.append(audit)
         self._save_audits()
         nxt, note = self._pick("audit", r.get("next"), ("identity",), "identity",

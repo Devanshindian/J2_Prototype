@@ -121,6 +121,10 @@ killer = changed(audience="Puzzle fans who want Killer Sudoku")
 ok(ch.charter_diff(SUDOKU, killer)["goal_changed"], "audience change → re-plan")
 ok(ch.charter_diff(SUDOKU, changed(statement="A Killer Sudoku game"))["goal_changed"] and not ch.diff_empty(
    ch.charter_diff(SUDOKU, killer)), "statement change → re-plan; a goal change is not an empty diff")
+# live 31 Oct: Identity appended the change to the statement ("... The hint now also teaches: ..."); that is the same
+# goal with a note, not a new one, so it must route by items, not re-plan
+noted = changed(statement=SUDOKU["statement"] + " The hint now also teaches the technique it uses.")
+ok(not ch.charter_diff(SUDOKU, noted)["goal_changed"], "a sentence added after the statement → not a goal change")
 removed = changed(done_when=ITEMS[:6] + ITEMS[7:])
 d = ch.charter_diff(SUDOKU, removed)
 ok(d["removed"] == [7] and d["added"] == [], "a dropped item is removed, by its number")
@@ -906,6 +910,70 @@ ok(told and '"A print button"' in told[0]["text"] and "Everything else in the ch
    "the Requester is told in plain words which item is left out and why")
 ok(any("LEAVE OUT these items" in t for f, t in TASKS if f == "adaptation") and not any(
     w["name"].startswith("Change item") for w in new), "Adaptation's change plan leaves the held item out")
+
+# ---- Task 9: live 31 Oct, the hint change (runs/j2-20261031-213453 msgs 144-192)
+# it came in with 10 credits left: Priority cut both planning-doc revisions, the change never left "plan", and the
+# validator refused every later fix. A change that costs more than what's left asks for the credits first.
+run = built_run()
+run.budget = run.spent + 1
+new, msgs = change_after_done(run, "Rename the levels", renamed)
+raised = next((i for i, m in enumerate(msgs) if m["who"] == "system" and m["text"].startswith("Budget raised")), None)
+reg = next((i for i, m in enumerate(msgs) if m["who"] == "validator" and "(change 1)" in m["text"]), None)
+ok(raised is not None and reg is not None and raised < reg
+   and [w["name"] for w in new] == ["Plan (change 1)", "Build item 3 (change 1)"],
+   "a change costing more than what's left asks for credits before Priority, then builds docs first")
+ok(not json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))[-1].get("cut"),
+   "funded in full: nothing in the change plan is cut")
+
+
+def twin(w, name, **kw):
+    """A proposal copied from a registered workflow: same outputs, checks, covers and price."""
+    keep = ("goal_gap", "purpose", "outputs", "completion_check", "dependencies", "parts", "estimated_resources", "atoms", "cost",
+            "envelope")
+    out = {k: copy.deepcopy(w[k]) for k in keep if w.get(k) is not None}
+    out["atoms"] = [{k: v for k, v in a.items() if k not in ("id", "status", "results", "attempts")}
+                    for a in out.get("atoms") or []]
+    return {**out, "name": name, "covers": list(w.get("covers") or []), **kw}
+
+
+import copy                              # noqa: E402
+# Priority funds part of the change plan: what it cut is recorded, the change builds, and later fixes are not refused
+run = built_run()
+run.budget += 100
+src = next(w for w in run.workflows if w["name"] == "Build item 3")
+run.change = {"id": "C-1", "rows": [], "allowed": ["Plan (change 1)", "Build item 3 (change 1)"], "phase": "plan",
+              "relayed": [], "asked": {}, "request": "x", "left_out": []}
+run.changes = [{"id": "C-1"}]
+got, refused, _ = run._register([twin(src, "Build item 3 (change 1)", revises=src["id"])])
+ok(got and run.change["phase"] == "build" and run.change.get("cut") == ["Plan (change 1)"],
+   "a change row Priority didn't fund is recorded as cut and the change moves on to build")
+_, refused, _ = run._register([{"name": "Extra section"}])
+ok(refused and "not in the change plan" not in refused[0], "once the change builds, a later fix isn't refused for scope")
+run.change = None
+
+# W-13..W-15 waited on a renamed dependency; W-17..W-19 replaced them, but they stayed "held": Identity listed their
+# items as not built four times, and Coordination never handed the empty queue to Audit
+run = built_run()
+run.budget += 100
+src = next(w for w in run.workflows if w["name"] == "Build item 3")
+old = {**copy.deepcopy(src), "id": "W-90", "name": "Save and resume", "status": "held", "charged": False}
+run.workflows.append(old)
+got, _, _ = run._register([twin(src, "Save and resume")])
+ok(got and old["status"] == "superseded" and old.get("superseded_by") == got[0]["id"],
+   "a waiting workflow replaced by a new one with the same name is superseded")
+got[0]["status"] = "done"
+ok(not run._waiting_work() and not any("(not built yet)" in str(g) for g in run._open_list(run.audits[-1], [])),
+   "a superseded workflow is no waiting work and its items are not reported as not built")
+
+# the Requester finished with design checks open: those are accepted, and a later change isn't stopped by them again
+a = copy.deepcopy(run.audits[-1])
+a["rubric"] = list(a.get("rubric") or []) + [{"id": "R-6", "pass": False, "verdict": "NEEDS_REVISION",
+                                              "criterion": "Tap targets are big enough on phones"}]
+ok(any("R-6" in f for f in j2.workable(a)), "a failing design check stops workable")
+run.audits.append(a)
+run._accept_open()
+ok("R-6" in run.accepted and not any("R-6" in f for f in j2.workable({**a, "accepted": run.accepted})),
+   "after 'finish as it is', the open design check is accepted and no longer stops workable")
 
 os.environ.pop("J2_CHANGE", None)
 

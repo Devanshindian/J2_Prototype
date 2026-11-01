@@ -168,15 +168,18 @@ def _text_diff(old, new):
 
 def charter_diff(base, new):
     """{"added": [n], "removed": [n], "rules": {"added", "removed"}, "standards": {...}, "goal_changed": bool}: active
-    items by charter number, rules and standards by text; goal_changed when the statement or audience differs."""
+    items by charter number, rules and standards by text; goal_changed when the statement or audience differs. A
+    statement that only gains text after the old one (Identity noting the change) is the same goal."""
     no = _numbers(base, new)
     was = {no[t] for t in base.get("done_when") or []}
     now = {no[t] for t in new.get("done_when") or []}
-    same = lambda k: str(base.get(k) or "").strip() == str(new.get(k) or "").strip()
+    old_s, new_s = (str(x.get("statement") or "").strip() for x in (base, new))
+    same_goal = new_s == old_s or bool(old_s) and new_s.startswith(old_s)
+    same_aud = str(base.get("audience") or "").strip() == str(new.get("audience") or "").strip()
     return {"added": sorted(now - was), "removed": sorted(was - now),
             "rules": _text_diff(base.get("rules"), new.get("rules")),
             "standards": _text_diff(base.get("standards"), new.get("standards")),
-            "goal_changed": not (same("statement") and same("audience"))}
+            "goal_changed": not (same_goal and same_aud)}
 
 
 def diff_empty(d):
