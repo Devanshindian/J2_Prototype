@@ -559,9 +559,15 @@ def build(d, live=None):
         for k in ("_atoms", "_order", "template", "_team", "_made"):
             n.pop(k, None)
     ch = _checks(atoms)
-    # presentation only, for the Tree view's circle round a stage: each workflow's name, status, the box it sits on, the
-    # workflows it reads (dependencies, then recorded atom edges) and its checks. Nothing here changes a node or an edge.
+    # presentation only, for the Tree view's circle round a stage and a focused workflow: each workflow's name, status, the box it sits on,
+    # the workflows it reads (dependencies, then recorded atom edges), what it made ("out": every deliverable that lists it) and its checks.
+    # Nothing here changes a node or an edge.
     box_of = {wid: n["id"] for n in out_nodes if n["kind"] == "work" for wid in n.get("workflows") or []}
+    made_of = {}
+    for n in out_nodes:
+        if n["kind"] == "work":
+            for wid in n.get("workflows") or []:
+                made_of.setdefault(wid, []).append(n["id"])
     flows = []
     for w in wfs:
         ats = by_wf.get(w["id"], [])
@@ -570,7 +576,7 @@ def build(d, live=None):
         st = {a.get("status") for a in ats}
         flows.append({"id": w["id"], "name": w.get("name") or w["id"], "status": w.get("status"), "box": box_of.get(w["id"]),
                       "atoms": next((x for x in ("verify_failed", "open", "abandoned", "closed") if x in st), None),
-                      "checks": _checks(ats), "reads": sorted({x for x in reads if x != w["id"]}, key=_num)})
+                      "checks": _checks(ats), "reads": sorted({x for x in reads if x != w["id"]}, key=_num), "out": made_of.get(w["id"], [])})
     return {"schema": SCHEMA, "run": os.path.basename(d), "live": bool(live),
             "status": {"state": state, "state_status": state_status, "checks": ch},
             "nodes": out_nodes, "workflows": flows, "edges": edges + speaks + lines + board_edges, "legend": LEGEND, "built_from": built_from,
@@ -584,3 +590,22 @@ def write(d):
     with open(os.path.join(d, "map.json"), "w", encoding="utf-8") as f:
         json.dump(m, f, indent=2, ensure_ascii=False)
     return m
+
+def plan_view(d):
+    """What the Strategist (Adaptation) planned, from realization.json: the stages it chose with their reasons, and the replans. {"found": False} for a run with no plan record."""
+    rz = _read(d, "realization.json") if d else None
+    if not isinstance(rz, dict) or not isinstance(rz.get("plan"), dict):
+        return {"found": False}
+    p, conf = rz["plan"], rz.get("stages") or {}
+    stages = []
+    for s in p.get("stages") or []:
+        sid = s.get("id")
+        stages.append({"id": sid, "thinking": s.get("thinking") or "", "goal": s.get("goal") or "", "zone": (conf.get(sid) or {}).get("zone"),
+                       "confidence": (conf.get(sid) or {}).get("confidence"),
+                       "why": [{"name": f.get("name"), "why": f.get("why")} for f in p.get("factors") or [] if sid in (f.get("stages") or []) and f.get("why")],
+                       "workflows": [w.get("name") for w in p.get("workflows") or [] if w.get("stage") == sid]})
+    a = p.get("analysis") or {}
+    replans = [{"round": r.get("round"), "faults": len(r.get("plan_faults") or []),
+                "changes": [{"workflow": c.get("workflow"), "remedy": c.get("remedy")} for c in r.get("changes") or []]} for r in rz.get("rounds") or [] if (r.get("round") or 0) > 0]
+    return {"found": True, "chosen": a.get("chosen") or "", "options": a.get("options") or [], "zone": (p.get("certainty_assessment") or {}).get("zone"),
+            "confidence": rz.get("plan_confidence"), "stages": stages, "replans": replans}
