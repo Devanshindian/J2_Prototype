@@ -5403,6 +5403,143 @@ def artifact_schema_failures():
           "stays goes to Adaptation); a reply with subtype error_max_structured_output_retries, and one with success "
           "but no structured_output, are failed attempts with the subtype as the evidence ok")
 
+
+def bad_ids_mock(target="W-9", skip=2, attempts=(1,)):
+    """patch for docs_run: the Components builder sends ids C1, C3 (the shape is fine, the order is not), on the
+    given attempts only."""
+    state = {"n": 0}
+
+    def patch(run, orig):
+        def call(fn, fmt, task, mock, **k):
+            if fn == target and k.get("schema"):
+                state["n"] += 1
+                if state["n"] in attempts:
+                    inner = mock
+
+                    def gap():
+                        d = json.loads(inner())
+                        comps = (d.get("section") or {}).get("components") or []
+                        for i, c in enumerate(comps, 1):
+                            c["id"] = f"C{i if i < skip else i + 1}"
+                        return json.dumps(d, ensure_ascii=False)
+                    mock = gap
+            return orig(fn, fmt, task, mock, **k)
+        return call
+    return patch
+
+
+def rules_split():
+    """The split: the models answer for the shape, the rules answer for the constraints, and the flow reads them as
+    two layers. A refactor, so the test is mostly about what did NOT change: the saved demo runs (clean and planted)
+    are replayed in mock and must give the same outcome, the same pass and fail per atom and layer, and the same
+    evidence wording; a planted shape error must fail only the schema layer and a planted rule error only the rules
+    layer; every rule spec must be plain data, name a known rule type, and resolve against its model's fields."""
+    import j2_artifact_models as AM
+    import j2_rules as R
+    # (d) every rule spec is data, names a known rule type, and its paths resolve against the model's fields
+    for (kind, section), specs in R.RULES.items():
+        model = AM.model_for(kind, section)
+        assert model is not None and AM.SECTION_MODELS[kind][section] is model, (kind, section)
+        assert json.loads(json.dumps(specs)) == specs, (kind, section, "the rules must be plain data")
+        for spec in specs:
+            assert spec["rule"] in R.RULE_TYPES, (kind, section, spec["rule"])
+            assert spec.get("name") and spec.get("from"), spec
+            paths = (spec["path"] if isinstance(spec.get("path"), list) else [spec["path"]]) if spec.get("path") \
+                else [spec[k] for k in ("anchor_path", "html_path") if spec.get(k)]
+            assert paths, spec
+            for path in paths:
+                head = path.split(".")[0].replace("[]", "")
+                assert head in model.model_fields, (kind, section, path, sorted(model.model_fields))
+            if spec.get("target"):      # "this.<path>" or "<doc>.<path>", and the field must exist there
+                where, _, tpath = spec["target"].partition(".")
+                assert where in ("this", "prd", "hld", "lld"), spec["target"]
+                target_model = AM.DOC_MODELS[kind if where == "this" else where]
+                assert tpath.split(".")[0].replace("[]", "") in target_model.model_fields, (spec["target"], kind)
+            for key in ("prefix", "values", "prefix"):
+                if spec["rule"] in ("ids_sequential",) and key == "prefix":
+                    assert spec.get("prefix"), spec
+            if spec["rule"] == "enum":
+                assert spec.get("values") and all(isinstance(v, str) for v in spec["values"]), spec
+    assert set(R.RULES) == {(k, s) for k, by in AM.SECTION_MODELS.items() for s in by}, "every section has rules"
+    # (e) the names a reader sees are the rules' own names, with nothing kept in step by hand
+    assert R.RULE_NAMES == {k: [r["name"] for r in v] for k, v in R.RULES.items()}
+    assert AM.RULE_NAMES == R.RULE_NAMES and AM.rule_names("hld", "Components") == R.rule_names("hld", "Components")
+    assert all(R.rules_count(k, s) == len(R.RULE_NAMES[(k, s)]) for k, s in R.RULES)
+    # the models carry no constraint any more: no validator beyond the website section's "html or head"
+    for kind, by in AM.SECTION_MODELS.items():
+        for sec, model in by.items():
+            checks = [n for n in dir(model) if n.startswith("_") and n in ("_order", "_refs", "_priority", "_hex",
+                                                                           "_anchor", "_markup", "_css_safe", "_type")]
+            assert not checks, (kind, sec, checks)
+    assert not hasattr(AM, "rule_errors") and not hasattr(AM, "_ids_in_order"), "the constraints left the models"
+    # the shape layer takes data the rules would refuse: ids out of order, a bad hex, an anchor pointing nowhere
+    ok, errs = AM.validate(AM.HLDComponents, {"components": [{"id": "C1", "name": "a", "responsibility": "b",
+                                                              "covers": ["R1"], "page": "P1"},
+                                                             {"id": "C3", "name": "c", "responsibility": "d",
+                                                              "covers": ["R9"], "page": "P9"}]})
+    assert ok is not None and not errs, errs
+    res = R.run_rules("hld", "Components", ok.model_dump(by_alias=True),
+                      {"this": {"pages": [{"id": "P1"}]}, "prd": {"requirements": [{"id": "R1"}]}})
+    by_rule = {r["name"]: r for r in res}
+    assert len(res) == 4 and [r["pass"] for r in res] == [False, True, False, False], [(r["name"], r["pass"]) for r in res]
+    assert "not in order from C1" in by_rule["ids C1, C2, ... unique and in order"]["evidence"]
+    assert by_rule["covers points at a requirement id of the PRD"]["evidence"] == \
+        "C3 covers R9, which is not a requirement of the PRD", by_rule["covers points at a requirement id of the PRD"]
+    # a missing target document: not recorded, never a pass
+    none = {r["name"]: r for r in R.run_rules("hld", "Components", ok.model_dump(by_alias=True), {})}
+    assert none["covers points at a requirement id of the PRD"]["pass"] is False      # as the flow has always read it
+    assert "the PRD's requirement ids are not recorded" in none["covers points at a requirement id of the PRD"]["evidence"]
+    assert none["page points at a page id of this document"]["pass"] is None, none["page points at a page id of this document"]
+    # the shape layer still refuses what is shape: a missing field, an unknown field, a bad enum, a wrong type
+    for data, want in (({"components": [{"id": "C1", "name": "a"}]}, "responsibility"),
+                       ({"components": [], "extra": 1}, "extra"),
+                       ({"components": [{"id": "C1", "name": "a", "responsibility": "b", "nope": 1}]}, "nope")):
+        bad, errs = AM.validate(AM.HLDComponents, data)
+        assert bad is None and any(want in e for e in errs), (want, errs)
+    bad, errs = AM.validate(AM.PRDRequirements, {"requirements": [{"id": "R1", "statement": "s",
+                                                                   "priority": "maybe", "goals": []}]})
+    assert bad is None and any("priority" in e for e in errs), errs      # the enum is shape now (Literal)
+    # (b) the two saved demo runs, replayed in mock: same outcome, same layers, same evidence
+    here = os.path.dirname(os.path.abspath(__file__))
+    for name, patch in (("j2-20261030-003100", None),
+                        ("j2-20261030-003101", lambda run, orig: bad_reference_mock("W-9", "R9", attempts=(1,))(
+                            run, bad_section_mock("W-1", drop="statement")(run, orig)))):
+        saved = os.path.join(here, "runs", name)
+        if not os.path.isdir(saved):
+            print(f"rules split: {name} isn't in this clone; the replay is skipped")
+            continue
+        was = [r for r in j2._jsonl(saved, "receipts.jsonl") if str(r.get("type")).startswith("artifact-")]
+        now_run = schema_run(patch=patch)
+        now = art_recs(now_run)
+        key = lambda r: (r["atom"], r["type"], r["attempt"], r["template"])
+        assert [key(r) for r in now] == [key(r) for r in was], \
+            ([key(r) for r in now][:4], [key(r) for r in was][:4])
+        assert [r["pass"] for r in now] == [r["pass"] for r in was], name
+        assert [r["evidence"] for r in now] == [r["evidence"] for r in was], \
+            [(a["evidence"], b["evidence"]) for a, b in zip(now, was) if a["evidence"] != b["evidence"]][:2]
+        outcome = (j2._read(saved, "summary.json", {}) or {}).get("outcome") or ""
+        assert now_run.outcome.split(":")[0] == outcome.split(":")[0], (now_run.outcome[:40], outcome[:40])
+        assert all("rules" in r for r in now if r["type"] == "artifact-rules"), "the rules travel with the receipt"
+    # (c) a planted shape error fails only the schema layer; a planted rule error only the rules layer
+    shape = schema_run(patch=bad_section_mock("W-1", drop="statement"))
+    first = [r for r in art_recs(shape, atom="W-1.a1")]
+    assert [r["type"] for r in first if not r["pass"]] == ["artifact-schema"], \
+        [(r["type"], r["pass"], r["evidence"][:40]) for r in first]
+    assert "statement: Field required" in next(r for r in first if not r["pass"])["evidence"]
+    ids = schema_run(patch=bad_ids_mock("W-9", skip=2, attempts=(1,)))
+    nine = art_recs(ids, atom="W-9.a1")
+    assert [r["type"] for r in nine if not r["pass"]] == ["artifact-rules"], \
+        [(r["type"], r["pass"], r["evidence"][:50]) for r in nine]
+    miss = next(r for r in nine if not r["pass"])
+    assert "not in order from C1" in miss["evidence"], miss["evidence"]
+    assert [x["pass"] for x in miss["rules"]] == [False, True, True, True], miss["rules"]
+    assert art_recs(ids, "artifact-schema", "W-9.a1")[0]["pass"] is True, "the shape was fine"
+    assert ids.outcome.startswith("Done") and shape.outcome.startswith("Done"), (ids.outcome, shape.outcome)
+    print("rules split: the rules are data (every spec names a known type and resolves against its model), the names "
+          "are derived from them, the models carry no constraint but a website section's \"html or head\", the two "
+          "saved demo runs replay with the same outcome, layers and evidence, and a planted shape error fails only "
+          "the schema layer while ids C1, C3 fail only the rules layer ok")
+
 def board_functions_off():
     """Message board, Part B: the same brief and change request with J2_BOARD unset write no board file, ask
     nothing, and no prompt carries the board fields or the BOARD block (the flag gates all of it; plain_unchanged
@@ -8929,6 +9066,7 @@ if __name__ == "__main__":
         if mode == "0":      # artifact-schema/1 doesn't branch on J2_FIXES: the runs are long, so once
             artifact_schemas()
             artifact_schema_failures()
+            rules_split()
         board_disabled()
         board_functions_off()
         os.environ["J2_BOARD"] = "1"
