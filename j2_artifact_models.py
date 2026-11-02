@@ -1,4 +1,9 @@
-"""artifact-schema/1: the template of every artifact J2 generates, as Pydantic 2 models (J2_ARTIFACT_SCHEMA=1).
+"""artifact-schema/1: the SHAPE of every artifact J2 generates, as Pydantic 2 models (J2_ARTIFACT_SCHEMA=1).
+
+These models say what fields an artifact's data has, their types, which are required and which enums they allow -
+and nothing else. Every constraint (ids in order, references that point at an id that exists, hex colours, plain
+CSS, page tags, anchors) is a rule in j2_rules.py, written as data and run as its own layer. The one presence rule
+that stays here is a website section's "html or head": which fields must be there is shape.
 
 One model per thing a workflow writes, so each builder's schema stays small: a PRD section, an HLD section, an LLD
 section, the design style guide, one website section. The document models (PRD/1, HLD/1, LLD/1) are the same fields
@@ -21,26 +26,23 @@ import copy
 import hashlib
 import json
 import re
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+import j2_rules
 
 SCHEMA = "artifact-schema/1"
 VERSION = 1
-HEX = re.compile(r"#(?:[0-9a-fA-F]{3}){1,2}$")
-CSS_SAFE = re.compile(r'^[^<>{}"\\]*$')      # the same rule parse_style enforces on a style value
 # Field names that may be missing from a reply because the brief may not say anything about them. Everything else is
 # required in the transport schema.
 OPTIONAL_FIELDS = {"assumptions", "google_fonts_url", "notes", "window", "target", "validation", "page", "head",
                    "anchor", "html",
                    "selectors_used", "facts_used", "implements", "covers", "goals", "actions", "needs",
                    "responsive_rules", "accessibility_rules", "out_of_scope", "risks", "data_flows", "files"}
-ID_RE = {"G": re.compile(r"^G\d+$"), "R": re.compile(r"^R\d+$"), "P": re.compile(r"^P\d+$"),
-         "C": re.compile(r"^C\d+$"), "S": re.compile(r"^S\d+$"), "E": re.compile(r"^E\d+$"),
-         "F": re.compile(r"^F\d+$")}
-FIELD_TYPES = ("text", "email", "tel", "url", "number", "date", "time", "select", "textarea", "checkbox", "radio",
-               "password", "file")
-PRIORITIES = ("must", "should", "could")
+# The enums are shape: the model allows these values and no others, and the transport schema carries them.
+FIELD_TYPES = tuple(j2_rules.FIELD_TYPES)
+PRIORITIES = tuple(j2_rules.PRIORITIES)
 
 
 class Artifact(BaseModel):
@@ -53,26 +55,6 @@ class Artifact(BaseModel):
     @classmethod
     def template(cls):
         return cls.TEMPLATE + (f" · {cls.SECTION}" if cls.SECTION else "")
-
-
-def _ids_in_order(items, prefix, label):
-    """G1, G2, ... in order and each once: the rule P2/H3/L2 already enforce on the rendered document."""
-    ids = [str(getattr(x, "id", "")) for x in items]
-    bad = [i for i in ids if not ID_RE[prefix].match(i)]
-    if bad:
-        raise ValueError(f"{label}: {', '.join(bad)} is not {prefix}1, {prefix}2, ...")
-    nums = [int(i[1:]) for i in ids]
-    if len(set(nums)) != len(nums):
-        raise ValueError(f"{label}: duplicate ids {sorted({i for i in ids if ids.count(i) > 1})}")
-    if nums and nums != list(range(1, len(nums) + 1)):
-        raise ValueError(f"{label}: ids are not sequential from {prefix}1: {ids}")
-    return items
-
-
-def _refs_exist(refs, known, label, kind):
-    missing = [r for r in refs if r not in known]
-    if missing:
-        raise ValueError(f"{label}: {', '.join(missing)} is not {kind} of this document")
 
 
 # ---------------------------------------------------------------- PRD/1
@@ -91,15 +73,8 @@ class Goal(Artifact):
 class Requirement(Artifact):
     id: str = Field(description="R1, R2, ... in order")
     statement: str = Field(description="what the product must do, naming the user group that does it")
-    priority: str = Field(description="must, should or could")
+    priority: Literal["must", "should", "could"] = Field(description="must, should or could")
     goals: List[str] = Field(default_factory=list, description="the goal ids this requirement serves, e.g. [\"G1\"]")
-
-    @field_validator("priority")
-    @classmethod
-    def _priority(cls, v):
-        if str(v).lower() not in PRIORITIES:
-            raise ValueError(f"priority must be one of {', '.join(PRIORITIES)}, not {v!r}")
-        return str(v).lower()
 
 
 class SuccessMetric(Artifact):
@@ -130,22 +105,12 @@ class PRDGoals(Artifact):
     goals: List[Goal] = Field(description="the goals, G1, G2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
 
-    @field_validator("goals")
-    @classmethod
-    def _order(cls, v):
-        return _ids_in_order(v, "G", "goals")
-
 
 class PRDRequirements(Artifact):
     TEMPLATE: ClassVar[str] = "PRD/1"
     SECTION: ClassVar[str] = "Requirements"
     requirements: List[Requirement] = Field(description="the requirements, R1, R2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
-
-    @field_validator("requirements")
-    @classmethod
-    def _order(cls, v):
-        return _ids_in_order(v, "R", "requirements")
 
 
 class PRDSuccessMetrics(Artifact):
@@ -171,15 +136,6 @@ class PRD(Artifact):
     success_metrics: List[SuccessMetric] = Field(default_factory=list)
     out_of_scope: List[str] = Field(default_factory=list)
     assumptions: List[str] = Field(default_factory=list)
-
-    @model_validator(mode="after")
-    def _refs(self):
-        goals = {g.id for g in self.goals}
-        for r in self.requirements:
-            _refs_exist(r.goals, goals, f"requirement {r.id}", "a goal")
-        for m in self.success_metrics:
-            _refs_exist([m.goal], goals, f"success metric for {m.goal}", "a goal")
-        return self
 
 
 # ---------------------------------------------------------------- HLD/1
@@ -230,11 +186,6 @@ class HLDPages(Artifact):
     pages: List[Page] = Field(description="the pages, P1, P2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
 
-    @field_validator("pages")
-    @classmethod
-    def _order(cls, v):
-        return _ids_in_order(v, "P", "pages")
-
 
 class HLDComponents(Artifact):
     TEMPLATE: ClassVar[str] = "HLD/1"
@@ -242,11 +193,6 @@ class HLDComponents(Artifact):
     components: List[Component] = Field(description="the components, C1, C2, ... in order; each names the PRD "
                                                     "requirement ids it covers")
     assumptions: List[str] = Field(default_factory=list)
-
-    @field_validator("components")
-    @classmethod
-    def _order(cls, v):
-        return _ids_in_order(v, "C", "components")
 
 
 class HLDDataFlow(Artifact):
@@ -280,14 +226,6 @@ class HLD(Artifact):
     risks: List[Risk] = Field(default_factory=list)
     assumptions: List[str] = Field(default_factory=list)
 
-    @model_validator(mode="after")
-    def _refs(self):
-        pages = {p.id for p in self.pages}
-        for c in self.components:
-            if c.page:
-                _refs_exist([c.page], pages, f"component {c.id}", "a page")
-        return self
-
 
 # ---------------------------------------------------------------- LLD/1
 class LLDSection(Artifact):
@@ -295,14 +233,6 @@ class LLDSection(Artifact):
     anchor: str = Field(description="the id attribute on the page, with the #, e.g. \"#classes\"")
     page: str = Field(default="", description="the page id, e.g. \"P1\"")
     implements: List[str] = Field(default_factory=list, description="the HLD component ids this section implements")
-
-    @field_validator("anchor")
-    @classmethod
-    def _anchor(cls, v):
-        a = str(v or "")
-        if not a.startswith("#") or not re.fullmatch(r"#[A-Za-z][\w-]*", a):
-            raise ValueError(f"anchor must be an id selector like \"#classes\", not {v!r}")
-        return a
 
 
 class Element(Artifact):
@@ -317,18 +247,11 @@ class FormField(Artifact):
     id: str = Field(description="F1, F2, ... in order")
     form: str = Field(description="the form's selector, e.g. \"#booking\"")
     name: str = Field(description="the field name attribute")
-    type: str = Field(description="one of " + ", ".join(FIELD_TYPES))
+    type: Literal["text", "email", "tel", "url", "number", "date", "time", "select", "textarea", "checkbox",
+                  "radio", "password", "file"] = Field(description="one of " + ", ".join(FIELD_TYPES))
     required: bool = Field(description="true when the visitor must fill it in")
     section: str = Field(default="", description="the section id the form sits in, e.g. \"S1\"")
     validation: str = Field(default="", description="the validation rule in one line")
-
-    @field_validator("type")
-    @classmethod
-    def _type(cls, v):
-        t = str(v).lower()
-        if t not in FIELD_TYPES:
-            raise ValueError(f"type must be one of {', '.join(FIELD_TYPES)}, not {v!r}")
-        return t
 
 
 class FileEntry(Artifact):
@@ -343,11 +266,6 @@ class LLDSections(Artifact):
                                                    "the HLD components it implements")
     assumptions: List[str] = Field(default_factory=list)
 
-    @field_validator("sections")
-    @classmethod
-    def _order(cls, v):
-        return _ids_in_order(v, "S", "sections")
-
 
 class LLDElements(Artifact):
     TEMPLATE: ClassVar[str] = "LLD/1"
@@ -355,22 +273,12 @@ class LLDElements(Artifact):
     elements: List[Element] = Field(description="every interactive element, E1, E2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
 
-    @field_validator("elements")
-    @classmethod
-    def _order(cls, v):
-        return _ids_in_order(v, "E", "elements")
-
 
 class LLDFormFields(Artifact):
     TEMPLATE: ClassVar[str] = "LLD/1"
     SECTION: ClassVar[str] = "Form fields"
     form_fields: List[FormField] = Field(description="every form field, F1, F2, ... in order")
     assumptions: List[str] = Field(default_factory=list)
-
-    @field_validator("form_fields")
-    @classmethod
-    def _order(cls, v):
-        return _ids_in_order(v, "F", "form_fields")
 
 
 class LLDFiles(Artifact):
@@ -398,16 +306,6 @@ class LLD(Artifact):
     accessibility_rules: List[str] = Field(default_factory=list)
     assumptions: List[str] = Field(default_factory=list)
 
-    @model_validator(mode="after")
-    def _refs(self):
-        secs = {s.id for s in self.sections}
-        for e in self.elements:
-            _refs_exist([e.section], secs, f"element {e.id}", "a section")
-        for f in self.form_fields:
-            if f.section:
-                _refs_exist([f.section], secs, f"form field {f.id}", "a section")
-        return self
-
 
 # ---------------------------------------------------------------- Design/1 (the style guide, STYLE_FMT as a model)
 class Palette(Artifact):
@@ -418,13 +316,6 @@ class Palette(Artifact):
     surface: str
     text: str
     muted: str
-
-    @field_validator("*")
-    @classmethod
-    def _hex(cls, v):
-        if not HEX.match(str(v or "")):
-            raise ValueError(f"{v!r} is not a hex colour like #1f5f8b")
-        return v
 
 
 class Fonts(Artifact):
@@ -454,18 +345,6 @@ class Design(Artifact):
     card: str = Field(description="css declarations for a card")
     notes: str = Field(default="", description="one line: why this suits the business")
 
-    @model_validator(mode="after")
-    def _css_safe(self):
-        flat = [self.radius, self.card, self.fonts.heading, self.fonts.body, self.spacing.unit, self.spacing.section,
-                self.buttons.primary, self.buttons.secondary]
-        bad = [v for v in flat if not CSS_SAFE.match(str(v or ""))]
-        if bad:
-            raise ValueError(f"these are not plain CSS values (no <, >, {{, }}, \" or \\): {bad[:3]}")
-        url = self.fonts.google_fonts_url
-        if url and not (str(url).startswith("https://fonts.googleapis.com/") and CSS_SAFE.match(str(url))):
-            raise ValueError("google_fonts_url must be a https://fonts.googleapis.com/ url or null")
-        return self
-
 
 # ---------------------------------------------------------------- WebsiteSection/1
 class WebsiteSection(Artifact):
@@ -484,29 +363,12 @@ class WebsiteSection(Artifact):
     facts_used: List[str] = Field(default_factory=list, description="the charter facts this section shows, copied "
                                                                      "exactly")
 
-    @field_validator("anchor")
-    @classmethod
-    def _anchor(cls, v):
-        a = str(v or "")
-        if a and not re.fullmatch(r"#[A-Za-z][\w-]*", a):
-            raise ValueError(f"anchor must be an id selector like \"#classes\", not {v!r}")
-        return a
-
-    @field_validator("html", "head")
-    @classmethod
-    def _markup(cls, v):
-        t = str(v or "")
-        if re.search(r"<\s*(?:!doctype|html|body|head)\b", t, re.I):
-            raise ValueError("it contains <html>, <head> or <body> tags; write only your own markup")
-        return t
-
     @model_validator(mode="after")
     def _something(self):
+        """Shape, not a constraint: a section must carry one of the two fields. Everything else about the markup and
+        the anchor is a rule in j2_rules (html_no_page_tags, anchor_selector, anchor_in_html)."""
         if not str(self.html).strip() and not str(self.head).strip():
             raise ValueError("a section must have html, or head tags when it writes only those")
-        if self.anchor and str(self.html).strip() and f'id="{self.anchor[1:]}"' not in self.html:
-            raise ValueError(f"the html has no element with id=\"{self.anchor[1:]}\", so the anchor {self.anchor} "
-                             "points at nothing")
         return self
 
 
@@ -770,82 +632,8 @@ def style_from_design(data):
 
 
 # ---------------------------------------------------------------- the rules layer (code, every attempt)
-def rule_errors(kind, section, data, chain=None, lld=None):
-    """Every template rule for one section's data that the model alone can't check: the references that point at
-    another document (H4: an HLD component covers a PRD requirement; L5: an LLD section implements an HLD component;
-    a website section implements an LLD section). chain is the run's own chain record ({"prd": {...}, "hld": {...}}),
-    so nothing is guessed: with no record, a reference is reported as not recorded, never as a pass."""
-    d, out = dict(data or {}), []
-    ch = chain or {}
-    known = lambda key, pat: {i for i in re.findall(pat, json.dumps((ch.get(key) or {}), ensure_ascii=False))}
-    if kind == "hld" and section == "Components":
-        reqs = known("prd", r"\bR\d+\b")
-        for c in d.get("components") or []:
-            if not reqs:
-                out.append(f"{c.get('id')}: the PRD's requirement ids are not recorded, so Covers can't be checked")
-                break
-            bad = [r for r in c.get("covers") or [] if r not in reqs]
-            if bad:
-                out.append(f"{c.get('id')} covers {', '.join(bad)}, which is not a requirement of the PRD")
-    if kind == "lld" and section == "Pages and sections":
-        comps = known("hld", r"\bC\d+\b")
-        for s in d.get("sections") or []:
-            if not comps:
-                out.append(f"{s.get('id')}: the HLD's component ids are not recorded, so Implements can't be checked")
-                break
-            bad = [c for c in s.get("implements") or [] if c not in comps]
-            if bad:
-                out.append(f"{s.get('id')} implements {', '.join(bad)}, which is not a component of the HLD")
-    if kind == "website":
-        ids = {s.get("id") for s in (lld or {}).get("sections") or []}
-        bad = [x for x in d.get("implements") or [] if x not in ids]
-        if bad and ids:
-            out.append(f"{d.get('id')} implements {', '.join(bad)}, which is not a section of the LLD")
-    return out
-
-
-# The template rules code holds each section to, by name: the model's own validators and the references that need
-# another document. The card says "n of m" from these, so the number means something a reader can check.
-RULE_NAMES = {
-    ("prd", "Problem"): ["the problem statement is given"],
-    ("prd", "Users"): ["every user group is named", "a group with no actions is marked as having none"],
-    ("prd", "Goals"): ["ids G1, G2, ... unique and in order"],
-    ("prd", "Requirements"): ["ids R1, R2, ... unique and in order", "priority is must, should or could",
-                              "goals point at a goal id of this document"],
-    ("prd", "Success metrics"): ["every metric names a goal id of this document"],
-    ("prd", "Out of scope"): ["the out-of-scope lines are given"],
-    ("hld", "Purpose and scope"): ["the purpose is given"],
-    ("hld", "Pages"): ["ids P1, P2, ... unique and in order"],
-    ("hld", "Components"): ["ids C1, C2, ... unique and in order", "every component states its responsibility",
-                            "page points at a page id of this document",
-                            "covers points at a requirement id of the PRD"],
-    ("hld", "Data flow"): ["every flow has from, to, data and trigger"],
-    ("hld", "Hosting and deployment"): ["the hosting kind is given"],
-    ("hld", "Risks"): ["every risk has a mitigation"],
-    ("lld", "Pages and sections"): ["ids S1, S2, ... unique and in order", "every section has an anchor",
-                                    "implements points at a component id of the HLD"],
-    ("lld", "Interactive elements"): ["ids E1, E2, ... unique and in order",
-                                      "every element has a selector, a trigger and a behaviour",
-                                      "section points at a section id of this document"],
-    ("lld", "Form fields"): ["ids F1, F2, ... unique and in order",
-                             "every field has a name, a type and a required flag",
-                             "type is one of " + ", ".join(FIELD_TYPES[:4]) + ", ...",
-                             "section points at a section id of this document"],
-    ("lld", "File structure"): ["every file has a path and a purpose"],
-    ("lld", "Responsive and accessibility rules"): ["the rules are given"],
-    ("design", "Style guide"): ["every palette colour is a hex colour", "heading and body fonts are given",
-                                "every value is plain CSS", "the fonts url is a fonts.googleapis.com url or null"],
-    ("website", "Section"): ["the html has no <html>, <head> or <body> tags", "the anchor is an id selector",
-                             "the anchor points at an element in the html",
-                             "implements points at a section id of the LLD"],
-}
-
-
-def rule_names(kind, section):
-    """The names of the rules this section is held to ([] when the template doesn't fix any)."""
-    return list(RULE_NAMES.get((str(kind or ""), str(section or "")), []))
-
-
-def rules_count(kind, section, data=None):
-    """How many template rules this section's data was held to, so the card can say "n of m"."""
-    return len(rule_names(kind, section))
+# The rules themselves are data in j2_rules; these are here so the callers keep one import.
+RULE_NAMES = dict(j2_rules.RULE_NAMES)
+rule_names = j2_rules.rule_names
+rules_count = j2_rules.rules_count
+run_rules = j2_rules.run_rules

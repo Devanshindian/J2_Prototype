@@ -125,6 +125,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 live = {"snapshot": RUN.snapshot(), "stages": list(RUN.stages), "stage_words": j2.J2Run.STAGE_WORDS,
                         "board": RUN.board}
             return self._send(200, json.dumps(j2_map.build(d if d and os.path.isdir(d) else None, live), ensure_ascii=False))
+        if u.path == "/api/plan":       # the Workflows tab: the stages the Strategist chose and the replans (realization.json)
+            d = j2.saved_dir(run) if run else RUN.dir
+            return self._send(200, json.dumps(j2_map.plan_view(d if d and os.path.isdir(d) else None), ensure_ascii=False))
         if u.path == "/api/artifacts":  # the Artifacts tab: deliverables, then evidence and records (artifacts/types.json)
             d = j2.saved_dir(run) if run else RUN.dir
             return self._send(200, json.dumps(j2_artifacts.listing(d if d and os.path.isdir(d) else None), ensure_ascii=False))
