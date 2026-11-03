@@ -1301,9 +1301,7 @@ def codegen_generic(t):
     """The generic template's model listing, from the same codegen (the runtime generic is the model itself)."""
     head = f"# The generic template is j2_artifact_models.{AM.SECTION_MODELS[t.artifact][t.section].__name__}; this " \
            "listing is codegen() of its generic.json entry.\n"
-    t2 = SpecialisedTemplate.model_construct(**{**t.model_dump(), "kind": "generic", "extends": "",
-                                                "made_by": None, "context": None, "used_by": []})
-    return head + codegen(t2)
+    return head + codegen(t)
 
 
 def run_example(run_dir, spec, tslug):

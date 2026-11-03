@@ -6434,8 +6434,9 @@ class J2Run:
                     extra["design"] = {k: v for k, v in
                                        j2_artifact_models.transport_schema(j2_artifact_models.Design).items()
                                        if k != "$schema"}
-                schema = (j2_artifact_models.reply_schema(art_model, extra, section_schema=art_sec_schema)
-                          if art_sec_schema is not None else j2_artifact_models.reply_schema(art_model, extra))
+                schema = j2_artifact_models.reply_schema(art_model, extra)
+                if art_sec_schema is not None:      # the library template's schema.json is the section the builder fills
+                    schema = self._with_section(schema, art_sec_schema)
                 self.art_schema = {"template": art_model.template(), "version": j2_artifact_models.VERSION,
                                    "sha": j2_artifact_models.schema_sha(schema),
                                    "bytes": len(json.dumps(schema, ensure_ascii=False)), "attempt": attempt}
@@ -7777,6 +7778,20 @@ class J2Run:
                                 "schema_sha": j2_template_lib.sha_of(schema), "system": system, "prompt": user,
                                 "raw": raw}, ensure_ascii=False) + "\n")
         return llm.extract_json(raw)
+
+    @staticmethod
+    def _with_section(schema, section_schema):
+        """A reply schema whose "section" is the given transport schema (its definitions lifted, as reply_schema
+        does for a model's own)."""
+        out = copy.deepcopy(schema)
+        sec = copy.deepcopy(section_schema)
+        defs = sec.pop("definitions", None)
+        sec.pop("$schema", None)
+        out["properties"]["section"] = sec
+        out.pop("definitions", None)
+        if defs:
+            out["definitions"] = defs
+        return out
 
     @staticmethod
     def _sent_section(schema):
