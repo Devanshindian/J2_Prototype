@@ -670,6 +670,45 @@ ok(not rec["replan"] and n["improve"] == 1 and rec["held"] == {"Lessons": "not_r
    and x["left_out"] and rec["new"] == ["Lesson plan", "Practice sets"] and rec["intents"][1]["final"] == "D",
    "still below the gate after its repair: held as not ready, its item left out with the judge's note, the rest goes on")
 ok("item 11 left out for now" in ch.summary(rec), "the summary says the item is left out")
+# live 2 Nov (runs/j2-20261102-120952 item 20, P2, P4-P6): a workflow still below the gate after its improvement
+# mixed two kinds of work or missed an input, and was held with everything behind it. Improve first, break down
+# second: it is split into smaller workflows in its stage, which are judged; only a part still below is held.
+SPLIT = {"splits": [{"workflow": "Lessons", "into": [
+    P("Lesson texts", "learning", [], inputs=["Lesson plan"]),
+    P("Lesson screens", "learning", [11], inputs=["Lesson texts", "Page shell"])]}]}
+mocks, n = scripted(match=[mt(11, None, "learning"), mt(12, None, "learning"), mt(13, "Hint")],
+                    fails=[None, {"Lessons": ["I1"]}, {"Lessons": ["I1"]}],
+                    places=[{"factors": [], "stages": [dict(LEARN, inputs_from=["product"])], "workflows": LESSONS}])
+asked = []
+mocks["breakdown"] = lambda names: (asked.append(list(names)), json.dumps(SPLIT))[1]
+rec = ch.plan_change(SUDOKU, learn, PLAN, SUDOKU_WFS, mocks=mocks, log=quiet)
+ok(asked == [["Lessons"]] and not rec["held"] and not rec["left_out"] and rec["broken_down"] == {"Lessons": ["Lesson texts", "Lesson screens"]}
+   and "Lessons" not in rec["new"] and {"Lesson texts", "Lesson screens"} <= set(rec["new"])
+   and wf_of(rec["plan"], "Lesson screens")["delivers"] == [11] and "broken down" in rec["intents"][0]["path"]
+   and not rec["replan"], "still below the gate after its improvement: broken down into parts that pass, nothing held")
+# a break-down reply that loses the item is refused: the workflow is held as before
+mocks, n = scripted(match=[mt(11, None, "learning"), mt(12, None, "learning"), mt(13, "Hint")],
+                    fails=[None, {"Lessons": ["I1"]}, {"Lessons": ["I1"]}],
+                    places=[{"factors": [], "stages": [dict(LEARN, inputs_from=["product"])], "workflows": LESSONS}])
+mocks["breakdown"] = lambda names: json.dumps({"splits": [{"workflow": "Lessons", "into": [
+    P("Lesson texts", "learning", [], inputs=["Lesson plan"])]}]})
+rec = ch.plan_change(SUDOKU, learn, PLAN, SUDOKU_WFS, mocks=mocks, log=quiet)
+ok(rec["held"] == {"Lessons": "not_ready"} and not rec.get("broken_down"),
+   "a break-down that drops the workflow's item is refused, and the workflow is held as before")
+ok("Break each one down" in R.breakdown_task(learn, PLAN, {"Lessons": {"score": 0.5, "weakest": "I1", "missing": []}}),
+   "the break-down call asks for smaller workflows, one kind of work each")
+# live 2 Nov (runs/j2-20261102-130338 0.70 -> 0.55, P3 0.70 -> 0.62): the improvement round can score lower; the
+# better version is kept
+mocks, n = scripted(match=[mt(11, None, "learning"), mt(12, None, "learning"), mt(13, "Hint")],
+                    fails=[None, {"Lessons": ["I1"]}, {"Lessons": ["I1", "I2", "M1"]}],
+                    improve={"goal": "worse"},
+                    places=[{"factors": [], "stages": [dict(LEARN, inputs_from=["product"])], "workflows": LESSONS}])
+rec = ch.plan_change(SUDOKU, learn, PLAN, SUDOKU_WFS, mocks=mocks, log=quiet)
+ok(wf_of(rec["plan"], "Lessons")["goal"] != "worse" and rec["left_out"][0]["reason"].startswith("Lessons is not ready (0.70)"),
+   "an improvement that scores lower is not kept: the better version and its score stand")
+# live 2 Nov (runs/j2-20261102-111726): naming the technique in the hint opened a new learning stage (D) although
+# the hint workflow already shows that message. The match call is told an item on an output's own content is its job.
+ok("already shows" in R.match_task(learn, PLAN, [13]), "the match call names the owner of what an output already shows")
 # a held planning workflow holds what reads it too
 rec, n, dec = change(daily, match=[mt(11, "Levels and new game"), mt(12, None, "build"), mt(13, None, "growth")],
                      fails=[None, {"Growth plan": ["M1"]}, {"Growth plan": ["M1"]}], places=[placement([GROWTH], GROW)])
@@ -959,6 +998,32 @@ _, refused, _ = run._register([{"name": "Extra section"}])
 ok(refused and "not in the change plan" not in refused[0], "once the change builds, a later fix isn't refused for scope")
 run.change = None
 
+# live 2 Nov (runs/j2-20261102-111726 W-29, runs/j2-20261102-140419 build-learn-practice): Priority funded a change
+# row, the validator refused it, and it was recorded as cut. In L2b it was never resent and item 17 failed Audit.
+# A row the validator refused is resent, not cut, and the empty queue goes back to Adaptation before Audit.
+run = built_run()
+run.budget += 100
+src = next(w for w in run.workflows if w["name"] == "Build item 3")
+run.change = {"id": "C-1", "rows": [{"name": "Plan (change 1)", "covers": []}], "phase": "plan", "relayed": [],
+              "allowed": ["Plan (change 1)", "Build item 3 (change 1)"], "asked": {}, "request": "x", "left_out": []}
+run.changes = [{"id": "C-1"}]
+got, refused, _ = run._register([twin(src, "Build item 3 (change 1)", revises=src["id"]),
+                                 twin(src, "Plan (change 1)", outputs=[])])
+ok(got and run.change["phase"] == "build" and not run.change.get("cut") and run.change.get("resend") == ["Plan (change 1)"],
+   "a change row the validator refused is to be resent, not cut")
+got[0]["status"] = "done"
+run._turn_coordination({"kind": "schedule"})
+ok(run.turn == "adaptation" and "Plan (change 1)" in run.handoff.get("why", ""),
+   "with a refused change row not yet resent, the empty queue goes back to Adaptation, not to Audit")
+again, _, _ = run._register([twin(src, "Plan (change 1)")])
+ok(again and again[0].get("change") == "C-1" and not run.change.get("resend"), "once resent and registered, nothing waits")
+run.change["resend"], run.change["resend_asks"] = ["Gone (change 1)"], 2
+again[0]["status"] = "done"
+run._turn_coordination({"kind": "schedule"})
+ok(run.turn == "audit" and "Gone (change 1)" in run.change.get("cut", []),
+   "a refused row still not resent after two asks is cut, and Audit goes ahead")
+run.change = None
+
 # W-13..W-15 waited on a renamed dependency; W-17..W-19 replaced them, but they stayed "held": Identity listed their
 # items as not built four times, and Coordination never handed the empty queue to Audit
 run = built_run()
@@ -982,6 +1047,52 @@ run.audits.append(a)
 run._accept_open()
 ok("R-6" in run.accepted and not any("R-6" in f for f in j2.workable({**a, "accepted": run.accepted})),
    "after 'finish as it is', the open design check is accepted and no longer stops workable")
+
+# live 2 Nov (runs/j2-20261102-130338 item 16, runs/j2-20261102-140419 item 14): the Requester finished with a
+# done-when item failing; after a later change it stopped workable again and was sent back for fixes until the
+# same-failure guard ended the run. A done-when item the Requester finished with is accepted too.
+run = built_run()
+a = copy.deepcopy(run.audits[-1])
+r0 = a["results"][0]
+r0.update({"pass": False, "verdict": "NEEDS_REVISION"})
+run.audits.append(a)
+run._accept_open()
+a["accepted"] = list(run.accepted)
+ok(r0["criterion"] in run.accepted and not j2.workable(a),
+   "after 'finish as it is', a failing done-when item is accepted and no longer stops workable")
+# runs/j2-20261102-111726 cycle 6: workable by code, but Identity sent the accepted items back to Adaptation
+TASKS.clear()
+call = run.call
+
+
+def keeps_fixing(fn, fmt, task, mock, **kw):
+    TASKS.append((fn, task))
+    return {"to_requester": "", "to_agents": "@Adaptation Make the board bigger.", "say": "@Adaptation Make the board "
+            "bigger.", "done": False, "clause": "done_when", "next": "Adaptation"}
+
+
+run.call, run.outcome, run.turn = keeps_fixing, None, "identity"
+run._identity_audit({})
+run.call = call
+told = [t for f, t in TASKS if f == "identity"]
+ok(told and "ACCEPTED BY THE REQUESTER" in told[0] and r0["criterion"] in told[0], "Identity is told what was accepted")
+ok(run.turn is None and str(run.outcome).startswith("Done") and "accepted" in run.outcome
+   and "Make the board" not in run.chat[-1]["text"],
+   "workable with only accepted items open: done, saying what was accepted, not another fix round")
+
+# live 2 Nov (runs/j2-20261102-120952): +250 came in with 0 left; the change plan then needed 260. That limit came
+# with nothing built since "keep going", so it was taken as stale and the "add more" option was dropped: the Requester
+# could only leave out or finish, and Learn mode was never built. A limit that names the credits it needs is a new ask.
+run = built_run()
+run.budget = run.spent
+run.last_limit = {"state": (len(run.sites), len(run.workflows), run.spent), "decision": "continue"}
+run._identity_limit({"kind": "limit", "out_of_budget": True, "budget_needed": 10,
+                     "reason": "Out of budget: change C-1 needs about 260 work credits and 250 are left.",
+                     "resume": {"to": "adaptation", "handoff": {"kind": "propose"}}})
+ok(run.paused and "continue" in run.paused["handoff"]["choices"]
+   and any(o.startswith("Add 10 work credits") for o in run.paused["questions"][0]["options"]),
+   "a change that needs more credits than were just added still offers to add them")
+run.paused = None
 
 os.environ.pop("J2_CHANGE", None)
 

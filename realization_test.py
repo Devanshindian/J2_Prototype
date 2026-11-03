@@ -333,4 +333,99 @@ r2.workflows = [{"id": "W-2", "name": "B"}, {"id": "W-3", "name": "C"}]
 ok(r2._next_wf_id("A", ix) == "W-1" and r2._next_wf_id("Fix B", ix) == "W-4" and j2.J2Run()._next_wf_id("X") == "W-1",
    "a late planned workflow takes its plan id (W-1); an unplanned one takes the next free id; plain runs count up")
 
+# ---- validator false refusals seen in the 2 Nov runs (runs/j2-20261102-*)
+import j2_check  # noqa: E402
+ps = j2_check.parse_step
+ok(ps("expect-hidden .cell-selected .cell-value") == {"verb": "expect-hidden", "sel": ".cell-selected .cell-value", "arg": None}
+   and ps("click #practice-grid .cell-empty")["sel"] == "#practice-grid .cell-empty"
+   and ps("expect-class #grid > .cell selected") == {"verb": "expect-class", "sel": "#grid > .cell", "arg": "selected"}
+   and ps("expect-text #msg Well done") == {"verb": "expect-text", "sel": "#msg", "arg": "Well done"}
+   and ps("set #qty 2")["arg"] == "2" and ps("expect-text .a .b Solved!")["sel"] == ".a .b",
+   "a step's selector may name an element inside another; a two-part step keeps its value")
+for bad_step in ("expect-text .cell-empty ", "click", "expect-text #msg"):
+    try:
+        ps(bad_step)
+        ok(False, f"{bad_step!r} should be refused")
+    except ValueError:
+        ok(True, "")
+told = j2.squash("Build #practice-grid with .cell, .cell-empty and .has-digit cells holding a .note; pad buttons practice-pad-1 to 9 "
+                 "made as 'practice-pad-' + n")
+nested = {"how": {"steps": told}, "constraints": [], "verification": [
+    {"text": "Pick then hide", "type": "behavior-steps", "expect": True, "target": [
+        "click #practice-grid .cell-empty", "click #practice-pad-5", "expect-hidden .cell.has-digit .note"]}]}
+ok(j2.check_problems(nested, "", j2.CHECK_TYPES) and not j2.check_problems(nested, "", j2.CHECK_TYPES, ranges=True),
+   "nested, compound and loop-made (#practice-pad-5) selectors pass in realization runs; base J2 is unchanged")
+unknown = {**nested, "verification": [{"text": "x", "type": "behavior-steps", "expect": True,
+                                       "target": ["click #practice-grid .nope"]}]}
+ok(any("'nope'" in x for x in j2.check_problems(unknown, "", j2.CHECK_TYPES, ranges=True)),
+   "a nested selector with a part nobody creates is still refused, naming that part")
+page = ('<section id="hint-section" class="panel"><button id="hint">Hint</button></section><script>'
+        "c.classList.add('cell-empty'); d.getElementById('learn-open'); b.id = 'practice-pad-' + n;</script>")
+names = j2.page_names(page).split()
+ok({"hint-section", "panel", "hint", "cell-empty", "learn-open", "practice-pad-"} <= set(names),
+   "the built page's own ids and classes, and the names its script uses, are known")
+edit = {"outputs": ["index.html"], "dependencies": [], "atoms": [{
+    "goal": "Each hint names its technique", "constraints": ["Edit the hint section only"], "context": ["section W-11"],
+    "how": {"kind": "AI", "agent": "Builder", "steps": "Change the hint text"},
+    "expected_output": [{"text": "Hint buttons are big enough", "kind": "tap", "target": "#hint-section"},
+                        {"text": "Open learn", "kind": "behavior", "steps": ["click #learn-open", "expect-visible #hint"]}],
+    "verification": [{"text": "Hint buttons are big enough", "type": "tap-targets", "target": "#hint-section", "expect": 44,
+                      "item": 1}]}]}
+rv = j2.J2Run()
+rv.realization = True
+ok(any("'#hint-section'" in x for x in rv._atom_problems(copy.deepcopy(edit))),
+   "before the page has it, '#hint-section' is unknown")
+rv.sites = [page]
+ok(rv._atom_problems(copy.deepcopy(edit)) == [],
+   "a change to an existing section may target what the page already has (111726 learning-hint-*, 140419 W-27)")
+# A count in the goal is not a fact to copy; a price, time or email still is
+cnt_goal = {"goal": "learn-puzzles.json holds 8 valid practice starts, one per technique",
+            "verification": [{"text": "The file exists", "type": "file-exists", "target": "learn-puzzles.json", "expect": True}]}
+DOCT = j2.DOC_CHECK_TYPES + ("file-exists",)
+ok(j2.check_problems(cnt_goal, "", DOCT) and not j2.check_problems(cnt_goal, "", DOCT, ranges=True),
+   "'8 practice starts' needs no facts-present in realization runs (140419 learn-practice-puzzles)")
+for g in ("Show the price ₹250 per class", "Open 7:30 am to 9 pm", "Write to hi@cafe.in", "Call +91 98765 43210",
+          "Early bird until 15 Aug", "10% off"):
+    ok(j2.check_problems({**cnt_goal, "goal": g}, "", DOCT, ranges=True), f"a fact in the goal still needs a check: {g}")
+neg = {"how": {"steps": "Remove the #solution-store string"}, "constraints": [], "verification": [
+    {"text": "No run of 10 or more digits in #solution-store", "type": "element-count", "target": "#solution-store", "expect": 0}]}
+ok(j2.check_problems(neg, "", j2.CHECK_TYPES) and not j2.check_problems(neg, "", j2.CHECK_TYPES, ranges=True),
+   "'no run of 10 digits' expecting 0 is consistent (111726 fix-remove-stored-solution)")
+nt = {"how": {"steps": "Build #grid"}, "constraints": [], "verification": [
+    {"text": "Cells tappable", "type": "named-test", "target": "tap-targets", "expect": True},
+    {"text": "New game", "type": "named-test", "target": "new-game-starts", "expect": True}]}
+msg = j2.check_problems(nt, "", j2.CHECK_TYPES, ranges=True)
+ok("is a check type: use type 'tap-targets'" in msg[0] and "behavior item with steps" in msg[1],
+   "an unknown named test says how to write it instead")
+# Planning docs: a heading put in facts-present becomes a heading check
+doc = {"goal": "product-spec.md sets the hint policy", "constraints": ["Only the file"], "context": ["charter"],
+       "how": {"kind": "AI", "agent": "Builder", "steps": "Write product-spec.md"},
+       "expected_output": [{"text": "The file", "kind": "file", "target": "product-spec.md"},
+                           {"text": "Its sections", "kind": "facts", "target": ["Hint policy", "Levels", "Sudoku"]}],
+       "verification": [{"text": "Sections", "type": "facts-present", "target": ["Hint policy", "Levels", "Sudoku"],
+                         "expect": True, "item": 2},
+                        {"text": "Palette", "type": "facts-present", "target": ["Palette"], "expect": True}]}
+src = j2.squash("Build me a Sudoku game")
+j2.facts_to_headings(doc, src)
+kinds = [(x["kind"], x["target"]) for x in doc["expected_output"]]
+ok(("facts", ["Sudoku"]) in kinds and ("heading", "Hint policy") in kinds and ("heading", "Levels") in kinds
+   and any(c["type"] == "heading-present" and c["target"] == "Palette" for c in doc["verification"])
+   and not any(c.get("item") == 2 for c in doc["verification"]),
+   "heading-like facts in a doc become heading items; a charter fact stays facts-present")
+rd = j2.J2Run()
+rd.realization, rd.request = True, "Build me a Sudoku game"
+pw = {"name": "product-spec", "outputs": ["product-spec.md"], "dependencies": [], "atoms": [{
+    **doc, "expected_output": [{"text": "The file", "kind": "file", "target": "product-spec.md"},
+                               {"text": "Hint policy", "kind": "facts", "target": ["Hint policy"]}],
+    "verification": [{"text": "The file exists", "type": "file-exists", "target": "product-spec.md", "expect": True, "item": 1}]}]}
+ok(rd._atom_problems(pw) == [], "a planning doc with a heading in facts-present passes (120952 lost all 4 docs)")
+# Audit-name rule: only work that checks the site
+rn = j2.J2Run()
+rn.realization = True
+ok([n for n in ("build-check", "build-mistake-check", "fix-nav-check-link", "product-spec (change 1)", "check-links",
+                "qa-pass", "final-review", "site-audit", "report") if rn._audit_name(n)]
+   == ["check-links", "qa-pass", "final-review", "site-audit", "report"]
+   and (setattr(rn, "realization", False) or rn._audit_name("build-check")),
+   "a Check button is a feature; check, QA and review workflows are still Audit's job (base J2 unchanged)")
+
 print(f"realization_test: {passed} checks passed")

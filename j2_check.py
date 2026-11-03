@@ -214,10 +214,21 @@ f.addEventListener('load', () => setTimeout(() => { let out;
     const TAP = 'a[href],button,input:not([type=hidden]),select,textarea,[role=button]';
     const vis = el => { const r = el.getBoundingClientRect(), c = cs(el); return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && c.display !== 'none' && +c.opacity !== 0; };
     const roots = [...d.querySelectorAll(sel)];
-    const els = [...new Set(roots.flatMap(r => [r, ...r.querySelectorAll(TAP)]))].filter(el => el.matches(TAP)).filter(vis)
+    const taps = [...new Set(roots.flatMap(r => [r, ...r.querySelectorAll(TAP)]))].filter(el => el.matches(TAP));
+    // A part hidden until the player gets there (a "solved" panel, a practice pad): shown for the measurement, so a
+    // tap check on it measures its buttons instead of failing with none (runs/j2-20261102-111726 W-12, -140419 W-27)
+    let revealed = false;
+    if (roots.length && taps.length && !taps.some(vis)) {
+      revealed = true;
+      for (const t of taps) for (let e = t; e && e !== d.body; e = e.parentElement) {
+        e.hidden = false;
+        if (cs(e).display === 'none') e.style.setProperty('display', 'block', 'important');
+        if (cs(e).visibility === 'hidden') e.style.setProperty('visibility', 'visible', 'important');
+        if (+cs(e).opacity === 0) e.style.setProperty('opacity', '1', 'important'); } }
+    const els = taps.filter(vis)
       .filter(el => !(el.tagName === 'A' && cs(el).display === 'inline' && el.closest('p,li,td,span')));   // links in text are exempt
     const small = els.map(el => [el, el.getBoundingClientRect()]).filter(([, r]) => r.height < min || r.width < min);
-    out = {roots: roots.length, checked: els.length, small_count: small.length, small: small.slice(0, 6).map(([el, r]) =>
+    out = {roots: roots.length, checked: els.length, revealed, small_count: small.length, small: small.slice(0, 6).map(([el, r]) =>
       `${el.tagName.toLowerCase()} "${(el.textContent || el.value || el.name || '').trim().slice(0, 25)}" ${Math.round(r.width)}x${Math.round(r.height)}`)};
   } catch (e) { out = {error: String(e)}; }
   document.body.setAttribute('data-j2', JSON.stringify(out)); }, 300));
@@ -361,7 +372,15 @@ def parse_step(step):
         if not 0 < sec <= MAX_WAIT:
             raise ValueError(f"step {step!r}: wait is at most {MAX_WAIT} seconds")
         return {"verb": verb, "sel": None, "arg": sec}
-    rest = parts[1].split(None, 1) if len(parts) > 1 else []
+    words = parts[1].split() if len(parts) > 1 else []
+    # A selector may name an element inside another (".cell-selected .cell-value", "#grid > .cell"): every word after
+    # the first that starts with # . [ : or is a combinator belongs to it, so a one-part step takes the whole rest and
+    # a two-part step keeps at least one word for its value (runs/j2-20261102-140419 lost 4 workflows to this).
+    n = 1
+    while n < len(words) - (STEP_ARGS[verb] == 2) and (words[n][:1] in "#.[:" or words[n] in (">", "+", "~")
+                                                        or words[n - 1] in (">", "+", "~")):
+        n += 1
+    rest = [" ".join(words[:n])] + ([" ".join(words[n:])] if words[n:] else []) if words else []
     if not rest or (STEP_ARGS[verb] == 2) != (len(rest) == 2):
         raise ValueError(f"step {step!r}: {verb} takes a selector" + (" and a value" if STEP_ARGS[verb] == 2 else " only"))
     return {"verb": verb, "sel": rest[0], "arg": rest[1].strip() if len(rest) == 2 else None}

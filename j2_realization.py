@@ -490,6 +490,7 @@ CHECKLIST_FMT = """{"items": [{"item": int (done-when number), "question": str}]
 EDIT_FMT = """{"workflow": {the edited workflow, with the same keys as the plan's workflows}, "docs": [name of a planning workflow in the plan whose written decision must change first]}"""
 PLACE_FMT = """{"factors": [new factor, as in the plan], "stages": [new stage, as in the plan; [] when none], "workflows": [new workflow, as in the plan], "why": str}"""
 IMPROVE_FMT = """{"workflows": [each workflow named above, improved, with the same keys as the plan's workflows], "changes": [{"workflow": str, "remedy": str}]}"""
+BREAK_FMT = """{"splits": [{"workflow": str (a workflow named above), "into": [each smaller workflow, with the same keys as the plan's workflows]}]}"""
 MATCH_FMT = """{"intents": [{"item": int (charter number), "owner": str|null (the one workflow whose job it is), "too_big": bool (true when taking it on would make the owner need more than one kind of thinking or more than one builder's run), "stage": str|null (when owner is null: the id, from the stage table, of the stage whose kind of thinking must decide how the item works), "why": str}]}"""
 
 
@@ -612,6 +613,22 @@ def improve_task(goal, plan, low):
             f"Reply format:\n{IMPROVE_FMT}")
 
 
+def breakdown_task(goal, plan, low):
+    """A change's break-down round: the new workflows in low are still below the gate after their improvement, so each
+    is split into smaller workflows of its stage (improve first, break down second)."""
+    lines = [f"- {n}: score {s['score']:.2f}, weakest {s['weakest']}; missing: " + ("; ".join(s["missing"]) or "-")
+             for n, s in low.items()]
+    return (f"CHARTER (from Identity):\n{charter_text(goal, True)}\n\nTHE PLAN:\n{json.dumps(plan, ensure_ascii=False)}"
+            f"\n\nTHESE WORKFLOWS ARE STILL BELOW {THRESHOLD:.2f} AFTER ONE IMPROVEMENT:\n" + "\n".join(lines) + "\n\n"
+            "Break each one down (the Realization section's Step 5, split): into 2 or 3 smaller workflows in its stage, "
+            "each one kind of thinking and one builder's run (for example, writing content apart from building the "
+            "screen that shows it). Give an input it misses to the part that needs it: read the plan's workflow that "
+            "makes it (inputs_from), or let one of the parts make it. Together the parts deliver and inform exactly what "
+            "the workflow did, and each delivered item goes to exactly one part. Give each part a new unique name. A "
+            "workflow that read the one broken down reads its parts. Change nothing else in the plan.\n\n"
+            f"Reply format:\n{BREAK_FMT}")
+
+
 def checklist_task(goal, items=None):
     which = "each done-when item" if items is None else f"each of done-when items {', '.join(map(str, items))}"
     return (f"CHARTER (from Identity):\n{charter_text(goal, items is not None)}\n\nWrite the item questions for this "
@@ -630,7 +647,9 @@ def match_task(goal, plan, items):
             f"\n\nNEW DONE-WHEN ITEMS (charter numbers):\n{new}\n\nFor each new item, ask every workflow in the plan "
             "G0: is this item its own job, the same kind of thinking and output as its goal, so that a small edit of it "
             "would deliver the item? Name the one workflow that answers yes as owner, and say in too_big whether taking "
-            "it on would make that workflow need more than one kind of thinking or more than one builder's run. When "
+            "it on would make that workflow need more than one kind of thinking or more than one builder's run. An item "
+            "that changes or adds to what a workflow's output already shows (the same part of the page, the same "
+            "message, the same file) is that workflow's job, even when the item adds a new kind of content to it. When "
             "no workflow answers yes, owner is null: then name, from the stage table below, the stage whose kind of "
             "thinking must decide how the item works (for example what it teaches, how it spreads, what it measures), "
             "whether or not that stage is in the plan. Name a stage that only makes things (such as build) only when the "

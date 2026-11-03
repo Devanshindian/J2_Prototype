@@ -391,6 +391,58 @@ def improve(s, goal, plan, low, mock):
     return plan, [n for n in low if n not in got]
 
 
+def _split(plan, old, parts):
+    """The plan with workflow old replaced by parts, in its place and its stage; whatever read it reads the parts."""
+    w = next(x for x in _wfs(plan) if x.get("name") == old)
+    names = [p["name"] for p in parts]
+    wfs = []
+    for x in _wfs(plan):
+        if x.get("name") == old:
+            wfs += [{**p, "stage": w.get("stage"), "inputs_from": [d for d in R.lst(p.get("inputs_from")) if d != old]}
+                    for p in parts]
+        else:
+            ins = R.lst(x.get("inputs_from"))
+            wfs.append({**x, "inputs_from": [d for d in ins if d != old] + names} if old in ins else x)
+    return {**plan, "workflows": wfs}
+
+
+def breakdown(s, goal, plan, low, active, mock):
+    """Improve first, break down second: the new workflows in low ({name: settled result}) are still below the gate
+    after their improvement, because they mix kinds of work or miss an input (runs/j2-20261102-120952 item 20 mixed
+    finding puzzles with building the practice screen, and missed its message). One call splits each into 2 or 3
+    workflows of its stage; a split that changes what the workflow delivered or informs, or breaks a plan rule, is
+    sent back once, then refused. (plan, {old name: [part names]}): the plan unchanged and {} when nothing was split."""
+    taken = {w.get("name") for w in _wfs(plan)}
+
+    def check(r):
+        cur, done, out = plan, {}, []
+        for x in R.lst((r or {}).get("splits")):
+            old = x.get("workflow") if isinstance(x, dict) else None
+            if old not in low or old in done:
+                continue
+            parts = [p for p in R.lst(x.get("into")) if isinstance(p, dict) and p.get("name")]
+            w = next(y for y in _wfs(plan) if y.get("name") == old)
+            got = lambda k: sorted(i for p in parts for i in R.lst(p.get(k)))
+            if len(parts) < 2:
+                out.append(f"{old}: break it into 2 or 3 workflows, not {len(parts)}")
+            elif any(p["name"] in taken or [q["name"] for q in parts].count(p["name"]) > 1 for p in parts):
+                out.append(f"{old}: each part needs a new unique name")
+            elif got("delivers") != sorted(R.lst(w.get("delivers"))):
+                out.append(f"{old}: its parts must deliver exactly items {sorted(R.lst(w.get('delivers')))}, "
+                           f"each once; they deliver {got('delivers')}")
+            elif set(got("informs")) != set(R.lst(w.get("informs"))):
+                out.append(f"{old}: its parts must inform items {sorted(R.lst(w.get('informs')))}")
+            else:
+                cur, done[old] = _split(cur, old, parts), [p["name"] for p in parts]
+        if done:
+            out += R.plan_faults(cur, goal, items=active)
+        return (cur, done), out or ([] if done else ["nothing was broken down"])
+
+    (cur, done), faults = ask_checked(s, "adaptation", R.planner_system(), R.breakdown_task(goal, plan, low),
+                                      lambda: mock(list(low)), check)
+    return (plan, {}) if faults else (cur, done)
+
+
 def placement_faults(placed, plan, routes=None, stages=None):
     """What a placement breaks beyond the plan rules: new stages are new and each holds its own planning workflow;
     every new workflow reads a planning workflow of its stage (in a stage without one, any planning workflow of the
@@ -478,6 +530,7 @@ def default_mocks(goal, plan, added):
             "judge": lambda spec: R.mock_judge(spec, compare="better"),
             "edit": lambda owner: json.dumps({"workflow": next(w for w in wfs if w.get("name") == owner), "docs": []}),
             "improve": lambda names: json.dumps({"workflows": [w for w in wfs if w.get("name") in names], "changes": []}),
+            "breakdown": lambda names: json.dumps({"splits": []}),
             "place": lambda: json.dumps({"factors": [], "stages": [], "workflows": new, "why": "mock"})}
 
 
@@ -513,10 +566,10 @@ def plan_change(base_goal, new_goal, plan, workflows, mocks=None, log=print, out
     judged: passing is A, a size failure is C, else one improvement and a second judgement (B if it passes, else C);
     too big for its owner is C; no owner is C when the stage whose thinking must decide it is in the plan, else D (a
     new stage). Planning docs (planning workflows that a revised or new workflow reads, and new stages' planning
-    workflows) are revised first. New workflows below the gate get one improvement call; still below, they and what
-    reads them are held (held, as on a first plan) and their items are left out (left_out, with the judge's notes),
-    and the rest goes ahead. A goal change, a rule or standard change with no item change, or a plan rule fault the
-    retry did not fix is a full re-plan (replan). mocks: {"match", "judge", "edit", "improve", "place"} callables
+    workflows) are revised first. New workflows below the gate get one improvement call (a lower score keeps the better
+    version); still below, they are broken down once (breakdown), and a part still below and what reads it are held
+    (held, as on a first plan) and their items are left out (left_out, with the judge's notes), and the rest goes ahead. A goal change, a rule or standard change with no item change, or a plan rule fault the
+    retry did not fix is a full re-plan (replan). mocks: {"match", "judge", "edit", "improve", "place", "breakdown"} callables
     for offline runs, used only when llm.MOCK."""
     s = R.Session(log)
     d = charter_diff(base_goal, new_goal)
@@ -611,11 +664,33 @@ def plan_change(base_goal, new_goal, plan, workflows, mocks=None, log=print, out
             low = {n: sc.get(n) or {"score": 0.0, "weakest": None, "missing": ["the judge's reply lacked it"]}
                    for n in new if n not in sc or sc[n]["score"] < R.THRESHOLD}
             if low:
+                pre = cur
                 cur, lacked = improve(s, goal, cur, low, mocks["improve"])
                 again = judged(s, goal, cur, ck, mocks["judge"], [n for n in low if n not in lacked], change={})
+                for n in [n for n in again if n in sc and again[n]["score"] < low[n]["score"]]:
+                    # the improvement scored lower (runs/j2-20261102-130338: 0.70 -> 0.55): the better version stays
+                    cur, again[n] = _put(cur, next(w for w in _wfs(pre) if w.get("name") == n)), low[n]
+                still = {n: again.get(n) or low[n] for n in low if n not in again or again[n]["score"] < R.THRESHOLD}
+                if still:
+                    # improve first, break down second: a workflow still below is split, and its parts are judged
+                    cur, split = breakdown(s, goal, cur, still, active, mocks.get("breakdown") or (lambda names: "{}"))
+                    if split:
+                        parts = [p for ps in split.values() for p in ps]
+                        rec["broken_down"] = split
+                        new = [p for n in new for p in split.get(n, [n])]
+                        third = judged(s, goal, cur, ck, mocks["judge"], parts, change={})
+                        for old in split:
+                            still.pop(old)
+                        still.update({p: third.get(p) or {"score": 0.0, "weakest": None,
+                                                          "missing": ["the judge's reply lacked it"]}
+                                      for p in parts if p not in third or third[p]["score"] < R.THRESHOLD})
+                        mine = {old: set(R.lst(next(w for w in _wfs(pre) if w.get("name") == old).get("delivers")))
+                                for old in split}
+                        for x in rec["intents"]:
+                            if any(x["item"] in its for its in mine.values()):
+                                x["path"].insert(-1, "broken down")
                 # as on a first plan: a workflow still below the gate is not ready, and it and whatever reads it are
                 # held; their items are left out with the judge's notes, and the rest of the change goes ahead
-                still = {n: again.get(n) or low[n] for n in low if n not in again or again[n]["score"] < R.THRESHOLD}
                 rec["held"] = R.holds(cur, list(still)) if still else {}
                 for w in _wfs(cur):
                     n = w.get("name")
