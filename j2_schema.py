@@ -65,10 +65,8 @@ def atom_status(atom, wf=None, ended=False):
     return "open"      # none yet, retrying after a failed attempt, or a check that could not run
 
 
-def atom_view(atom, wf=None, edges=None, ended=False, template=None):
-    """The atom/1 view of a stored atom. wf: its workflow (for the name); edges: [{atom, why}] it depends on;
-    template: the Template block (templates/1, J2_TEMPLATES=1), computed by code from the run's own records and
-    placed between the defined output and the verification. Without it the view is what it always was."""
+def atom_view(atom, wf=None, edges=None, ended=False):
+    """The atom/1 view of a stored atom. wf: its workflow (for the name); edges: [{atom, why}] it depends on."""
     ag, a = atom.get("agent_output") or {}, atom
     wid = str(a["id"]).split(".")[0]
     name = (wf or {}).get("name") or ag.get("section_names", [None])[0] or a["id"]
@@ -91,7 +89,6 @@ def atom_view(atom, wf=None, edges=None, ended=False, template=None):
             "status": atom_status(a, wf, ended), "attempt": a.get("attempts") or ag.get("attempt"),
             "goal": a.get("goal"), "how": a.get("how"), "constraints": a.get("constraints") or [],
             "context": a.get("context") or [], "defined_output": a.get("expected_output") or [],
-            **({"template": template} if template else {}),
             "verification": ver, "output": out, "depends_on": dedupe_edges([dict(e) for e in edges or []]), "used_by": [],
             "notes": (a.get("human_output") or {}).get("text") or "", "details": details,
             # board/1: a board answer changed something this atom was built from (stale until its checks ran again)
@@ -155,18 +152,16 @@ def dependency_edges(wf, workflows):
             for d in wf.get("dependencies") or [] if d in ids and ids[d] is not wf for a in ids[d].get("atoms") or []]
 
 
-def run_views(workflows, given=None, ended=False, templates=None):
+def run_views(workflows, given=None, ended=False):
     """(views, warnings) for a run. given: {workflow id: {"edges": [{atom, why}], "whole": bool}}, what each builder's
     prompt actually held (recorded by the run). Without a record, or with the whole page given and no attributable
-    edge, edges come from workflow dependencies, else stay empty. templates: {atom id: Template block} when
-    J2_TEMPLATES=1 recorded one (j2_templates.atom_blocks); without it no view carries a template key."""
+    edge, edges come from workflow dependencies, else stay empty."""
     given, views = given or {}, []
     for w in workflows:
         g = given.get(w["id"]) or {}
         edges = g.get("edges") or (dependency_edges(w, workflows) if g.get("whole", True) else [])
         for a in w.get("atoms") or []:
-            views.append(atom_view(a, w, [e for e in edges if e["atom"] != a["id"]], ended,
-                                   (templates or {}).get(a["id"])))
+            views.append(atom_view(a, w, [e for e in edges if e["atom"] != a["id"]], ended))
     link_views(views)
     return views, validate_views(views)
 

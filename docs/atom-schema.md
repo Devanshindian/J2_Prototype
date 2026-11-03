@@ -11,7 +11,6 @@ The machine form is `docs/atom-schema.json`.
 | id, workflow, name, owner, status, attempt | who and where | id, workflow id, workflow name, how.agent, status (see Status), attempts |
 | goal, how, constraints, context | what it was asked | same names |
 | defined_output | what must exist when it is done | expected_output |
-| template | optional (J2_TEMPLATES=1): `{prompt: {version, used, evidence}, reply: {model, valid, retries}, output: {template, section, match, evidence}}` | computed by code from calls.jsonl and receipts.jsonl (see Template) |
 | verification | list of `{check, applies_to, method, met, evidence}` | results (the receipts) |
 | output | list of `{verb, name, form, ref}` | agent_output, receipts |
 | depends_on, used_by | lists of `{atom, why}` | recorded by the run (see Edges) |
@@ -19,22 +18,6 @@ The machine form is `docs/atom-schema.json`.
 | details | optional free object, specific to the output | agent_output (selectors, ids, anchor), expected_output (elements) |
 
 Website words (selectors, elements, sections) are never standard fields: they live in `details`.
-
-## Template (J2_TEMPLATES=1)
-
-With the flag set, each atom carries the proof that its builder was held to the three templates. Every value is
-computed by code from the run's own records; nothing is written by an agent, and a row with no record reads
-`not recorded`, never a pass.
-
-| Row | Passes when | Evidence | Record it is read from |
-|---|---|---|---|
-| prompt | the prompt text that was sent carries every envelope tag (`agent_card`, `workflow`, `work_atom`, `output_template`, `context`, `board`, `task`, `reply_schema`) and the sha256 of `prompts/builder.md` is the one recorded with the call | `call <id>: tags <list>` | `calls.jsonl` `template` |
-| reply | the reply's JSON line validates against `BuilderReply` (`j2_types.py`); `retries` is how many times the model's error sent it back | Pydantic's own errors when it fails | `calls.jsonl` `template` |
-| output | every rule of its artifact template (`artifacts/templates/<artifact>.json`) that could run is met | the receipt id (`<atom>:<attempt>`) | the `template-match` receipt in `receipts.jsonl` |
-
-The same `template-match` check also appears in `verification`, like any other check, and a failure follows the normal
-failed-check path (retry, then Adaptation). A part with nothing to hold to the template (a section that writes head
-tags only) reads `not recorded` with the reason, never a failure.
 
 ## Status
 

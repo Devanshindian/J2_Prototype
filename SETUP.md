@@ -119,16 +119,6 @@ J2_BOARD=1 J2_FIXES=1 J2_FORCE_QUESTION=identity,priority,audit STUDIO_MOCK=1 py
 # or the whole demo without a browser, saved to runs/:
 python3 j2_flow_test.py --fast --board-demo
 
-# Templates: every work atom shows the prompt template it was sent through, the reply model its reply
-# passed and the output template its section follows (the "Template" block on the atom card, Detailed view)
-J2_TEMPLATES=1 STUDIO_PROVIDER=claude-cli python3 j2_server.py
-
-# Offline templates demo: the Still Point documents-plus-website brief, nothing to install
-J2_TEMPLATES=1 STUDIO_MOCK=1 python3 j2_server.py
-# or the two demo runs without a browser, saved to runs/ (clean, and with planted failures):
-python3 j2_flow_test.py --fast --template-demo
-python3 j2_flow_test.py --fast --template-demo --template-fail-demo
-
 # Milestone emails: one per goal reached (each document, then the site). Dry run: nothing is sent
 J2_MILESTONE_EMAILS=1 J2_TEST_EMAIL=you@example.com STUDIO_PROVIDER=claude-cli python3 j2_server.py
 ```
