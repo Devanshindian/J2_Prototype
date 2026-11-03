@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Team Solar Mock</title>
+<style>
+:root{color-scheme:dark;--bg:#0f1312;--fg:#e4e9e6;--muted:#8f9b96;--line:#2c3532}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 36px}
+h1{margin:0;font-size:20px}
+.sub{margin:4px 0 12px;color:var(--muted);font-size:13.5px;max-width:95ch}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.btn{background:#1d2a25;border:1px solid #3b5148;color:var(--fg);border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.btn[aria-pressed=true]{background:#24352e;border-color:#9bd8b2}
+.card{position:relative;background:radial-gradient(circle at 50% 50%,#17221e 0%,#0b0f0e 70%);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+svg{display:block;width:100%;height:auto;max-height:80vh}
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;pointer-events:none}
+.n{cursor:pointer;transition:opacity .3s}
+.dim{opacity:.1}
+.halo{opacity:0;transition:opacity .3s}
+.used .halo{opacity:1;animation:pulse 1.6s ease-in-out infinite}
+.used .doc{fill:#1c3352;stroke:#9cc4ff;stroke-width:2.4}
+.used text{fill:#cfe2ff!important;font-weight:700}
+@keyframes pulse{50%{opacity:.35}}
+.in{opacity:0;transition:opacity .3s;stroke-dasharray:4 5;animation:flow .9s linear infinite}.in.on{opacity:.9}
+.spoke{stroke-dasharray:3 7;animation:flow 1.6s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-20}}
+.frame{position:absolute;left:14px;top:12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8f9b96}
+.panel{position:absolute;right:12px;top:12px;width:270px;background:#121816ee;border:1px solid #2f3d38;border-radius:10px;padding:10px 12px;font-size:13px;display:none}
+.panel b{display:block;font-size:14px;margin-bottom:4px}
+.panel .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-top:7px}
+.panel .go{margin-top:9px;color:#9bd8b2;font-size:12.5px}
+.legend{display:flex;flex-wrap:wrap;gap:16px;color:var(--muted);font-size:12.5px;margin-top:10px}
+@media (prefers-reduced-motion:reduce){.used .halo,.in,.spoke{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Team view as a solar system (mock)</h1>
+  <p class="sub">No team node in the middle. Each artifact the team made is a star; the team's workflows orbit the star they built. Inputs from other teams sit on the outer ring. Click a workflow to light up what it read; in the real build a second click opens its sun view. Links approximated from run 174314.</p>
+  <div class="tabs" id="tabs"></div>
+  <div class="card"><div class="frame" id="frame"></div><svg id="svg" viewBox="-620 -440 1240 880" role="img" aria-label="Team solar system"></svg><div class="panel" id="panel"></div></div>
+  <div class="legend"><span style="color:#fff7d6">● artifact the team made</span><span style="color:#9bd8b2">● built by</span><span style="color:#e6ad62">● fixed by</span><span style="color:#6fa8ff">▯ input from another team (glows when read)</span></div>
+</div>
+<script>
+const TEAMS={
+ "Web Developer":{stars:[{id:"web",name:"Website",sub:"v14 · 10 sections"},{id:"sg",name:"Style guide",sub:"file"}],
+  wfs:[["W-6","build-shell",["web","sg"],["dg","cg","ar","ps"]],["W-7","puzzle-engine",["web"],["ar","ps"]],["W-13","how-to",["web"],["cg","dg"]],
+   ["W-8","grid-input",["web"],["dg","cg","sg"]],["W-9","pencil-notes",["web"],["dg","sg"]],["W-11","completion",["web"],["cg","dg"]],
+   ["W-10","beginner-help",["web"],["hm","cg","dg"]],["W-12","persistence",["web"],["ar","ps","cg"]],["W-14","layout",["web"],["dg","sg"]],
+   ["W-15","wiring",["web"],["ar"]],["W-16","fix overflow",["web"],["dg"],1],["W-17","fix top nav",["web"],["cg"],1]],
+  inputs:{dg:["Design guide","Design Lead"],cg:["Copy guide","Content Lead"],hm:["Hint method","Learning Designer"],ps:["Product spec","Product Manager"],ar:["Architecture","Solution Architect"]}},
+ "Learning Designer":{stars:[{id:"hm",name:"Hint method",sub:"curriculum"}],wfs:[["W-4","hint-method",["hm"],["ps","cg"]]],
+  inputs:{ps:["Product spec","Product Manager"],cg:["Copy guide","Content Lead"]}},
+ "Product Manager":{stars:[{id:"ps",name:"Product spec",sub:"product plan"}],wfs:[["W-1","product-plan",["ps"],["ch"]]],inputs:{ch:["Charter","Identity"]}}};
+const NS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),panel=document.getElementById("panel");
+const el=(t,a,p=svg)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.append(e);return e};
+const pol=(r,a)=>[r*Math.cos(a),r*Math.sin(a)];
+const lab=(g,x,y,t,o={})=>{const a=Math.atan2(y-(o.cy||0),x-(o.cx||0)),d=o.d||14;const e=el("text",{x:x+Math.cos(a)*d,y:y+Math.sin(a)*d+4,"text-anchor":Math.abs(x-(o.cx||0))<20?"middle":x>(o.cx||0)?"start":"end","font-size":o.s||12,"font-weight":o.w||400,fill:o.c||"#e4e9e6"},g);e.textContent=t;return e};
+function draw(name){svg.innerHTML="";panel.style.display="none";const T=TEAMS[name];document.getElementById("frame").textContent=name+" · "+T.wfs.length+(T.wfs.length===1?" workflow":" workflows")+" · "+T.stars.length+(T.stars.length===1?" artifact":" artifacts");
+ for(let i=0;i<200;i++)el("circle",{cx:((i*137.5)%1240)-620,cy:((i*89.3)%880)-440,r:i%6?.6:1.1,fill:"#cfe",opacity:.15});
+ el("circle",{cx:0,cy:0,r:400,fill:"none",stroke:"#9bd8b2",opacity:.06});
+ // stars: the main one (most workflows) at the centre, others offset to the right
+ const cnt=s=>T.wfs.filter(w=>w[2].includes(s.id)).length,stars=[...T.stars].sort((a,b)=>cnt(b)-cnt(a)),SP={};
+ stars.forEach((s,i)=>SP[s.id]=i?[170+60*(i-1),-150+120*(i-1)]:[0,0]);
+ const LG=el("g",{}),IG=el("g",{}),NG=el("g",{}),G={},P={},inl=[];
+ // inputs on the outer ring
+ const ik=Object.keys(T.inputs);ik.forEach((k,i)=>P[k]=pol(400,Math.PI*.5+(i+.5)*2*Math.PI/ik.length));
+ // workflows orbit the star they mainly built; a workflow that made several stars sits between them
+ const main=stars[0],orbit=T.wfs.filter(w=>w[2].includes(main.id)),R=Math.max(170,orbit.length*26/Math.PI*1.2);
+ el("circle",{cx:0,cy:0,r:R,fill:"none",stroke:"#9bd8b2",opacity:.07},LG);
+ orbit.forEach((w,i)=>P[w[0]]=pol(R,-Math.PI/2+i*2*Math.PI/orbit.length));
+ stars.slice(1).forEach(st=>{const b=T.wfs.find(w=>w[2].includes(st.id));const a0=P[b[0]]?Math.atan2(P[b[0]][1],P[b[0]][0])+.28:0;SP[st.id]=pol(R+120,a0)});
+ T.wfs.filter(w=>!w[2].includes(main.id)).forEach((w,i)=>{const s=SP[w[2][0]];P[w[0]]=[s[0]+60,s[1]+60*(i+1)]});
+ T.wfs.forEach(([id,nm,makes,reads,fix])=>{const[x,y]=P[id];
+  makes.forEach(m=>{const[sx,sy]=SP[m];el("line",{x1:x,y1:y,x2:sx,y2:sy,stroke:fix?"#e6ad62":"#b49be8","stroke-width":1.3,opacity:.55,class:m===main.id?"spoke":""},LG)});
+  reads.forEach(r=>{const[x1,y1]=P[r]||SP[r];const l=el("path",{d:`M${x1},${y1}Q${(x1+x)*.35},${(y1+y)*.35} ${x},${y}`,fill:"none",stroke:"#6fa8ff","stroke-width":1.5,class:"in"},IG);l.dataset.f=r;l.dataset.t=id;inl.push(l)})});
+ ik.forEach(k=>{const[x,y]=P[k],g=el("g",{class:"n"},NG);G[k]=g;el("circle",{cx:x,cy:y,r:16,fill:"transparent"},g);
+  el("rect",{x:x-15,y:y-15,width:30,height:30,rx:8,fill:"none",stroke:"#6fa8ff","stroke-width":2,class:"halo"},g);
+  el("path",{d:`M${x-7},${y-9}h9l5,5v13h-14z M${x+2},${y-9}v5h5`,fill:"#16202b",stroke:"#6fa8ff","stroke-width":1.6,"stroke-linejoin":"round",class:"doc"},g);
+  lab(g,x,y,T.inputs[k][0],{d:20,c:"#aab5b0"});lab(g,x,y+15,T.inputs[k][1],{d:20,s:10.5,c:"#5f6b66"});g.onclick=e=>{e.stopPropagation();focus(k)}});
+ T.wfs.forEach(([id,nm,makes,reads,fix])=>{const[x,y]=P[id],g=el("g",{class:"n"},NG);G[id]=g;el("circle",{cx:x,cy:y,r:16,fill:"transparent"},g);
+  el("circle",{cx:x,cy:y,r:12,fill:fix?"#e6ad62":"#9bd8b2",opacity:.13},g);el("circle",{cx:x,cy:y,r:5.5,fill:fix?"#f3c98f":"#e8fff2"},g);
+  lab(g,x,y,id+" · "+nm,{s:11.5});g.onclick=e=>{e.stopPropagation();focus(id)}});
+ stars.forEach((s,i)=>{const[x,y]=SP[s.id],g=el("g",{class:"n"},NG);G[s.id]=g;const big=i?.6:1;
+  [40,22].forEach((r,j)=>el("circle",{cx:x,cy:y,r:r*big,fill:"#fff7d6",opacity:j?.15:.07},g));el("circle",{cx:x,cy:y,r:11*big,fill:"#fff7d6"},g);
+  el("text",{x,y:y+30+14*big,"text-anchor":"middle","font-size":14*Math.max(.85,big),"font-weight":700,fill:"#fff7d6"},g).textContent=s.name;
+  el("text",{x,y:y+45+14*big,"text-anchor":"middle","font-size":11,fill:"#8f9b96"},g).textContent=s.sub+" · "+cnt(s)+(cnt(s)===1?" workflow":" workflows");
+  g.onclick=e=>{e.stopPropagation();focus(s.id)}});
+ function focus(k){Object.values(G).forEach(g=>g.classList.remove("used","dim"));inl.forEach(l=>l.classList.remove("on"));const keep=new Set([k]);let h="";
+  const w=T.wfs.find(w=>w[0]===k),st=T.stars.find(s=>s.id===k);
+  if(w){w[2].forEach(m=>keep.add(m));inl.forEach(l=>{if(l.dataset.t===k){l.classList.add("on");keep.add(l.dataset.f);G[l.dataset.f].classList.add("used")}});
+   h=`<b>${w[0]} · ${w[1]}</b><div class="k">${w[4]?"fixed":"built"}</div>${w[2].map(m=>T.stars.find(s=>s.id===m).name).join(", ")}<div class="k">read</div>${w[3].map(r=>T.inputs[r]?T.inputs[r][0]:T.stars.find(x=>x.id===r).name).join(", ")}<div class="go">Click again to open its sun view →</div>`}
+  else if(st){T.wfs.filter(w=>w[2].includes(k)).forEach(w=>keep.add(w[0]));h=`<b>${st.name}</b><div class="k">workflows</div>${T.wfs.filter(w=>w[2].includes(k)).map(w=>w[0]).join(", ")}<div class="go">Click again to open its sun view →</div>`}
+  else{inl.forEach(l=>{if(l.dataset.f===k){l.classList.add("on");keep.add(l.dataset.t)}});G[k].classList.add("used");
+   h=`<b>${T.inputs[k][0]}</b><div class="k">from</div>${T.inputs[k][1]}<div class="k">read by</div>${T.wfs.filter(w=>w[3].includes(k)).map(w=>w[0]).join(", ")}`}
+  Object.entries(G).forEach(([id,g])=>g.classList.toggle("dim",!keep.has(id)));panel.innerHTML=h;panel.style.display="block"}
+ svg.onclick=()=>{Object.values(G).forEach(g=>g.classList.remove("used","dim"));inl.forEach(l=>l.classList.remove("on"));panel.style.display="none"}}
+const tabs=document.getElementById("tabs");Object.keys(TEAMS).forEach((t,i)=>{const b=document.createElement("button");b.className="btn";b.textContent=t;b.setAttribute("aria-pressed",!i);
+ b.onclick=()=>{tabs.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));draw(t)};tabs.append(b)});
+draw("Web Developer");
+</script>
+</body>
+</html>
