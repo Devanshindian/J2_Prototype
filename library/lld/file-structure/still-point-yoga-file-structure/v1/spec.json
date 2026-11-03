@@ -72,7 +72,7 @@
   "sha": "b7340816f5d7634f4284b5b272a35f9d471ae0eef796023190008478e432eeba",
   "extends": "lld/file-structure@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
+    "run": "j2-20261103-161111-3",
     "workflow": "W-16",
     "atom": "W-16.a1",
     "agent": "template generator (mock)"
@@ -83,6 +83,6 @@
       "Still Point Yoga",
       "The File structure section is written for Still Point Yoga"
     ],
-    "fingerprint": "4670f845d25e447c1853b003a6228d38237a2d731673d173817a599f379dda4b"
+    "fingerprint": "ac16c749b8257cc730843a52759adf2c7160fd3eb30551073f52fe0cef4d5809"
   }
 }

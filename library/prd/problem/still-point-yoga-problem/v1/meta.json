@@ -6,13 +6,13 @@
   "schema_sha": "f2f6191a5d45e49e38315bbfeb87a9c9aa294e2c9f1240e24f1bee3ccbc9a979",
   "model_sha": "736cbe0ef900da1f4024797885d92378438025e577c479b733ea2763e9ba729d",
   "class": "StillPointYogaProblemV1",
-  "created": "2026-11-03T15:40:28",
+  "created": "2026-11-03T16:11:11",
   "fingerprints": [
-    "41eb8b363f2f312ff7f1eda658f9276628e293bb463f3b0b3c46c4dd279a8fb4"
+    "7722cb9f4489654aa64c81e8e368884ea1b9535bb10355075b9c8e749c4591fc"
   ],
   "used_by": [
     {
-      "run": "j2-20261103-154028-3",
+      "run": "j2-20261103-161111-3",
       "workflow": "W-1",
       "atom": "W-1.a1",
       "action": "created"

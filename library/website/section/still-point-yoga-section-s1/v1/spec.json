@@ -100,7 +100,7 @@
   "sha": "a720bb599621794d04092437ea603daf96c4cf58ccc206c9a5dd3153d6d9bdbe",
   "extends": "website/section@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
+    "run": "j2-20261103-161111-3",
     "workflow": "W-19",
     "atom": "W-19.a1",
     "agent": "template generator (mock)"
@@ -110,6 +110,6 @@
     "facts_used": [
       "What the business offers is on the page"
     ],
-    "fingerprint": "9249637496a19fb753b36cb590fb062828eeeb19d517502f9dc3eb138361a835"
+    "fingerprint": "22f0d78d46f9b6e400128c363ab3357a7dda5430994ee465f3e87fd8c280d943"
   }
 }

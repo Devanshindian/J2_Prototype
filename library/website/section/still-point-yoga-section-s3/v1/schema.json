@@ -33,12 +33,8 @@
       "type": "array"
     },
     "facts_used": {
-      "description": "the charter facts this section uses, copied exactly from Still Point Yoga's charter",
+      "description": "the charter facts this section shows, copied exactly (for Still Point Yoga, a business)",
       "items": {
-        "enum": [
-          "How to get in touch is on the page",
-          "What the business offers is on the page"
-        ],
         "type": "string"
       },
       "type": "array"
@@ -46,10 +42,6 @@
     "elements": {
       "description": "the interactive elements of the LLD this section builds, by selector",
       "items": {
-        "enum": [
-          "#act-1",
-          "#act-2"
-        ],
         "type": "string"
       },
       "type": "array"

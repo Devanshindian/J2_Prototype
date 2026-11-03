@@ -1,10 +1,10 @@
 {
-  "name": "Still Point Yoga section S1",
+  "name": "Still Point Yoga section S4",
   "artifact": "website",
   "section": "Section",
-  "version": 2,
+  "version": 1,
   "kind": "specialised",
-  "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 1 charter fact(s)",
+  "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, from 0 charter fact(s)",
   "fields": [
     {
       "name": "id",
@@ -58,11 +58,8 @@
       "name": "facts_used",
       "type": "list[string]",
       "required": false,
-      "description": "the charter facts this section uses, copied exactly from Still Point Yoga's charter",
-      "enum": [
-        "How to get in touch is on the page",
-        "What the business offers is on the page"
-      ],
+      "description": "the charter facts this section shows, copied exactly (for Still Point Yoga, a business)",
+      "enum": null,
       "nullable": false
     },
     {
@@ -71,48 +68,24 @@
       "required": false,
       "description": "the interactive elements of the LLD this section builds, by selector",
       "enum": [
-        "#act-1",
-        "#act-2"
-      ],
-      "nullable": false
-    },
-    {
-      "name": "form_fields",
-      "type": "list[string]",
-      "required": false,
-      "description": "the form fields of the LLD this section builds, by name",
-      "enum": [
-        "name-1"
+        "#act-4"
       ],
       "nullable": false
     }
   ],
   "objects": [],
-  "rules": [
-    {
-      "rule": "enum",
-      "path": "facts_used[]",
-      "values": [
-        "How to get in touch is on the page",
-        "What the business offers is on the page"
-      ],
-      "from": "facts",
-      "name": "facts_used are facts of Still Point Yoga's charter"
-    }
-  ],
-  "sha": "22e800df4a1fdde4c6cbf25b209fac59e51c2dd44230aa471c3223216ec6d316",
+  "rules": [],
+  "sha": "da4d8cd52df5c17ac80253873b1178a14c69f7d205b4921401e65e8ce07cacb2",
   "extends": "website/section@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
-    "workflow": "W-20",
-    "atom": "W-20.a1",
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-22",
+    "atom": "W-22.a1",
     "agent": "template generator (mock)"
   },
   "context": {
     "business_type": "business",
-    "facts_used": [
-      "How to get in touch is on the page"
-    ],
-    "fingerprint": "133abb0f65f745c4b1af867f7950aeb954328bb528b18cabbabdc0bcbc2b46b4"
+    "facts_used": [],
+    "fingerprint": "b379b3ad82f0308ea245c687cbc2f14c443e7b33a744376d8fe5714e317fe827"
   }
 }

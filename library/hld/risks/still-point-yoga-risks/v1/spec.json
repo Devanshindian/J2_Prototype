@@ -72,7 +72,7 @@
   "sha": "b359c50e77029b7dc8324eb428daf57e40ba98852f2c8eb5b217e2e5369bd9b7",
   "extends": "hld/risks@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
+    "run": "j2-20261103-161111-3",
     "workflow": "W-12",
     "atom": "W-12.a1",
     "agent": "template generator (mock)"
@@ -83,6 +83,6 @@
       "Still Point Yoga",
       "The Risks section is written for Still Point Yoga"
     ],
-    "fingerprint": "758f2bbecbdd5ca37a8ae4469c6643189d4401d07ced2d75e811b28ee3d2c42e"
+    "fingerprint": "ff0fd5a224f004fd7db577855f38832d89738e3f21a43cf9960455d017293f37"
   }
 }

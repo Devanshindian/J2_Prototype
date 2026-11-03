@@ -16,7 +16,7 @@
           "schema_sha": "310cfa0e07d0fcf661b050ff21900dbede31a557d139c887c6ef50016c18cb8e",
           "description": "Components for Still Point Yoga (hld): the generic HLD/1 · Components fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "81a2da2cf30157f34ba4f3f182553bae094fc02ff25bca3ef6773d14a829d0b8"
+            "44f26e4f50cd5ac8275a21d71615334c6aec3c50c14322560ac43a8d56ca85c4"
           ],
           "business_type": "hld",
           "facts": [
@@ -35,14 +35,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-9",
             "atom": "W-9.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-9",
               "atom": "W-9.a1",
               "action": "created"
@@ -67,7 +67,7 @@
           "schema_sha": "8ccf71d059b417aed4b708c0f1cb7e449038576d4ec8519e72826fb914ce2663",
           "description": "Data flow for Still Point Yoga (hld): the generic HLD/1 · Data flow fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "fa1e0f6eb247ac5f3625a46cac2323dbeba259cf1cdd9995c813919562a25bbd"
+            "a755637e3f215ab901b4d87ce19ff5761edcaf1446fc91a779ca0e0325ccb7d0"
           ],
           "business_type": "hld",
           "facts": [
@@ -86,14 +86,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-10",
             "atom": "W-10.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-10",
               "atom": "W-10.a1",
               "action": "created"
@@ -118,7 +118,7 @@
           "schema_sha": "85392717c1b732f8e1743cc132f810f713b29d68f76cf0f12484fa9978f776cc",
           "description": "Hosting and deployment for Still Point Yoga (hld): the generic HLD/1 · Hosting and deployment fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "7cf81c6c259189d84f6a86c30e9d65605bade298960a61896a763de8398d3b85"
+            "1cdf8b10ebf6dc2ddf6ca523f302fc52bed5fe23b725311ae74d835806922fcd"
           ],
           "business_type": "hld",
           "facts": [
@@ -137,14 +137,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-11",
             "atom": "W-11.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-11",
               "atom": "W-11.a1",
               "action": "created"
@@ -169,7 +169,7 @@
           "schema_sha": "65131bf89539b9ff525a8227733ffe69dbbea49643e6b0f6fbdf44b72be51a5d",
           "description": "Pages for Still Point Yoga (hld): the generic HLD/1 · Pages fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "b1ac2935be87d9a84985bd25c9c4650e0bbf3f1bd1da9232d6f769ee38e6dab1"
+            "ee6cb8d6dd6f9e7e9612ce434c13bb626bb57c9964d37a5efaebe70b506ea02f"
           ],
           "business_type": "hld",
           "facts": [
@@ -188,14 +188,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-8",
             "atom": "W-8.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-8",
               "atom": "W-8.a1",
               "action": "created"
@@ -220,7 +220,7 @@
           "schema_sha": "9fa6bb91938dbc4fd31a17571a88dc2ddc09094285ec6eca59a4d421b35e4493",
           "description": "Purpose and scope for Still Point Yoga (hld): the generic HLD/1 · Purpose and scope fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "32b622df91991c502adbe6474ad3edfbb3fd355dd0e3fa9c7fc4e18e5b27d071"
+            "6f3772eec4f6407973eda97cffb66fac6577c054bb6dd4533ad2ff720e84c263"
           ],
           "business_type": "hld",
           "facts": [
@@ -239,14 +239,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-7",
             "atom": "W-7.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-7",
               "atom": "W-7.a1",
               "action": "created"
@@ -271,7 +271,7 @@
           "schema_sha": "3c3378604e9df7fc41567d43401e43a01109c2a614a7403164a250a7bba3d755",
           "description": "Risks for Still Point Yoga (hld): the generic HLD/1 · Risks fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "758f2bbecbdd5ca37a8ae4469c6643189d4401d07ced2d75e811b28ee3d2c42e"
+            "ff0fd5a224f004fd7db577855f38832d89738e3f21a43cf9960455d017293f37"
           ],
           "business_type": "hld",
           "facts": [
@@ -290,14 +290,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-12",
             "atom": "W-12.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-12",
               "atom": "W-12.a1",
               "action": "created"
@@ -322,7 +322,7 @@
           "schema_sha": "5a4e8a9f20cce7cf4008a8717537005d48d047a8faf73a54b2deaa5707047db5",
           "description": "File structure for Still Point Yoga (lld): the generic LLD/1 · File structure fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "4670f845d25e447c1853b003a6228d38237a2d731673d173817a599f379dda4b"
+            "ac16c749b8257cc730843a52759adf2c7160fd3eb30551073f52fe0cef4d5809"
           ],
           "business_type": "lld",
           "facts": [
@@ -341,14 +341,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-16",
             "atom": "W-16.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-16",
               "atom": "W-16.a1",
               "action": "created"
@@ -373,7 +373,7 @@
           "schema_sha": "5e5620bf8acb92e1ee621b9c6e30f9c73e999706881abe73ae9d98b364b977bc",
           "description": "Form fields for Still Point Yoga (lld): the generic LLD/1 · Form fields fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "426dbebbe5186cc5f49a9f03ce47802d930193cce9d143c0730d25d8bd9ac646"
+            "550c8e42080f5bb8cbaa473861c5e0e3c9f201ae1701bb9187941a6aa0acc7be"
           ],
           "business_type": "lld",
           "facts": [
@@ -407,14 +407,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-15",
             "atom": "W-15.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-15",
               "atom": "W-15.a1",
               "action": "created"
@@ -439,7 +439,7 @@
           "schema_sha": "0be518194908dcd2cc5eb477ce963391b5e67da24d2ee2ed79864180b94cde78",
           "description": "Interactive elements for Still Point Yoga (lld): the generic LLD/1 · Interactive elements fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "6a0a5695ec297c5b57b1f04b7314f6b1de653bde7a5c7d2e4752e6ba406b0b4d"
+            "e9aecc383136d749b53648442fd07d31199f39d8593a6746916788b9c7cd5002"
           ],
           "business_type": "lld",
           "facts": [
@@ -458,14 +458,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-14",
             "atom": "W-14.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-14",
               "atom": "W-14.a1",
               "action": "created"
@@ -490,7 +490,7 @@
           "schema_sha": "3713706858ed8d4d2566edd7f87893a18148a1bb777ede71314aac4090d9ccf5",
           "description": "Pages and sections for Still Point Yoga (lld): the generic LLD/1 · Pages and sections fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "196c43bc0beab5f34405247ce0a72fcc9a424aef9a5437504cfae6fc661afe79"
+            "ea5e9998a57378af37da82830b7bc74a0a49e590dde3734b1796277d7b415d9b"
           ],
           "business_type": "lld",
           "facts": [
@@ -509,14 +509,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-13",
             "atom": "W-13.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-13",
               "atom": "W-13.a1",
               "action": "created"
@@ -541,7 +541,7 @@
           "schema_sha": "8f80bb52aa56fb290ae53d91d3b8ffb734a82265ce443a8bbcb79e69cd070faa",
           "description": "Responsive and accessibility rules for Still Point Yoga (lld): the generic LLD/1 · Responsive and accessibility rules fields plus facts_used, from 2 charter fact(s)",
           "fingerprints": [
-            "ec73c97fba0cbc08857bdf70c577d742a3580514a46f077a2f7aa5800ecac3db"
+            "e34e53a8ade859db1e240f62ec46fae0b02d4f133d7a76cc3c8cddee166c6a64"
           ],
           "business_type": "lld",
           "facts": [
@@ -561,14 +561,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-17",
             "atom": "W-17.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-17",
               "atom": "W-17.a1",
               "action": "created"
@@ -593,7 +593,7 @@
           "schema_sha": "e3f04539ae5e87eb4390983e86e87e07577f37b3232c6818e9eab741e21a10c2",
           "description": "Goals for Still Point Yoga (prd): the generic PRD/1 · Goals fields plus facts_used, from 7 charter fact(s)",
           "fingerprints": [
-            "0e97e8edb933b90a822e53c8f3b5a5d06edc77522c11c64b517e6f960d108e0e"
+            "1c35c101e1785b13aa1151fd7813967770088653ca48aac5784fbce60e031f26"
           ],
           "business_type": "prd",
           "facts": [
@@ -622,14 +622,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-3",
             "atom": "W-3.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-3",
               "atom": "W-3.a1",
               "action": "created"
@@ -654,7 +654,7 @@
           "schema_sha": "356fc656b6885cb8621dea178eebc4753d4bafa5ac17c0605299fe5ada7c269a",
           "description": "Out of scope for Still Point Yoga (prd): the generic PRD/1 · Out of scope fields plus facts_used, from 7 charter fact(s)",
           "fingerprints": [
-            "4b7c8fb1ab1867e3a92c6cccf36bf0ee2eed7e4ce46f0a8f07dfcf0b49a66ed3"
+            "7b1f8c3bc6d38b43844f99f91beaeac840500066346497ae106964a7bfa4502b"
           ],
           "business_type": "prd",
           "facts": [
@@ -683,14 +683,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-6",
             "atom": "W-6.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-6",
               "atom": "W-6.a1",
               "action": "created"
@@ -715,7 +715,7 @@
           "schema_sha": "f2f6191a5d45e49e38315bbfeb87a9c9aa294e2c9f1240e24f1bee3ccbc9a979",
           "description": "Problem for Still Point Yoga (prd): the generic PRD/1 · Problem fields plus facts_used, from 7 charter fact(s)",
           "fingerprints": [
-            "41eb8b363f2f312ff7f1eda658f9276628e293bb463f3b0b3c46c4dd279a8fb4"
+            "7722cb9f4489654aa64c81e8e368884ea1b9535bb10355075b9c8e749c4591fc"
           ],
           "business_type": "prd",
           "facts": [
@@ -744,14 +744,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-1",
             "atom": "W-1.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-1",
               "atom": "W-1.a1",
               "action": "created"
@@ -776,7 +776,7 @@
           "schema_sha": "2142c6dc4f14b39d3b95559a7d57466fa7a8a018e38fc336bc1a351653fc93f4",
           "description": "Requirements for Still Point Yoga (prd): the generic PRD/1 · Requirements fields plus facts_used, booking_form_fields, classes, from 7 charter fact(s)",
           "fingerprints": [
-            "334c3ee2530360e339632befcb0837b006962b0e32a36b0f8e3a84f52cb5a488"
+            "33a8d2a50129cb4a96469aea615825c8399e15ba8972d0d899dfb38a580dc67e"
           ],
           "business_type": "prd",
           "facts": [
@@ -818,14 +818,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-4",
             "atom": "W-4.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-4",
               "atom": "W-4.a1",
               "action": "created"
@@ -850,7 +850,7 @@
           "schema_sha": "a4b4006ab366507cf864db870c0fc17eabb757c546cdd8402d6fbdfddc7021ca",
           "description": "Success metrics for Still Point Yoga (prd): the generic PRD/1 · Success metrics fields plus facts_used, from 7 charter fact(s)",
           "fingerprints": [
-            "38e0f9ae37ac2ff5f566895569ade0f5a63b37c9d84a41aed3d1ec163f29a4ac"
+            "59d7febebc65ad22fd625e58ff8d62e42547247cd9078b71f1ff15d0ceb35ecd"
           ],
           "business_type": "prd",
           "facts": [
@@ -879,14 +879,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-5",
             "atom": "W-5.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-5",
               "atom": "W-5.a1",
               "action": "created"
@@ -911,7 +911,7 @@
           "schema_sha": "b841e8cffdc67a82978b65fd56cd2b4811f4c22538033bb5ebcf06b2961d4201",
           "description": "Users for Still Point Yoga (prd): the generic PRD/1 · Users fields plus facts_used, from 7 charter fact(s)",
           "fingerprints": [
-            "2e0f35b4f5e0dfdb1fac5864dd2735f86dd546a9d4b1e07087ef25fb88d88061"
+            "c6860eebaba05b5bbccde683596239c9cc11cfb6a0c06be829b9c64bb7973e1b"
           ],
           "business_type": "prd",
           "facts": [
@@ -940,14 +940,14 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-2",
             "atom": "W-2.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-2",
               "atom": "W-2.a1",
               "action": "created"
@@ -956,77 +956,6 @@
         }
       ],
       "description": "Users for Still Point Yoga (prd): the generic PRD/1 · Users fields plus facts_used, from 7 charter fact(s)"
-    },
-    {
-      "artifact": "website",
-      "section": "Section",
-      "section_slug": "section",
-      "slug": "still-point-yoga-scaffold-and-styling",
-      "name": "Still Point Yoga Scaffold and styling",
-      "kind": "specialised",
-      "extends": "website/section@generic/1",
-      "versions": [
-        {
-          "version": 1,
-          "sha": "ac08a9fac021e948f5143697da9d633fede3be6775961e91e4b927f9b7ec37f9",
-          "schema_sha": "d06877172dd3dcf9dc5b42f798ea2d74089014774ccdd795fdd9f0bb217fac00",
-          "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)",
-          "fingerprints": [
-            "2a81981a8a28661d24ddf2e872e4e79f1dbc785a1dedb9b34226e68628aeb13e"
-          ],
-          "business_type": "business",
-          "facts": [],
-          "fields": [
-            "id",
-            "anchor",
-            "implements",
-            "html",
-            "head",
-            "selectors_used",
-            "facts_used"
-          ],
-          "enums": {},
-          "made_by": {
-            "run": "j2-20261103-154028-3",
-            "workflow": "W-18",
-            "atom": "W-18.a1",
-            "agent": "template generator (mock)"
-          },
-          "used_by": [
-            {
-              "run": "j2-20261103-154028-3",
-              "workflow": "W-18",
-              "atom": "W-18.a1",
-              "action": "created"
-            },
-            {
-              "run": "j2-20261103-154028-3",
-              "workflow": "W-21",
-              "atom": "W-21.a1",
-              "action": "reused"
-            },
-            {
-              "run": "j2-20261103-154028-3",
-              "workflow": "W-22",
-              "atom": "W-22.a1",
-              "action": "reused"
-            },
-            {
-              "run": "j2-20261103-154028-3",
-              "workflow": "W-23",
-              "atom": "W-23.a1",
-              "action": "reused"
-            },
-            {
-              "run": "j2-20261103-154028-3",
-              "workflow": "W-24",
-              "atom": "W-24.a1",
-              "action": "reused"
-            }
-          ]
-        }
-      ],
-      "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)"
     },
     {
       "artifact": "website",
@@ -1043,7 +972,7 @@
           "schema_sha": "a63ba6fea5212472cc00e482ee311bcc654fd8129adcc24cb8808f176e2fb4c5",
           "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 1 charter fact(s)",
           "fingerprints": [
-            "9249637496a19fb753b36cb590fb062828eeeb19d517502f9dc3eb138361a835"
+            "22f0d78d46f9b6e400128c363ab3357a7dda5430994ee465f3e87fd8c280d943"
           ],
           "business_type": "business",
           "facts": [
@@ -1072,27 +1001,39 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-19",
             "atom": "W-19.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-19",
               "atom": "W-19.a1",
               "action": "created"
             }
           ]
-        },
+        }
+      ],
+      "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 1 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "still-point-yoga-section-s2",
+      "name": "Still Point Yoga section S2",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
         {
-          "version": 2,
-          "sha": "22e800df4a1fdde4c6cbf25b209fac59e51c2dd44230aa471c3223216ec6d316",
-          "schema_sha": "d07fbd09f9f6654f29e744823f9150994cf8e85eb2ed2f3f6961a2f9d325d5af",
-          "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 1 charter fact(s)",
+          "version": 1,
+          "sha": "77e54b4a5d304dc20a67ef47f1f91953cf3813fe2c92f6c461109ff0b722e5d9",
+          "schema_sha": "57394a40c54aa9c4bb490cbcf147397317addfbea406d40ef37a39e87176bdc0",
+          "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, from 1 charter fact(s)",
           "fingerprints": [
-            "133abb0f65f745c4b1af867f7950aeb954328bb528b18cabbabdc0bcbc2b46b4"
+            "3c83bac8765e276017d885cf0e6a22b62ca97a87aa6408e80e49ca6871220a6f"
           ],
           "business_type": "business",
           "facts": [
@@ -1106,39 +1047,197 @@
             "head",
             "selectors_used",
             "facts_used",
-            "elements",
-            "form_fields"
+            "elements"
           ],
           "enums": {
             "facts_used": [
-              "How to get in touch is on the page",
-              "What the business offers is on the page"
+              "How to get in touch is on the page"
             ],
             "elements": [
-              "#act-1",
               "#act-2"
-            ],
-            "form_fields": [
-              "name-1"
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028-3",
+            "run": "j2-20261103-161111-3",
             "workflow": "W-20",
             "atom": "W-20.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028-3",
+              "run": "j2-20261103-161111-3",
               "workflow": "W-20",
               "atom": "W-20.a1",
-              "action": "extended"
+              "action": "created"
             }
           ]
         }
       ],
-      "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 1 charter fact(s)"
+      "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, from 1 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "still-point-yoga-section-s3",
+      "name": "Still Point Yoga section S3",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "80370ea71f30080a3869b8c0e83e6dc53ff39fcaae08475816decd3fa9fa3fa0",
+          "schema_sha": "0ffea88f64f8757169e3f9353d23afe8d0c331bd77945bb4f0edf2979949847c",
+          "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 0 charter fact(s)",
+          "fingerprints": [
+            "856da1e4af857b66335cdcd7ba62d08c84cc38199d6961331918cd5c5548b28e"
+          ],
+          "business_type": "business",
+          "facts": [],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used",
+            "elements",
+            "form_fields"
+          ],
+          "enums": {
+            "elements": [
+              "#act-3"
+            ],
+            "form_fields": [
+              "name-3"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-161111-3",
+            "workflow": "W-21",
+            "atom": "W-21.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-161111-3",
+              "workflow": "W-21",
+              "atom": "W-21.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 0 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "still-point-yoga-section-s4",
+      "name": "Still Point Yoga section S4",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "da4d8cd52df5c17ac80253873b1178a14c69f7d205b4921401e65e8ce07cacb2",
+          "schema_sha": "3af7c5cc33c66495d7aa52ec80a47d305fb49c03fe77b2a0962306b3ea60f029",
+          "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, from 0 charter fact(s)",
+          "fingerprints": [
+            "b379b3ad82f0308ea245c687cbc2f14c443e7b33a744376d8fe5714e317fe827"
+          ],
+          "business_type": "business",
+          "facts": [],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used",
+            "elements"
+          ],
+          "enums": {
+            "elements": [
+              "#act-4"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-161111-3",
+            "workflow": "W-22",
+            "atom": "W-22.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-161111-3",
+              "workflow": "W-22",
+              "atom": "W-22.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, from 0 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "still-point-yoga-section-s5",
+      "name": "Still Point Yoga section S5",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "d39be2ee6411991797db0a65cf3a69adb47efa2580ff0886641cbf4b211c7a96",
+          "schema_sha": "0ffea88f64f8757169e3f9353d23afe8d0c331bd77945bb4f0edf2979949847c",
+          "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 0 charter fact(s)",
+          "fingerprints": [
+            "856da1e4af857b66335cdcd7ba62d08c84cc38199d6961331918cd5c5548b28e"
+          ],
+          "business_type": "business",
+          "facts": [],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used",
+            "elements",
+            "form_fields"
+          ],
+          "enums": {
+            "elements": [
+              "#act-5"
+            ],
+            "form_fields": [
+              "name-5"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-161111-3",
+            "workflow": "W-23",
+            "atom": "W-23.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-161111-3",
+              "workflow": "W-23",
+              "atom": "W-23.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 0 charter fact(s)"
     },
     {
       "artifact": "website",
@@ -1155,7 +1254,7 @@
           "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
           "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
           "fingerprints": [
-            "93bad79dda178be9242572abd6f3cf0a34c5163766328615b48f00be6bcd8f9c"
+            "c8fe4c6476f9b71f0c6578a858fd6463244686e8e518cd4d44764e8d5a55a5f9"
           ],
           "business_type": "boutique",
           "facts": [
@@ -1176,20 +1275,20 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028",
+            "run": "j2-20261103-161111",
             "workflow": "W-4",
             "atom": "W-4.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028",
+              "run": "j2-20261103-161111",
               "workflow": "W-4",
               "atom": "W-4.a1",
               "action": "created"
             },
             {
-              "run": "j2-20261103-154028-2",
+              "run": "j2-20261103-161111-2",
               "workflow": "W-4",
               "atom": "W-4.a1",
               "action": "reused"
@@ -1214,7 +1313,7 @@
           "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
           "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
           "fingerprints": [
-            "ad2d01741285599de012d6e0149c60fdebb3cac3d660443df26dd18e757a7e41"
+            "f933d99e934fd6e5dda3dab830157e97ab5efa7545bf120c8928241525dbbb44"
           ],
           "business_type": "boutique",
           "facts": [
@@ -1235,20 +1334,20 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028",
+            "run": "j2-20261103-161111",
             "workflow": "W-3",
             "atom": "W-3.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028",
+              "run": "j2-20261103-161111",
               "workflow": "W-3",
               "atom": "W-3.a1",
               "action": "created"
             },
             {
-              "run": "j2-20261103-154028-2",
+              "run": "j2-20261103-161111-2",
               "workflow": "W-3",
               "atom": "W-3.a1",
               "action": "reused"
@@ -1273,7 +1372,7 @@
           "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
           "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
           "fingerprints": [
-            "1b6ff1d3aee3d5507e6d9c80c21072a93d8ec63df300dacc2f3da0ea96d994df"
+            "91aabf96c74f1119ac6338db2874bff19e35bed78bd3d9766c47d040ef88d695"
           ],
           "business_type": "boutique",
           "facts": [
@@ -1294,20 +1393,20 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028",
+            "run": "j2-20261103-161111",
             "workflow": "W-2",
             "atom": "W-2.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028",
+              "run": "j2-20261103-161111",
               "workflow": "W-2",
               "atom": "W-2.a1",
               "action": "created"
             },
             {
-              "run": "j2-20261103-154028-2",
+              "run": "j2-20261103-161111-2",
               "workflow": "W-2",
               "atom": "W-2.a1",
               "action": "reused"
@@ -1332,7 +1431,7 @@
           "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
           "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
           "fingerprints": [
-            "5807d75a6bd62311d78b195cc017cdcb7a9973b3bf7ee1e26bb2eeea29048840"
+            "858449439071cbb172875f2b94c3a45c77f13f0d2fa7d5e1797ca30e4fcd68ac"
           ],
           "business_type": "boutique",
           "facts": [
@@ -1353,20 +1452,20 @@
             ]
           },
           "made_by": {
-            "run": "j2-20261103-154028",
+            "run": "j2-20261103-161111",
             "workflow": "W-1",
             "atom": "W-1.a1",
             "agent": "template generator (mock)"
           },
           "used_by": [
             {
-              "run": "j2-20261103-154028",
+              "run": "j2-20261103-161111",
               "workflow": "W-1",
               "atom": "W-1.a1",
               "action": "created"
             },
             {
-              "run": "j2-20261103-154028-2",
+              "run": "j2-20261103-161111-2",
               "workflow": "W-1",
               "atom": "W-1.a1",
               "action": "reused"
@@ -1375,59 +1474,6 @@
         }
       ],
       "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)"
-    },
-    {
-      "artifact": "website",
-      "section": "Section",
-      "section_slug": "section",
-      "slug": "thread-viewport-fix",
-      "name": "Thread Viewport fix",
-      "kind": "specialised",
-      "extends": "website/section@generic/1",
-      "versions": [
-        {
-          "version": 1,
-          "sha": "5f7ed0cacd73ad3b686ec911e7ba39680bae8089161e3d14e3a628e0618c818b",
-          "schema_sha": "81ba74dfe1ab99322a95f3aa94964aff04175785a69a200e36a63aadc5f67719",
-          "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)",
-          "fingerprints": [
-            "aff83a59e5f27c83749a8ea4cfe31d1e0b9dfeefcbcf4db6358786412e4261c9"
-          ],
-          "business_type": "boutique",
-          "facts": [],
-          "fields": [
-            "id",
-            "anchor",
-            "implements",
-            "html",
-            "head",
-            "selectors_used",
-            "facts_used"
-          ],
-          "enums": {},
-          "made_by": {
-            "run": "j2-20261103-154028",
-            "workflow": "W-5",
-            "atom": "W-5.a1",
-            "agent": "template generator (mock)"
-          },
-          "used_by": [
-            {
-              "run": "j2-20261103-154028",
-              "workflow": "W-5",
-              "atom": "W-5.a1",
-              "action": "created"
-            },
-            {
-              "run": "j2-20261103-154028-2",
-              "workflow": "W-5",
-              "atom": "W-5.a1",
-              "action": "reused"
-            }
-          ]
-        }
-      ],
-      "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)"
     }
   ]
 }

@@ -80,7 +80,7 @@
   "sha": "5383aec9d139fdc4a16baae8bd8ac25a2afbf695ac8011aab4160c1cf7b8b022",
   "extends": "website/section@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028",
+    "run": "j2-20261103-161111",
     "workflow": "W-4",
     "atom": "W-4.a1",
     "agent": "template generator (mock)"
@@ -90,6 +90,6 @@
     "facts_used": [
       "Visitors can filter products by size and price"
     ],
-    "fingerprint": "93bad79dda178be9242572abd6f3cf0a34c5163766328615b48f00be6bcd8f9c"
+    "fingerprint": "c8fe4c6476f9b71f0c6578a858fd6463244686e8e518cd4d44764e8d5a55a5f9"
   }
 }

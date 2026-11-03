@@ -80,7 +80,7 @@
   "sha": "67455d1fa9feb787a5640b710b58a7a13156fdca815b417098e46b3fca45ef6d",
   "extends": "website/section@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028",
+    "run": "j2-20261103-161111",
     "workflow": "W-1",
     "atom": "W-1.a1",
     "agent": "template generator (mock)"
@@ -90,6 +90,6 @@
     "facts_used": [
       "Visitors can browse products by category"
     ],
-    "fingerprint": "5807d75a6bd62311d78b195cc017cdcb7a9973b3bf7ee1e26bb2eeea29048840"
+    "fingerprint": "858449439071cbb172875f2b94c3a45c77f13f0d2fa7d5e1797ca30e4fcd68ac"
   }
 }

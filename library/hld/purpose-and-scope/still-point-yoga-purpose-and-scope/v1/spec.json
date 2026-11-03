@@ -50,7 +50,7 @@
   "sha": "99d914f5ead4964755f10d4faa656c2e96556221f562600aae4d6c9635133096",
   "extends": "hld/purpose-and-scope@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
+    "run": "j2-20261103-161111-3",
     "workflow": "W-7",
     "atom": "W-7.a1",
     "agent": "template generator (mock)"
@@ -61,6 +61,6 @@
       "Still Point Yoga",
       "The Purpose and scope section is written for Still Point Yoga"
     ],
-    "fingerprint": "32b622df91991c502adbe6474ad3edfbb3fd355dd0e3fa9c7fc4e18e5b27d071"
+    "fingerprint": "6f3772eec4f6407973eda97cffb66fac6577c054bb6dd4533ad2ff720e84c263"
   }
 }

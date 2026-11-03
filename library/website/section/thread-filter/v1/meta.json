@@ -6,19 +6,19 @@
   "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
   "model_sha": "fb7e25f44bf0c4d2b81c46620fdf053e825b779136e832d459bc51db8346d8f2",
   "class": "ThreadFilterV1",
-  "created": "2026-11-03T15:40:28",
+  "created": "2026-11-03T16:11:11",
   "fingerprints": [
-    "93bad79dda178be9242572abd6f3cf0a34c5163766328615b48f00be6bcd8f9c"
+    "c8fe4c6476f9b71f0c6578a858fd6463244686e8e518cd4d44764e8d5a55a5f9"
   ],
   "used_by": [
     {
-      "run": "j2-20261103-154028",
+      "run": "j2-20261103-161111",
       "workflow": "W-4",
       "atom": "W-4.a1",
       "action": "created"
     },
     {
-      "run": "j2-20261103-154028-2",
+      "run": "j2-20261103-161111-2",
       "workflow": "W-4",
       "atom": "W-4.a1",
       "action": "reused"

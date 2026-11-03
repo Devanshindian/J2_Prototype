@@ -38,6 +38,20 @@
         "type": "string"
       },
       "type": "array"
+    },
+    "elements": {
+      "description": "the interactive elements of the LLD this section builds, by selector",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "form_fields": {
+      "description": "the form fields of the LLD this section builds, by name",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     }
   },
   "required": [

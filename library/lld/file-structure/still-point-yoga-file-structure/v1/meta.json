@@ -6,13 +6,13 @@
   "schema_sha": "5a4e8a9f20cce7cf4008a8717537005d48d047a8faf73a54b2deaa5707047db5",
   "model_sha": "8697544f32d99e1e9b0801e030d6a0e26eadd0aeb99ca138fa9442f3b3151f9a",
   "class": "StillPointYogaFileStructureV1",
-  "created": "2026-11-03T15:40:28",
+  "created": "2026-11-03T16:11:12",
   "fingerprints": [
-    "4670f845d25e447c1853b003a6228d38237a2d731673d173817a599f379dda4b"
+    "ac16c749b8257cc730843a52759adf2c7160fd3eb30551073f52fe0cef4d5809"
   ],
   "used_by": [
     {
-      "run": "j2-20261103-154028-3",
+      "run": "j2-20261103-161111-3",
       "workflow": "W-16",
       "atom": "W-16.a1",
       "action": "created"

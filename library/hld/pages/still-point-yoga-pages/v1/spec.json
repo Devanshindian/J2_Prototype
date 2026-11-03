@@ -88,7 +88,7 @@
   "sha": "4cb93d0788a55c17d53887b1623fc7fc0bb76b87f5026c96d52fb46e35fd1935",
   "extends": "hld/pages@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
+    "run": "j2-20261103-161111-3",
     "workflow": "W-8",
     "atom": "W-8.a1",
     "agent": "template generator (mock)"
@@ -99,6 +99,6 @@
       "Still Point Yoga",
       "The Pages section is written for Still Point Yoga"
     ],
-    "fingerprint": "b1ac2935be87d9a84985bd25c9c4650e0bbf3f1bd1da9232d6f769ee38e6dab1"
+    "fingerprint": "ee6cb8d6dd6f9e7e9612ce434c13bb626bb57c9964d37a5efaebe70b506ea02f"
   }
 }

@@ -88,7 +88,7 @@
   "sha": "bf59be0b295106ce06efc0b55c01982fcbbd20a8610ba0cd9e52dc399eeba3eb",
   "extends": "hld/data-flow@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
+    "run": "j2-20261103-161111-3",
     "workflow": "W-10",
     "atom": "W-10.a1",
     "agent": "template generator (mock)"
@@ -99,6 +99,6 @@
       "Still Point Yoga",
       "The Data flow section is written for Still Point Yoga"
     ],
-    "fingerprint": "fa1e0f6eb247ac5f3625a46cac2323dbeba259cf1cdd9995c813919562a25bbd"
+    "fingerprint": "a755637e3f215ab901b4d87ce19ff5761edcaf1446fc91a779ca0e0325ccb7d0"
   }
 }

@@ -1,10 +1,10 @@
 {
-  "name": "Still Point Yoga Scaffold and styling",
+  "name": "Still Point Yoga section S5",
   "artifact": "website",
   "section": "Section",
   "version": 1,
   "kind": "specialised",
-  "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)",
+  "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 0 charter fact(s)",
   "fields": [
     {
       "name": "id",
@@ -61,21 +61,41 @@
       "description": "the charter facts this section shows, copied exactly (for Still Point Yoga, a business)",
       "enum": null,
       "nullable": false
+    },
+    {
+      "name": "elements",
+      "type": "list[string]",
+      "required": false,
+      "description": "the interactive elements of the LLD this section builds, by selector",
+      "enum": [
+        "#act-5"
+      ],
+      "nullable": false
+    },
+    {
+      "name": "form_fields",
+      "type": "list[string]",
+      "required": false,
+      "description": "the form fields of the LLD this section builds, by name",
+      "enum": [
+        "name-5"
+      ],
+      "nullable": false
     }
   ],
   "objects": [],
   "rules": [],
-  "sha": "ac08a9fac021e948f5143697da9d633fede3be6775961e91e4b927f9b7ec37f9",
+  "sha": "d39be2ee6411991797db0a65cf3a69adb47efa2580ff0886641cbf4b211c7a96",
   "extends": "website/section@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
-    "workflow": "W-18",
-    "atom": "W-18.a1",
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-23",
+    "atom": "W-23.a1",
     "agent": "template generator (mock)"
   },
   "context": {
     "business_type": "business",
     "facts_used": [],
-    "fingerprint": "2a81981a8a28661d24ddf2e872e4e79f1dbc785a1dedb9b34226e68628aeb13e"
+    "fingerprint": "856da1e4af857b66335cdcd7ba62d08c84cc38199d6961331918cd5c5548b28e"
   }
 }

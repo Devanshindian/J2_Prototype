@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "description": "the section id of this workflow, as the task gives it (for Still Point Yoga, a business)",
+      "type": "string"
+    },
+    "anchor": {
+      "description": "the id attribute of the section element, with the #; \"\" when this workflow writes page-head tags only (for Still Point Yoga, a business)",
+      "type": "string"
+    },
+    "implements": {
+      "description": "the LLD section ids this builds; empty when the run has no LLD (for Still Point Yoga, a business)",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "html": {
+      "description": "the section's HTML only: no <html>, <head> or <body> tags; \"\" when this workflow writes page-head tags only (for Still Point Yoga, a business)",
+      "type": "string"
+    },
+    "head": {
+      "description": "page-head tags this section needs (meta, link, style or script only); \"\" when it needs none (for Still Point Yoga, a business)",
+      "type": "string"
+    },
+    "selectors_used": {
+      "description": "the ids and classes you used (for Still Point Yoga, a business)",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section uses, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "elements": {
+      "description": "the interactive elements of the LLD this section builds, by selector",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "id"
+  ],
+  "type": "object"
+}

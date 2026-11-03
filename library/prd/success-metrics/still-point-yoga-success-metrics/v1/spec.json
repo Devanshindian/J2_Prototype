@@ -98,7 +98,7 @@
   "sha": "826fd00e9e62444b721a4410ea04aa346737b0c2beede78ef7e5d188b6c77e4c",
   "extends": "prd/success-metrics@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
+    "run": "j2-20261103-161111-3",
     "workflow": "W-5",
     "atom": "W-5.a1",
     "agent": "template generator (mock)"
@@ -114,6 +114,6 @@
       "The page shows the name Still Point Yoga and the address as text, with no embedded map",
       "The weekly class list has five classes, each with day, time and price in rupees"
     ],
-    "fingerprint": "38e0f9ae37ac2ff5f566895569ade0f5a63b37c9d84a41aed3d1ec163f29a4ac"
+    "fingerprint": "59d7febebc65ad22fd625e58ff8d62e42547247cd9078b71f1ff15d0ceb35ecd"
   }
 }

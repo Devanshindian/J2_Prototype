@@ -96,7 +96,7 @@
   "sha": "a3c1fb98275a9eda93810db1378d3ecbf0144c514c8bfeebb7076773b5a5403f",
   "extends": "hld/components@generic/1",
   "made_by": {
-    "run": "j2-20261103-154028-3",
+    "run": "j2-20261103-161111-3",
     "workflow": "W-9",
     "atom": "W-9.a1",
     "agent": "template generator (mock)"
@@ -107,6 +107,6 @@
       "Still Point Yoga",
       "The Components section is written for Still Point Yoga, and names every requirement (R1, R2, R3, R4, R5) it covers"
     ],
-    "fingerprint": "81a2da2cf30157f34ba4f3f182553bae094fc02ff25bca3ef6773d14a829d0b8"
+    "fingerprint": "44f26e4f50cd5ac8275a21d71615334c6aec3c50c14322560ac43a8d56ca85c4"
   }
 }
