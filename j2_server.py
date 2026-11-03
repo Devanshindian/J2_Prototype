@@ -135,15 +135,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
             parts = u.path[len("/api/library/"):].split("/")
             ok = (len(parts) == 4 and parts[0] in j2_template_lib.ARTIFACTS
                   and all(re.fullmatch(r"[a-z0-9-]+", x) for x in parts[1:3]) and re.fullmatch(r"v\d+", parts[3]))
-            got = j2_template_lib.template_view(parts[0], parts[1], parts[2], int(parts[3][1:])) if ok else None
             d = j2.saved_dir(run) if run else RUN.dir
-            if got and d and os.path.isdir(d):      # an example filled from this run's data, when the run used it
+            d = d if d and os.path.isdir(d) else None
+            got = j2_template_lib.template_view(parts[0], parts[1], parts[2], int(parts[3][1:]), run_dir=d) if ok else None
+            if got and d:      # an example filled from this run's data, when the run used it
                 got["example"] = j2_template_lib.run_example(d, got["template"], parts[2])
             return self._send(200, json.dumps(got, ensure_ascii=False)) if got else self._send(404, '{"error": "no such template"}')
         if u.path == "/api/run-templates":      # this run's routing decisions (templates.json); none recorded: an empty list
             d = j2.saved_dir(run) if run else RUN.dir
-            rec = j2._read(d, "templates.json", {}) if d and os.path.isdir(d) else {}
-            return self._send(200, json.dumps({"decisions": (rec or {}).get("decisions") or []}, ensure_ascii=False))
+            decs = j2_template_lib.run_templates(d) if d and os.path.isdir(d) else []
+            return self._send(200, json.dumps({"decisions": decs}, ensure_ascii=False))
         if u.path == "/api/artifacts":  # the Artifacts tab: deliverables, then evidence and records (artifacts/types.json)
             d = j2.saved_dir(run) if run else RUN.dir
             return self._send(200, json.dumps(j2_artifacts.listing(d if d and os.path.isdir(d) else None), ensure_ascii=False))

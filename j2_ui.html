@@ -1525,9 +1525,10 @@ const libUses = u => (u || []).map(x => `${esc(x.run)} ${esc(x.workflow)}${x.act
 const libOpen = (art, sec, name, ver, text) => `<button type="button" class="linkbtn" data-tplopen="${esc(art)}|${esc(sec)}|${esc(name)}|${esc(ver)}">${text}</button>`;
 function renderLibrary(){
   const dec = LIB.decisions || [];
-  const table = dec.length ? `<table class="maptable" data-tpltable="1"><thead><tr><th>Workflow</th><th>Artifact · section</th><th>Action</th><th>Template</th><th>Score</th><th>Reason</th></tr></thead><tbody>`
+  const table = dec.length ? `<table class="maptable" data-tpltable="1"><thead><tr><th>Workflow</th><th>Artifact · section</th><th>Action</th><th>Template</th><th>From</th><th>Score</th><th>Reason</th></tr></thead><tbody>`
     + dec.map(d => `<tr data-tplrow="${esc(d.atom)}"${LIB.focus && LIB.focus === d.atom && d.artifact !== "design" ? ' class="tplfocus"' : ""}><td>${esc(d.workflow)}</td><td>${esc(d.artifact)} · ${esc(d.section)}</td><td>${esc(d.action)}</td>`
-      + `<td>${libOpen(d.artifact, d.section, d.kind === "generic" ? "generic" : d.template, d.kind === "generic" ? 1 : d.version, `${esc(d.template)} v${esc(d.version)}`)}</td>`
+      + `<td>${d.source === "not recorded" ? `${esc(d.template)} v${esc(d.version)}` : libOpen(d.artifact, d.section, d.kind === "generic" ? "generic" : d.template, d.kind === "generic" ? 1 : d.version, `${esc(d.template)} v${esc(d.version)}`)}</td>`
+      + `<td data-tplsource="${esc(d.source || "")}">${d.source ? esc(d.source) : '<span class="empty">not recorded</span>'}</td>`
       + `<td>${d.score === null || d.score === undefined ? '<span class="empty">not recorded</span>' : esc(Number(d.score).toFixed(2))}</td><td>${esc(d.covers ? d.covers + "; " + d.reason : d.reason)}</td></tr>`).join("") + `</tbody></table>`
     : '<p class="empty">This run recorded no routing decisions.</p>';
   const groups = Object.entries(LIB.groups || {}).map(([art, secs]) => `<details class="artgroup" open data-libart="${esc(art)}"><summary><h3>${esc(art.toUpperCase())}</h3></summary>`
@@ -1548,7 +1549,8 @@ function renderTplViewer(){
   if (v.error) return `<section class="artrow" id="tplviewer"><p class="empty">${esc(v.error)}</p></section>`;
   const t = v.template || {}, rd = v.readable || {};
   const tabs = `<div role="tablist" class="tplmodes"><button type="button" role="tab" data-tplmode="template" aria-selected="${LIB.mode === "template"}">As template</button> <button type="button" role="tab" data-tplmode="readable" aria-selected="${LIB.mode === "readable"}">Readable</button> <button type="button" class="linkbtn" data-tplclose="1">close</button></div>`;
-  const head = `<h3>${esc(t.name)} v${esc(t.version)} <span class="empty">${esc(t.kind)}${t.extends ? " · extends " + esc(t.extends) : ""}</span></h3>`;
+  const head = `<h3>${esc(t.name)} v${esc(t.version)} <span class="empty">${esc(t.kind)}${t.extends ? " · extends " + esc(t.extends) : ""}${v.source ? " · " + esc(v.source) : ""}</span></h3>`;
+  if (v.source === "not recorded") return `<section class="artrow" id="tplviewer">${head}<p class="empty">not recorded: this run has no copy of this template and the library has no version ${esc(t.version)} of it.</p> <button type="button" class="linkbtn" data-tplclose="1">close</button></section>`;
   let body;
   if (LIB.mode === "template"){
     body = Object.entries(v.files || {}).filter(([n, f]) => f && f.text !== null).map(([n, f]) => { const k = `${o.artifact}/${o.slug}/v${o.version}/${n}`; TPLCODE[k] = f.text;
