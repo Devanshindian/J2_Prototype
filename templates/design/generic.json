@@ -1,0 +1,228 @@
+{
+  "schema": "template-library/1",
+  "artifact": "design",
+  "kind": "generic",
+  "version": 1,
+  "from": "j2_artifact_models.SECTION_MODELS and j2_rules.RULES (generated: python3 j2_template_lib.py)",
+  "templates": [
+    {
+      "name": "Design/1 · Style guide",
+      "artifact": "design",
+      "section": "Style guide",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic Design/1 · Style guide template: the fixed layout of every design Style guide section, whatever the business",
+      "fields": [
+        {
+          "name": "palette",
+          "type": "Palette",
+          "required": true,
+          "description": "",
+          "nullable": false
+        },
+        {
+          "name": "fonts",
+          "type": "Fonts",
+          "required": true,
+          "description": "",
+          "nullable": false
+        },
+        {
+          "name": "spacing",
+          "type": "Spacing",
+          "required": true,
+          "description": "",
+          "nullable": false
+        },
+        {
+          "name": "radius",
+          "type": "string",
+          "required": true,
+          "description": "the corner radius, e.g. \"12px\"",
+          "nullable": false
+        },
+        {
+          "name": "buttons",
+          "type": "Buttons",
+          "required": true,
+          "description": "",
+          "nullable": false
+        },
+        {
+          "name": "card",
+          "type": "string",
+          "required": true,
+          "description": "css declarations for a card",
+          "nullable": false
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "description": "one line: why this suits the business",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "Palette",
+          "fields": [
+            {
+              "name": "primary",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "nullable": false
+            },
+            {
+              "name": "secondary",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "nullable": false
+            },
+            {
+              "name": "accent",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "nullable": false
+            },
+            {
+              "name": "background",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "nullable": false
+            },
+            {
+              "name": "surface",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "nullable": false
+            },
+            {
+              "name": "text",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "nullable": false
+            },
+            {
+              "name": "muted",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "nullable": false
+            }
+          ]
+        },
+        {
+          "name": "Fonts",
+          "fields": [
+            {
+              "name": "heading",
+              "type": "string",
+              "required": true,
+              "description": "a css font-family",
+              "nullable": false
+            },
+            {
+              "name": "body",
+              "type": "string",
+              "required": true,
+              "description": "a css font-family",
+              "nullable": false
+            },
+            {
+              "name": "google_fonts_url",
+              "type": "string",
+              "required": false,
+              "description": "a https://fonts.googleapis.com/ url, or null",
+              "nullable": true
+            }
+          ]
+        },
+        {
+          "name": "Spacing",
+          "fields": [
+            {
+              "name": "unit",
+              "type": "string",
+              "required": true,
+              "description": "the base spacing, e.g. \"8px\"",
+              "nullable": false
+            },
+            {
+              "name": "section",
+              "type": "string",
+              "required": true,
+              "description": "the space between sections, e.g. \"64px\"",
+              "nullable": false
+            }
+          ]
+        },
+        {
+          "name": "Buttons",
+          "fields": [
+            {
+              "name": "primary",
+              "type": "string",
+              "required": true,
+              "description": "css declarations for the primary button",
+              "nullable": false
+            },
+            {
+              "name": "secondary",
+              "type": "string",
+              "required": true,
+              "description": "css declarations for the secondary button",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "hex",
+          "path": "palette.*",
+          "name": "every palette colour is a hex colour",
+          "from": "parse_style (j2.py)"
+        },
+        {
+          "rule": "not_empty",
+          "path": [
+            "fonts.heading",
+            "fonts.body"
+          ],
+          "name": "heading and body fonts are given",
+          "from": "parse_style (j2.py)"
+        },
+        {
+          "rule": "css_safe",
+          "path": [
+            "palette",
+            "fonts.heading",
+            "fonts.body",
+            "spacing",
+            "radius",
+            "buttons",
+            "card"
+          ],
+          "name": "every value is plain CSS",
+          "from": "parse_style (j2.py)"
+        },
+        {
+          "rule": "url_prefix",
+          "path": "fonts.google_fonts_url",
+          "prefix": "https://fonts.googleapis.com/",
+          "name": "the fonts url is a fonts.googleapis.com url or null",
+          "from": "parse_style (j2.py)"
+        }
+      ],
+      "sha": "f6292ae56816597866484071fd31ac3d91292b96143e2cc82420e25a13d7958a",
+      "schema_sha": "50e8c63252d8e9761d3679273c015da4ca4349e7b1593988033b77995903584c"
+    }
+  ]
+}

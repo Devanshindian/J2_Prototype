@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Goals",
+  "version": 1,
+  "sha": "7b0e453ee89134b7f8c6e7a5083d1261ff85540b53246bd13ebdc727fc08e546",
+  "schema_sha": "e3f04539ae5e87eb4390983e86e87e07577f37b3232c6818e9eab741e21a10c2",
+  "model_sha": "79099164d202c4f98ac90ad149193ebc7139a630aed602d9fcc1a42f82b07c4e",
+  "class": "StillPointYogaGoalsV1",
+  "created": "2026-11-03T16:11:11",
+  "fingerprints": [
+    "1c35c101e1785b13aa1151fd7813967770088653ca48aac5784fbce60e031f26"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-161111-3",
+      "workflow": "W-3",
+      "atom": "W-3.a1",
+      "action": "created"
+    }
+  ]
+}

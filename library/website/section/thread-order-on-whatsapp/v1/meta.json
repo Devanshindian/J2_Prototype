@@ -1,0 +1,27 @@
+{
+  "schema": "template-library/1",
+  "name": "Thread Order on WhatsApp",
+  "version": 1,
+  "sha": "bc071b654d55e70674889a00dfaac014d963c0ec068fecf9c1fa094bdd50b1f4",
+  "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
+  "model_sha": "929805e9fbbfc3792e49ca4b7d53b1254cf75b079c530079d434f24fb27de6c1",
+  "class": "ThreadOrderOnWhatsAppV1",
+  "created": "2026-11-03T16:11:11",
+  "fingerprints": [
+    "f933d99e934fd6e5dda3dab830157e97ab5efa7545bf120c8928241525dbbb44"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-161111",
+      "workflow": "W-3",
+      "atom": "W-3.a1",
+      "action": "created"
+    },
+    {
+      "run": "j2-20261103-161111-2",
+      "workflow": "W-3",
+      "atom": "W-3.a1",
+      "action": "reused"
+    }
+  ]
+}

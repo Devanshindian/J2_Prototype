@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Hosting and deployment",
+  "version": 1,
+  "sha": "c11f4fcb32aef0acf636dbe37e4d0ac75571d95794d5674c3a628a32d923f045",
+  "schema_sha": "85392717c1b732f8e1743cc132f810f713b29d68f76cf0f12484fa9978f776cc",
+  "model_sha": "118ccff2634223c08b00464f461f30e1639bb6f337ba5a58988695646a633c6f",
+  "class": "StillPointYogaHostingAndDeploymentV1",
+  "created": "2026-11-03T16:11:11",
+  "fingerprints": [
+    "1cdf8b10ebf6dc2ddf6ca523f302fc52bed5fe23b725311ae74d835806922fcd"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-161111-3",
+      "workflow": "W-11",
+      "atom": "W-11.a1",
+      "action": "created"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Components",
+  "version": 1,
+  "sha": "a3c1fb98275a9eda93810db1378d3ecbf0144c514c8bfeebb7076773b5a5403f",
+  "schema_sha": "310cfa0e07d0fcf661b050ff21900dbede31a557d139c887c6ef50016c18cb8e",
+  "model_sha": "17f8d0d94598fd7890d92c1fc07bfd9d4e7a85b5521b7c71034dce0d06485eab",
+  "class": "StillPointYogaComponentsV1",
+  "created": "2026-11-03T16:11:11",
+  "fingerprints": [
+    "44f26e4f50cd5ac8275a21d71615334c6aec3c50c14322560ac43a8d56ca85c4"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-161111-3",
+      "workflow": "W-9",
+      "atom": "W-9.a1",
+      "action": "created"
+    }
+  ]
+}

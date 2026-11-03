@@ -1,0 +1,103 @@
+{
+  "schema": "template-library/1",
+  "artifact": "website",
+  "kind": "generic",
+  "version": 1,
+  "from": "j2_artifact_models.SECTION_MODELS and j2_rules.RULES (generated: python3 j2_template_lib.py)",
+  "templates": [
+    {
+      "name": "WebsiteSection/1 · Section",
+      "artifact": "website",
+      "section": "Section",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic WebsiteSection/1 · Section template: the fixed layout of every website Section section, whatever the business",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "the section id of this workflow, as the task gives it",
+          "nullable": false
+        },
+        {
+          "name": "anchor",
+          "type": "string",
+          "required": false,
+          "description": "the id attribute of the section element, with the #; \"\" when this workflow writes page-head tags only",
+          "nullable": false
+        },
+        {
+          "name": "implements",
+          "type": "list[string]",
+          "required": false,
+          "description": "the LLD section ids this builds; empty when the run has no LLD",
+          "nullable": false
+        },
+        {
+          "name": "html",
+          "type": "string",
+          "required": false,
+          "description": "the section's HTML only: no <html>, <head> or <body> tags; \"\" when this workflow writes page-head tags only",
+          "nullable": false
+        },
+        {
+          "name": "head",
+          "type": "string",
+          "required": false,
+          "description": "page-head tags this section needs (meta, link, style or script only); \"\" when it needs none",
+          "nullable": false
+        },
+        {
+          "name": "selectors_used",
+          "type": "list[string]",
+          "required": false,
+          "description": "the ids and classes you used",
+          "nullable": false
+        },
+        {
+          "name": "facts_used",
+          "type": "list[string]",
+          "required": false,
+          "description": "the charter facts this section shows, copied exactly",
+          "nullable": false
+        }
+      ],
+      "objects": [],
+      "rules": [
+        {
+          "rule": "html_no_page_tags",
+          "path": [
+            "html",
+            "head"
+          ],
+          "name": "the html has no <html>, <head> or <body> tags",
+          "from": "parse_section (j2.py)"
+        },
+        {
+          "rule": "anchor_selector",
+          "path": "anchor",
+          "name": "the anchor is an id selector",
+          "from": "parse_section (j2.py)"
+        },
+        {
+          "rule": "anchor_in_html",
+          "anchor_path": "anchor",
+          "html_path": "html",
+          "name": "the anchor points at an element in the html",
+          "from": "N4"
+        },
+        {
+          "rule": "ref_exists",
+          "path": "implements",
+          "target": "lld.sections[].id",
+          "fail_text": "{id} implements {bad}, which is not a section of the LLD",
+          "name": "implements points at a section id of the LLD",
+          "from": "N8"
+        }
+      ],
+      "sha": "33e0918f136738d42418bf1679f0e788bb88795eb003ff669f17dc449d50d1e9",
+      "schema_sha": "288ee020b61f054b6236c9f7697e9b3b62d650f4993f5629151eec9f6cca67bb"
+    }
+  ]
+}

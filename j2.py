@@ -57,6 +57,7 @@ import j2_realization
 import j2_rules
 import j2_schema
 import j2_send
+import j2_template_lib
 import llm
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -446,7 +447,7 @@ def artifact_schema_on():
     """J2_ARTIFACT_SCHEMA=1 (default off): a document, design or website builder answers with one JSON object that
     follows its artifact template (j2_artifact_models), code validates it, checks its references, renders the
     markdown and writes the data beside the document. Read per call so tests can switch it."""
-    return os.environ.get("J2_ARTIFACT_SCHEMA") == "1"
+    return os.environ.get("J2_ARTIFACT_SCHEMA") == "1" or j2_template_lib.enabled()   # the library implies it
 
 
 def slim():
@@ -2739,6 +2740,7 @@ def saved_snapshot(name, since=0):
             "mock": head.get("mock"), "model": head.get("model"), "fixes": head.get("j2_fixes", 0), "placeholders": [],
             "force_audit_fail": head.get("force_audit_fail"), "test_lessons": bool(head.get("test_lessons")),
             "force_question": head.get("force_question"), "has_board": os.path.isfile(os.path.join(d, "board.json")),
+            "has_templates": os.path.isfile(os.path.join(d, "templates.json")),
             "report": _read(d, "report.json"), "outcome": s.get("outcome"),
             "sections": [{"id": k, "owner": x["owner"], "workflow": x.get("workflow"),
                           "bytes": len((x["head"] + x["body"]).encode("utf-8"))} for k, x in sections.items()],
@@ -2857,6 +2859,9 @@ class J2Run:
         # J2_ARTIFACT_SCHEMA=1 (artifact-schema/1): the data each builder sent, and what the three layers made of it
         self.schemas = artifact_schema_on()
         self.art_data, self.art_state, self.art_schema, self.art_sent = {}, {}, None, False
+        # J2_TEMPLATE_LIBRARY=1 (template-library/1): the template each workflow's builder fills, chosen by the router
+        self.tpl_lib = j2_template_lib.enabled()
+        self.tpl_routes, self.tpl_decisions, self.tpl_cur = {}, [], None
         self.style = None                              # the style guide, written by the first workflow that runs
         self.playbooks_used, self.playbook_saved = [], None
         self.lessons_used, self.lessons_saved = [], []
@@ -2958,6 +2963,7 @@ class J2Run:
                 "mock": llm.MOCK, "model": None if llm.MOCK else llm.MODEL, "fixes": int(self.fixes),
                 "force_audit_fail": self.force_fail or None, "test_lessons": self.test_lessons,
                 "force_question": self.force_question or None, "has_board": bool(self.board["entries"]),
+                "has_templates": bool(self.tpl_decisions),
                 "placeholders": self._placeholders(), "report": self.report,
                 "sections": [{"id": k, "owner": x["owner"], "workflow": x.get("workflow"),
                               "bytes": len((x["head"] + x["body"]).encode("utf-8"))} for k, x in self.sections.items()],
@@ -3240,6 +3246,8 @@ class J2Run:
                    "schema_sha": self.art_schema["sha"], "schema_bytes": self.art_schema["bytes"],
                    "subtype": st.get("subtype"), "structured_output": st.get("present"),
                    "attempt": self.art_schema.get("attempt")}
+            if self.art_schema.get("library"):
+                art["library"] = self.art_schema["library"]
         rec = {"id": self.calls, "fn": fn, "step": self.step, "cycle": self.cycle, "t": time.strftime("%H:%M:%S"),
                "seconds": round(secs, 2), "model": None if llm.MOCK else meta.get("model") or llm.MODEL,
                "tokens": ({"input": meta.get("input_tokens"), "output": meta.get("output_tokens")}
@@ -6964,6 +6972,13 @@ class J2Run:
             if art_model is None:
                 self._event("system", "artifact_schema", f"{fn}: no artifact template for {art_kind} {art_sec!r}; "
                                                          "this builder keeps the plain reply")
+        art_tpl, art_sec_schema, self.tpl_cur = None, None, None
+        if art_model is not None and self.tpl_lib:      # J2_TEMPLATE_LIBRARY=1: reuse, extend, create, or generic
+            art_tpl = self._route_template(w, art_kind, art_model.SECTION or art_sec)
+            if art_tpl is not None:
+                art_sec = art_tpl.section
+                art_model = j2_template_lib.build_model(art_tpl)
+                art_sec_schema = j2_template_lib.transport(art_tpl)
         attempt, failed, evidence, prev_sig, early, spec_stop = 0, [], "", set(), None, None
         while True:
             attempt += 1
@@ -6979,8 +6994,11 @@ class J2Run:
             def mock():
                 board_extra = self._mock_board_extra(w, attempt) if j2_board.enabled() else {}
                 if art_model is not None:      # J2_ARTIFACT_SCHEMA=1: one JSON object, built from the charter only
-                    return json.dumps(self._mock_artifact(w, art_kind, art_sec, art_model, sid, first, board_extra),
-                                      ensure_ascii=False)
+                    rep = self._mock_artifact(w, art_kind, art_sec, art_model, sid, first, board_extra)
+                    if art_tpl is not None:      # the specialised template's own fields, from the need's facts only
+                        rep["section"] = j2_template_lib.fill_mock(art_tpl, rep.get("section"),
+                                                                   (self.tpl_cur or {}).get("need"))
+                    return json.dumps(rep, ensure_ascii=False)
                 if self.doc:
                     return (json.dumps({"say": f"@Coordination {fn} done: {w['name']}. Section {sid} written.",
                                         "human_output": f"I wrote the {w['name']} section ({sid}) of the document.",
@@ -7016,9 +7034,17 @@ class J2Run:
                                        j2_artifact_models.transport_schema(j2_artifact_models.Design).items()
                                        if k != "$schema"}
                 schema = j2_artifact_models.reply_schema(art_model, extra)
+                if art_sec_schema is not None:      # the library template's schema.json is the section the builder fills
+                    schema = self._with_section(schema, art_sec_schema)
                 self.art_schema = {"template": art_model.template(), "version": j2_artifact_models.VERSION,
                                    "sha": j2_artifact_models.schema_sha(schema),
                                    "bytes": len(json.dumps(schema, ensure_ascii=False)), "attempt": attempt}
+                if self.tpl_cur:      # the chosen template, and the sha of the section schema actually sent
+                    rec = self.tpl_cur["rec"]
+                    self.art_schema.update(version=rec.get("version") or j2_artifact_models.VERSION, library={
+                        "template": rec.get("template"), "version": rec.get("version"), "kind": rec.get("kind"),
+                        "action": rec.get("action"), "schema_sha": rec.get("schema_sha"),
+                        "sent_section_sha": j2_template_lib.sha_of(self._sent_section(schema))})
 
             def one_call():
                 """One model call for this attempt (retried within the envelope on an unusable reply). Pulled out
@@ -8253,6 +8279,134 @@ class J2Run:
                    f"\nTHE WHOLE DOCUMENT NOW (v{len(self.sites)}, read only):\n{prev[:SITE_LIMIT]}")
                 + self._board_context())
 
+    # ---- J2_TEMPLATE_LIBRARY=1 (template-library/1): the router picks the template a workflow's builder fills
+    def _route_template(self, w, kind, section):
+        """Once per workflow, after J2.e registered it and before its builder runs: reuse, extend or create a
+        specialised template, or fall back to the generic one. Records the decision in templates.json, the use in the
+        library, and one system line in the chat. Returns the SpecialisedTemplate, or None for the generic."""
+        wid = w["id"]
+        if wid in self.tpl_routes:
+            t, rec, need = self.tpl_routes[wid]
+            self.tpl_cur = {"template": t, "rec": rec, "need": need}
+            return t
+        need = self._template_need(w, kind, section)
+        aid = (w.get("atoms") or [{}])[0].get("id") or ""
+        run_id = os.path.basename(self.dir)
+        ctx = {"run": run_id, "workflow": wid, "atom": aid,
+               "agent": "template generator (mock)" if llm.MOCK else f"template generator ({llm.PROVIDER})"}
+        self.tpl_cur = {"wid": wid}
+        try:
+            t, rec = j2_template_lib.route(need, ctx, ask=self._template_ask)
+        except Exception as e:      # the router never blocks a run: the builder fills the generic template
+            gen = j2_template_lib.generic(kind, section)
+            t, rec = None, {"workflow": wid, "atom": aid, "artifact": kind, "section": section, "action": "generic",
+                            "template": gen.name if gen else "not recorded", "version": j2_artifact_models.VERSION,
+                            "kind": "generic", "score": None, "rule": "e",
+                            "reason": f"the router could not run ({type(e).__name__}: {e})"}
+        rec = {"run": run_id, "t": time.strftime("%Y-%m-%dT%H:%M:%S"), **rec}
+        self.tpl_routes[wid] = (t, rec, need)
+        self.tpl_decisions.append(rec)
+        if kind == "website" and self.style is None and not self.doc:
+            gd = j2_template_lib.generic("design", "Style guide")
+            self.tpl_decisions.append({"run": run_id, "t": rec["t"], "workflow": wid, "atom": aid,
+                                       "artifact": "design", "section": "Style guide", "action": "generic",
+                                       "template": gd.name, "version": gd.version, "kind": "generic", "score": None,
+                                       "rule": "-", "reason": "the style guide is written inside the first page "
+                                                              "builder's reply, so it keeps the generic template"})
+        self.save("templates.json", {"schema": j2_template_lib.SCHEMA, "library": j2_template_lib.lib_dir(),
+                                     "decisions": self.tpl_decisions})
+        verb = {"reused": "reused", "extended": "extended", "created": "created"}.get(rec["action"])
+        line = (f"{wid} template: {verb} {rec['template']} v{rec['version']} ({rec.get('covers') or rec['reason']})"
+                if verb else f"{wid} template: generic {rec['template']} ({rec['reason']})")
+        self.post("system", line, template_route={k: rec.get(k) for k in ("workflow", "atom", "action", "template",
+                                                                          "version", "score")})
+        self.tpl_cur = {"template": t, "rec": rec, "need": need}
+        return t
+
+    def _template_need(self, w, kind, section):
+        """What this workflow's section must carry, from recorded data only: the done-when items it covers and the
+        charter facts behind them (a document section is written from the whole charter; a page section from the
+        facts its items name), the work atom's ask, and the input document data it builds on."""
+        g = self.goal or {}
+        crit = [str(x) for x in g.get("done_when") or []]
+        items = [str(x) for x in w.get("covers_text") or []] or [crit[as_int(i) - 1] for i in w.get("covers") or []
+                                                                 if 1 <= as_int(i) <= len(crit)]
+        charter = [str(f) for f in g.get("facts") or [] if str(f or "").strip()]
+        site = g.get("product_name") or g.get("site_name") or "not recorded"
+        if self.doc:
+            facts = items + charter
+        else:
+            name = j2_template_lib.words(site)
+            about = j2_template_lib.words(" ".join(items + [str(w.get("name") or ""), str(w.get("purpose") or "")]))
+            facts = items + [f for f in charter if (j2_template_lib.words(f) - name) & about]
+        atom = (w.get("atoms") or [{}])[0]
+        extra = []
+        if kind == "website":      # the LLD slice this section builds (input document data): its elements and fields
+            spec = next((c.get("spec") for c in atom.get("verification") or []
+                         if isinstance(c, dict) and c.get("type") == "lld-slice" and isinstance(c.get("spec"), dict)),
+                        None) or {}
+            sels = [str(e.get("selector")) for e in spec.get("elements") or [] if e.get("selector")]
+            names = [str(f.get("name")) for f in spec.get("fields") or [] if f.get("name")]
+            if sels:
+                extra.append((j2_template_lib.FieldSpec(
+                    name="elements", type="list[string]", required=False, enum=list(dict.fromkeys(sels)),
+                    description="the interactive elements of the LLD this section builds, by selector"), []))
+            if names:
+                extra.append((j2_template_lib.FieldSpec(
+                    name="form_fields", type="list[string]", required=False, enum=list(dict.fromkeys(names)),
+                    description="the form fields of the LLD this section builds, by name"), []))
+        need = j2_template_lib.make_need(kind, section, g.get("business_type"), facts, site, extra, workflow=w["id"],
+                                         atom=atom.get("id") or "")
+        need["label"] = re.sub(r"^(?:Write|Build)\s+", "", str(w.get("name") or section))
+        need["asks"] = {"goal": atom.get("goal"), "expected_output": [x.get("text") for x in atom.get("expected_output")
+                                                                      or [] if isinstance(x, dict)],
+                        "context": atom.get("context"), "constraints": atom.get("constraints")}
+        need["inputs"] = {d: sorted(self._artifact_docs(kind).get(d, {}).keys()) for d in ("prd", "hld", "lld")
+                          if d != kind and self._artifact_docs(kind).get(d)}
+        return need
+
+    def _template_ask(self, system, user, mock, schema):
+        """The generator's one LLM call (the mock replies deterministically from the need's facts). Logged to
+        template_calls.jsonl, beside calls.jsonl, so the builders' call records stay as they were."""
+        t0 = time.time()
+        raw = llm.ask(system, user, mock, max_tokens=8000, effort="low", json_mode=True, schema=schema)
+        os.makedirs(self.dir, exist_ok=True)
+        with open(os.path.join(self.dir, "template_calls.jsonl"), "a", encoding="utf-8") as f:
+            f.write(json.dumps({"t": time.strftime("%H:%M:%S"), "workflow": (self.tpl_cur or {}).get("wid"),
+                                "seconds": round(time.time() - t0, 2), "model": None if llm.MOCK else llm.MODEL,
+                                "schema_sha": j2_template_lib.sha_of(schema), "system": system, "prompt": user,
+                                "raw": raw}, ensure_ascii=False) + "\n")
+        return llm.extract_json(raw)
+
+    @staticmethod
+    def _with_section(schema, section_schema):
+        """A reply schema whose "section" is the given transport schema (its definitions lifted, as reply_schema
+        does for a model's own)."""
+        out = copy.deepcopy(schema)
+        sec = copy.deepcopy(section_schema)
+        defs = sec.pop("definitions", None)
+        sec.pop("$schema", None)
+        out["properties"]["section"] = sec
+        out.pop("definitions", None)
+        if defs:
+            out["definitions"] = defs
+        return out
+
+    @staticmethod
+    def _sent_section(schema):
+        """The section schema inside a reply schema, as schema.json holds it (reply_schema lifts its definitions)."""
+        sec = dict((schema.get("properties") or {}).get("section") or {})
+        defs = schema.get("definitions")
+        return {"$schema": "http://json-schema.org/draft-07/schema#", **sec, **({"definitions": defs} if defs else {})}
+
+    def _tpl_version(self):
+        rec = (self.tpl_cur or {}).get("rec") or {}
+        return rec.get("version") or j2_artifact_models.VERSION
+
+    def _tpl_ref(self):
+        rec = (self.tpl_cur or {}).get("rec") or {}
+        return {k: rec.get(k) for k in ("template", "version", "kind", "action")}
+
     # ---- J2_ARTIFACT_SCHEMA=1 (artifact-schema/1): the data a builder sends, and the three layers code runs on it
     def _artifact_reply_format(self, model, first):
         """The reply format for a builder that answers with data (J2_ARTIFACT_SCHEMA=1): one JSON object, no fenced
@@ -8301,14 +8455,19 @@ class J2Run:
             state["schema_errors"] = ["reply: the reply is not one JSON object"]
             self._artifact_layer_fail(w, attempt, model.template(), state["schema_errors"])
             raise ValueError(f"the reply must be one JSON object following {model.template()}") from None
-        data = j2_artifact_models.normalise(model, reply.get("section"))
-        obj, errs = j2_artifact_models.validate(model, data)
+        tpl = (self.tpl_cur or {}).get("template")
+        if tpl is not None:      # J2_TEMPLATE_LIBRARY=1: the specialised class, then the generic model on its fields
+            got, errs = j2_template_lib.validate(tpl, reply.get("section"))
+        else:
+            data = j2_artifact_models.normalise(model, reply.get("section"))
+            obj, errs = j2_artifact_models.validate(model, data)
         state["schema_errors"] = errs
         state["schema_ok"] = not errs
         if errs:
             self._artifact_layer_fail(w, attempt, model.template(), errs)
             raise ValueError(f"the section doesn't follow {model.template()}: " + "; ".join(errs))
-        got = obj.model_dump(by_alias=True)
+        if tpl is None:
+            got = obj.model_dump(by_alias=True)
         self.art_data.setdefault(kind, {})[section] = got
         state["data"] = got
         guide = None
@@ -8404,6 +8563,9 @@ class J2Run:
             # layer 2: every rule of this section, answered from the rules data (j2_rules), with what the run has
             # recorded to check references against
             results = j2_rules.run_rules(kind, section, data, self._artifact_docs(kind))
+            tpl = (self.tpl_cur or {}).get("template")
+            if tpl is not None and tpl.rules:      # J2_TEMPLATE_LIBRARY=1: the template's own rules, after the generic's
+                results = results + j2_rules.run_specs(tpl.rules, data, self._artifact_docs(kind))
             bad = j2_rules.failures(results)
             st["rules"], st["rule_results"] = bad, results
             n = len(results)
@@ -8418,8 +8580,9 @@ class J2Run:
             for t, text, ok, ev, rules in layers:
                 rec = self._receipt(a, {"text": text, "type": t, "target": section, "expect": True}, attempt,
                                     {"actual": ok, "pass": bool(ok), "evidence": ev},
-                                    template=model.template(), template_version=j2_artifact_models.VERSION,
-                                    **({"rules": rules} if rules else {}))
+                                    template=model.template(), template_version=self._tpl_version(),
+                                    **({"rules": rules} if rules else {}),
+                                    **({"template_route": self._tpl_ref()} if self.tpl_cur else {}))
                 a.setdefault("results", []).append(rec)
                 if not ok:
                     out.append(rec)

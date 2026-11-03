@@ -1,0 +1,369 @@
+{
+  "schema": "template-library/1",
+  "artifact": "prd",
+  "kind": "generic",
+  "version": 1,
+  "from": "j2_artifact_models.SECTION_MODELS and j2_rules.RULES (generated: python3 j2_template_lib.py)",
+  "templates": [
+    {
+      "name": "PRD/1 · Problem",
+      "artifact": "prd",
+      "section": "Problem",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic PRD/1 · Problem template: the fixed layout of every PRD Problem section, whatever the business",
+      "fields": [
+        {
+          "name": "statement",
+          "type": "string",
+          "required": true,
+          "description": "the problem the product solves, in the charter's own words",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "facts you had to assume, each one line",
+          "nullable": false
+        }
+      ],
+      "objects": [],
+      "rules": [
+        {
+          "rule": "not_empty",
+          "path": "statement",
+          "name": "the problem statement is given",
+          "from": "P1"
+        }
+      ],
+      "sha": "93a67d348dcdd45b588205cf6e75a855e32500a26736374b4e40fc25560d708b",
+      "schema_sha": "849f7e993cc39c2dad0824e332a5df039b41d70db0c8875e28e0964485c8e4c0"
+    },
+    {
+      "name": "PRD/1 · Users",
+      "artifact": "prd",
+      "section": "Users",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic PRD/1 · Users template: the fixed layout of every PRD Users section, whatever the business",
+      "fields": [
+        {
+          "name": "users",
+          "type": "list[UserGroup]",
+          "required": true,
+          "description": "every user group the charter names",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "UserGroup",
+          "fields": [
+            {
+              "name": "group",
+              "type": "string",
+              "required": true,
+              "description": "the name of this user group, as the charter names it",
+              "nullable": false
+            },
+            {
+              "name": "needs",
+              "type": "string",
+              "required": false,
+              "description": "what this group needs from the product",
+              "nullable": false
+            },
+            {
+              "name": "actions",
+              "type": "list[string]",
+              "required": false,
+              "description": "what this group does on the page; empty when this group has no actions in this version",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "not_empty",
+          "path": "users[].group",
+          "name": "every user group is named",
+          "from": "P7"
+        },
+        {
+          "rule": "one_of_present",
+          "path": [
+            "users[].actions",
+            "users[].needs"
+          ],
+          "name": "every group says what it does or what it needs",
+          "from": "P7"
+        }
+      ],
+      "sha": "ffa9f181c31823dfbbc76723ca99c64034eeb9d40482d97415518291b9bf0526",
+      "schema_sha": "7e88e21d85be5a01997e33e8e8f4c5237d97ad51906e872536601b0f3830c27d"
+    },
+    {
+      "name": "PRD/1 · Goals",
+      "artifact": "prd",
+      "section": "Goals",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic PRD/1 · Goals template: the fixed layout of every PRD Goals section, whatever the business",
+      "fields": [
+        {
+          "name": "goals",
+          "type": "list[Goal]",
+          "required": true,
+          "description": "the goals, G1, G2, ... in order",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "Goal",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "description": "G1, G2, ... in order",
+              "nullable": false
+            },
+            {
+              "name": "statement",
+              "type": "string",
+              "required": true,
+              "description": "the goal in one line",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "ids_sequential",
+          "path": "goals",
+          "prefix": "G",
+          "name": "ids G1, G2, ... unique and in order",
+          "from": "P6"
+        }
+      ],
+      "sha": "ad3e381c9e1df951a081ed8108d396218f196c5dad957936fc01dd761a6604ac",
+      "schema_sha": "ce781043569f4307337d2dbb555d37c83444be34ba9f6573cb1d7004aea39493"
+    },
+    {
+      "name": "PRD/1 · Requirements",
+      "artifact": "prd",
+      "section": "Requirements",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic PRD/1 · Requirements template: the fixed layout of every PRD Requirements section, whatever the business",
+      "fields": [
+        {
+          "name": "requirements",
+          "type": "list[Requirement]",
+          "required": true,
+          "description": "the requirements, R1, R2, ... in order",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "Requirement",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "description": "R1, R2, ... in order",
+              "nullable": false
+            },
+            {
+              "name": "statement",
+              "type": "string",
+              "required": true,
+              "description": "what the product must do, naming the user group that does it",
+              "nullable": false
+            },
+            {
+              "name": "priority",
+              "type": "string",
+              "required": true,
+              "description": "must, should or could",
+              "enum": [
+                "must",
+                "should",
+                "could"
+              ],
+              "nullable": false
+            },
+            {
+              "name": "goals",
+              "type": "list[string]",
+              "required": false,
+              "description": "the goal ids this requirement serves, e.g. [\"G1\"]",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "ids_sequential",
+          "path": "requirements",
+          "prefix": "R",
+          "name": "ids R1, R2, ... unique and in order",
+          "from": "P2"
+        },
+        {
+          "rule": "enum",
+          "path": "requirements[].priority",
+          "values": [
+            "must",
+            "should",
+            "could"
+          ],
+          "name": "priority is must, should or could",
+          "from": "P2"
+        },
+        {
+          "rule": "ref_exists",
+          "path": "requirements[].goals",
+          "target": "this.goals[].id",
+          "name": "goals point at a goal id of this document",
+          "from": "P6"
+        }
+      ],
+      "sha": "96e3c94306ad6b90a72d23cb7909d6401b0937f05e4ef492e98000d79b280979",
+      "schema_sha": "2abbe5038f3250955076d1bf24ddc35f69e9b687f90d96aa9c729d05a040e51b"
+    },
+    {
+      "name": "PRD/1 · Success metrics",
+      "artifact": "prd",
+      "section": "Success metrics",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic PRD/1 · Success metrics template: the fixed layout of every PRD Success metrics section, whatever the business",
+      "fields": [
+        {
+          "name": "success_metrics",
+          "type": "list[SuccessMetric]",
+          "required": true,
+          "description": "one metric per goal",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "SuccessMetric",
+          "fields": [
+            {
+              "name": "goal",
+              "type": "string",
+              "required": true,
+              "description": "the goal id this metric measures, e.g. \"G1\"",
+              "nullable": false
+            },
+            {
+              "name": "metric",
+              "type": "string",
+              "required": true,
+              "description": "what is measured",
+              "nullable": false
+            },
+            {
+              "name": "target",
+              "type": "string",
+              "required": false,
+              "description": "the number or state to reach",
+              "nullable": false
+            },
+            {
+              "name": "window",
+              "type": "string",
+              "required": false,
+              "description": "the measurement window, e.g. \"in the first 30 days\"; write \"measurement window not set\" when the brief doesn't say",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "ref_exists",
+          "path": "success_metrics[].goal",
+          "target": "this.goals[].id",
+          "name": "every metric names a goal id of this document",
+          "from": "P6"
+        }
+      ],
+      "sha": "c58f1f3ff32129ebd2bef8b727e09268beb9c7b3b8ea0e151a067ffb76bd2287",
+      "schema_sha": "ed9304cda3486fde14511d9bcb9248104b35d8695c9f3ef6f21a326a5ef5fb64"
+    },
+    {
+      "name": "PRD/1 · Out of scope",
+      "artifact": "prd",
+      "section": "Out of scope",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic PRD/1 · Out of scope template: the fixed layout of every PRD Out of scope section, whatever the business",
+      "fields": [
+        {
+          "name": "out_of_scope",
+          "type": "list[string]",
+          "required": true,
+          "description": "what the product will not do, one line each",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [],
+      "rules": [
+        {
+          "rule": "not_empty",
+          "path": "out_of_scope",
+          "name": "the out-of-scope lines are given",
+          "from": "P1"
+        }
+      ],
+      "sha": "d07e0a59eb0be59f4f8b2ddbfde366c29f4906ebd908e8a0cb6ebe2f02037b44",
+      "schema_sha": "c1d07f9bc0efd3d3ba548ef2e97e416c8f13e42199bffc903db2beb2a614e6d6"
+    }
+  ]
+}

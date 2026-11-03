@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga section S4",
+  "version": 1,
+  "sha": "da4d8cd52df5c17ac80253873b1178a14c69f7d205b4921401e65e8ce07cacb2",
+  "schema_sha": "3af7c5cc33c66495d7aa52ec80a47d305fb49c03fe77b2a0962306b3ea60f029",
+  "model_sha": "37897fa917018677fc8fa0758ae83f28182a72db463be3fff645ac9e0c5bd929",
+  "class": "StillPointYogaSectionS4V1",
+  "created": "2026-11-03T16:11:12",
+  "fingerprints": [
+    "b379b3ad82f0308ea245c687cbc2f14c443e7b33a744376d8fe5714e317fe827"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-161111-3",
+      "workflow": "W-22",
+      "atom": "W-22.a1",
+      "action": "created"
+    }
+  ]
+}

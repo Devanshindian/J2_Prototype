@@ -1,0 +1,88 @@
+{
+  "name": "Still Point Yoga Risks",
+  "artifact": "hld",
+  "section": "Risks",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Risks for Still Point Yoga (hld): the generic HLD/1 · Risks fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "risks",
+      "type": "list[Risk]",
+      "required": true,
+      "description": "each risk with its mitigation (for Still Point Yoga, a hld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Risks",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Risks section is written for Still Point Yoga"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "Risk",
+      "fields": [
+        {
+          "name": "risk",
+          "type": "string",
+          "required": true,
+          "description": "the risk, one line",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "mitigation",
+          "type": "string",
+          "required": true,
+          "description": "what is done about it",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Risks section is written for Still Point Yoga"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "b359c50e77029b7dc8324eb428daf57e40ba98852f2c8eb5b217e2e5369bd9b7",
+  "extends": "hld/risks@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-12",
+    "atom": "W-12.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "hld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Risks section is written for Still Point Yoga"
+    ],
+    "fingerprint": "ff0fd5a224f004fd7db577855f38832d89738e3f21a43cf9960455d017293f37"
+  }
+}

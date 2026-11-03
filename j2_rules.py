@@ -385,8 +385,13 @@ def run_rules(kind, section, data, docs=None):
     whose own check breaks is reported as not recorded with the reason. docs holds what the run recorded - {"this":
     this document's data so far, "prd": ..., "hld": ..., "lld": ...} - and a target it has nothing for is
     "not recorded", never a pass."""
+    return run_specs(rules_for(kind, section), data, docs)
+
+
+def run_specs(specs, data, docs=None):
+    """run_rules for a given list of rule specs (a library template carries its own, in exactly this shape)."""
     out = []
-    for spec in rules_for(kind, section):
+    for spec in [dict(r) for r in specs or []]:
         fn = RULE_TYPES.get(spec.get("rule"))
         if fn is None:
             out.append({**_head(spec), "pass": None, "evidence": f"unknown rule type {spec.get('rule')!r}"})

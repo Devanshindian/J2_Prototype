@@ -1,0 +1,27 @@
+{
+  "schema": "template-library/1",
+  "name": "Thread Products",
+  "version": 1,
+  "sha": "4e8ad22147f1ecfec9f23471aa2c94647f3c6283bdb77582c1470a76d4d9fc76",
+  "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
+  "model_sha": "95d0fb9e155f9479bd15d56f433494409b1d8345311293137f8235d2ad80011d",
+  "class": "ThreadProductsV1",
+  "created": "2026-11-03T16:11:11",
+  "fingerprints": [
+    "91aabf96c74f1119ac6338db2874bff19e35bed78bd3d9766c47d040ef88d695"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-161111",
+      "workflow": "W-2",
+      "atom": "W-2.a1",
+      "action": "created"
+    },
+    {
+      "run": "j2-20261103-161111-2",
+      "workflow": "W-2",
+      "atom": "W-2.a1",
+      "action": "reused"
+    }
+  ]
+}

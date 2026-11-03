@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "responsive_rules": {
+      "description": "one rule per line (for Still Point Yoga, a lld)",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "accessibility_rules": {
+      "description": "one rule per line (for Still Point Yoga, a lld)",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Responsive and accessibility rules",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Responsive and accessibility rules section is written for Still Point Yoga"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "type": "object",
+  "required": [
+    "responsive_rules",
+    "accessibility_rules",
+    "assumptions",
+    "facts_used"
+  ]
+}

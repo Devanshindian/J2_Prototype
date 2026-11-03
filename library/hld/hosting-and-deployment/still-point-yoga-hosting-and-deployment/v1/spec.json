@@ -1,0 +1,88 @@
+{
+  "name": "Still Point Yoga Hosting and deployment",
+  "artifact": "hld",
+  "section": "Hosting and deployment",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Hosting and deployment for Still Point Yoga (hld): the generic HLD/1 · Hosting and deployment fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "hosting",
+      "type": "Hosting",
+      "required": true,
+      "description": "the hosting of Still Point Yoga's Hosting and deployment",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Hosting and deployment",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Hosting and deployment section is written for Still Point Yoga"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "Hosting",
+      "fields": [
+        {
+          "name": "kind",
+          "type": "string",
+          "required": true,
+          "description": "how it is hosted, e.g. \"one static file on a static host\"",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "description": "how it is deployed and replaced",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Hosting and deployment section is written for Still Point Yoga"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "c11f4fcb32aef0acf636dbe37e4d0ac75571d95794d5674c3a628a32d923f045",
+  "extends": "hld/hosting-and-deployment@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-11",
+    "atom": "W-11.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "hld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Hosting and deployment section is written for Still Point Yoga"
+    ],
+    "fingerprint": "1cdf8b10ebf6dc2ddf6ca523f302fc52bed5fe23b725311ae74d835806922fcd"
+  }
+}

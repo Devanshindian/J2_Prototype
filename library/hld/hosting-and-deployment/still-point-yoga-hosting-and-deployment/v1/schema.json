@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "hosting": {
+      "$ref": "#/definitions/Hosting",
+      "description": "the hosting of Still Point Yoga's Hosting and deployment"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Hosting and deployment",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Hosting and deployment section is written for Still Point Yoga"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "hosting"
+  ],
+  "type": "object",
+  "definitions": {
+    "Hosting": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "description": "how it is hosted, e.g. \"one static file on a static host\"",
+          "type": "string"
+        },
+        "notes": {
+          "description": "how it is deployed and replaced",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    }
+  }
+}

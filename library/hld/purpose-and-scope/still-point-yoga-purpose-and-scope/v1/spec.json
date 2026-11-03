@@ -1,0 +1,66 @@
+{
+  "name": "Still Point Yoga Purpose and scope",
+  "artifact": "hld",
+  "section": "Purpose and scope",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Purpose and scope for Still Point Yoga (hld): the generic HLD/1 · Purpose and scope fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "purpose",
+      "type": "string",
+      "required": true,
+      "description": "what this design covers and what it leaves out (for Still Point Yoga, a hld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Purpose and scope",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Purpose and scope section is written for Still Point Yoga"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Purpose and scope section is written for Still Point Yoga"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "99d914f5ead4964755f10d4faa656c2e96556221f562600aae4d6c9635133096",
+  "extends": "hld/purpose-and-scope@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-7",
+    "atom": "W-7.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "hld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Purpose and scope section is written for Still Point Yoga"
+    ],
+    "fingerprint": "6f3772eec4f6407973eda97cffb66fac6577c054bb6dd4533ad2ff720e84c263"
+  }
+}

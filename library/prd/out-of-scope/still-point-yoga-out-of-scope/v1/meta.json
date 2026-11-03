@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Out of scope",
+  "version": 1,
+  "sha": "888ae92d6052b2c07308e25a6bc36372b00f4c7c35f03d99adc4cb025bedfa5b",
+  "schema_sha": "356fc656b6885cb8621dea178eebc4753d4bafa5ac17c0605299fe5ada7c269a",
+  "model_sha": "e2836969a324d19070f7ee9853fc16118162d455d6846472c45a8492b346a91f",
+  "class": "StillPointYogaOutOfScopeV1",
+  "created": "2026-11-03T16:11:11",
+  "fingerprints": [
+    "7b1f8c3bc6d38b43844f99f91beaeac840500066346497ae106964a7bfa4502b"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-161111-3",
+      "workflow": "W-6",
+      "atom": "W-6.a1",
+      "action": "created"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Data flow",
+  "version": 1,
+  "sha": "bf59be0b295106ce06efc0b55c01982fcbbd20a8610ba0cd9e52dc399eeba3eb",
+  "schema_sha": "8ccf71d059b417aed4b708c0f1cb7e449038576d4ec8519e72826fb914ce2663",
+  "model_sha": "ba13225ba118689b82403464315fecef0c8a6fe2a02e5df04200100ed9a972e1",
+  "class": "StillPointYogaDataFlowV1",
+  "created": "2026-11-03T16:11:11",
+  "fingerprints": [
+    "a755637e3f215ab901b4d87ce19ff5761edcaf1446fc91a779ca0e0325ccb7d0"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-161111-3",
+      "workflow": "W-10",
+      "atom": "W-10.a1",
+      "action": "created"
+    }
+  ]
+}
