@@ -43,6 +43,7 @@ import json
 import math
 import os
 import re
+import shutil
 import threading
 import time
 
@@ -5651,6 +5652,10 @@ class J2Run:
         left = [{"item": x["item"], "reason": x["reason"]} for x in rec["left_out"]]
         self.change = {"id": cid, "rows": rows, "allowed": [r["name"] for r in rows], "phase": "plan", "relayed": [],
                        "asked": {}, "request": h.get("change"), "left_out": left}
+        items = (self.goal or {}).get("charter_items") or []       # what the change removed: checks stop looking for it
+        self.change["gone"] = [items[i - 1] for i in rec["diff"]["removed"] if 0 < i <= len(items)] + [
+            t for k in ("rules", "standards") for t in rec["diff"][k]["removed"]]
+        self.changes[-1]["gone"] = self.change["gone"]
         self.change["docs"] = [r["name"] for r in rows[:len(rec["docs"])]]
         self.changes[-1]["rows"] = rows
         self.save("change.json", self.changes)
@@ -5738,11 +5743,19 @@ class J2Run:
     def _wf_any(self, wid):
         return next((w for w in self._all_wfs() if w["id"] == wid), None) if wid else None
 
+    RELAY_ROUNDS = 2        # objection rounds on one revised planning doc before Identity rules (as change-relay)
+    RELAY_AGREE_FMT = ('{"agree": bool, "reason": str (one sentence), "affected": bool (does your own output have to '
+                       'change?), "what": str (what in your output must change; "" if not affected)}')
+
     def _change_relay(self):
         """Relay (J2_CHANGE): once a planning document's revision in the open change is built, each direct reader of it
-        that the change doesn't already revise is asked once "affected? what?". Affected, or no readable reply after one
-        retry: code registers a revision of the reader. A reader that is itself a planning document is followed when its
-        revision is built, so the walk goes down the plan in relay_waves order and stops where a reader says no."""
+        that the change doesn't already revise agrees or objects, and says whether its own output is affected
+        (_relay_ask). An objection sends the document back for one more revision with the objections as its task, at
+        most RELAY_ROUNDS times; still objected to, Identity keeps the latest or the previous version (_relay_ruling).
+        Once the document settles, each affected reader (or one with no readable reply after one retry) gets a
+        revision registered by code. A reader that is itself a planning document is followed when its revision is
+        built, so the walk goes down the plan in relay_waves order and stops where a reader says no. Agreement, rounds,
+        kept versions and the ruling come from branch change-relay (Relay v1)."""
         c, wfs = self.change, self._all_wfs()
         root = lambda i: j2_change._root_id(wfs, i)
         order = [r for wave in j2_change.relay_waves(j2_change.planning_nodes(wfs, is_artifact)) for r in wave]
@@ -5750,6 +5763,9 @@ class J2Run:
                 and w["id"] not in c["relayed"]]
         for d in sorted(docs, key=lambda w: order.index(root(w["id"])) if root(w["id"]) in order else len(order)):
             c["relayed"].append(d["id"])
+            r_doc, rounds = root(d["id"]), c.setdefault("rounds", {})
+            n = rounds.get(r_doc, 0)
+            answers = []
             for rid in j2_change.direct_readers(wfs, d["id"]):
                 r = root(rid)
                 if r in c["asked"] or any(root(w["id"]) == r for w in wfs if w.get("change") == c["id"]):
@@ -5757,46 +5773,145 @@ class J2Run:
                 reader = self._wf_any(rid)
                 if reader.get("status") == "superseded":        # never built: nothing of it can be affected
                     continue
-                a = self._relay_ask(reader, d, j2_change.ix_get(wfs, r)["name"])
-                c["asked"][r] = {"name": j2_change.ix_get(wfs, r)["name"], "id": rid, "doc": d["name"], **a}
-                if a["affected"]:
-                    self._relay_revise(reader, d, c["asked"][r])
-            self.changes[-1]["relay"] = list(c["asked"].values())
+                name = j2_change.ix_get(wfs, r)["name"]
+                answers.append((r, reader, {"name": name, "id": rid, "doc": d["name"], "round": n,
+                                            **self._relay_ask(reader, d, name, n)}))
+            objections = [a for _, _, a in answers if not a["agree"]]
+            c.setdefault("objections", []).extend(objections)
+            if objections and n < self.RELAY_ROUNDS and self._relay_doc_revise(d, objections, n + 1):
+                rounds[r_doc] = n + 1              # its readers answer again once the new version is built
+            else:
+                if objections:
+                    self._relay_ruling(d, objections)
+                for r, reader, a in answers:
+                    c["asked"][r] = a
+                    if a["affected"]:
+                        self._relay_revise(reader, d, a)
+            self.changes[-1].update(relay=list(c["asked"].values()), objections=c["objections"],
+                                    rulings=c.get("rulings") or [])
             self.save("change.json", self.changes)
 
-    def _relay_ask(self, reader, doc, name):
-        """One reader's "affected? what?" (one retry; still unreadable counts as affected)."""
+    def _relay_ask(self, reader, doc, name, round_no=0):
+        """One reader's answer on a revised planning doc: agree or object, and affected? what? (one retry; still
+        unreadable counts as agreed and affected, so the reader is checked against the document)."""
         c = self.change
 
         def mock():
             m = self.relay_script.get(name)
             if m == "garbage":
                 return "I think it's fine"
-            return json.dumps({"affected": m == "affected", "what": "mock: follow the revised document" if m else ""})
+            agree = not (m == "object" or (m == "object-once" and round_no == 0))
+            return json.dumps({"agree": agree, "reason": "mock: fine" if agree else "mock: this breaks what I make",
+                               "affected": m == "affected",
+                               "what": "mock: follow the revised document" if m == "affected" else ""})
         task = (f"CHANGE {c['id']}: the Requester asked: {c['request']}\n{artifact_path(doc)} WAS JUST REVISED FOR THIS "
-                "CHANGE, and your workflow reads it. Does your output have to change because of it? Say what must "
-                "change, or that it is not affected." + self._artifact_context(reader))
+                "CHANGE" + (f" (revision round {round_no + 1}, after objections from its readers)" if round_no else "")
+                + ", and your workflow reads it. Do you agree with it? Object only if it breaks what you make or cannot "
+                "be built, and say why. Then say whether your own output has to change because of it, and what, or that "
+                "it is not affected." + self._artifact_context(reader))
         a = None
         for _ in range(2):
-            a = j2_change.parse_affected(self.call(reader["id"], '{"affected": bool, "what": str}', task, mock,
-                                                   json_reply=False))
+            a = j2_change.parse_agreement(self.call(reader["id"], self.RELAY_AGREE_FMT, task, mock, json_reply=False))
             if a:
                 break
-        a = a or {"affected": True, "what": "no readable answer: check it against the revised document"}
-        self.post(reader["id"], f"@Adaptation {name}: " + (f"affected by {doc['name']}: {a['what']}" if a["affected"]
-                                                          else f"not affected by {doc['name']}."),
-                  relay="affected", change=c["id"], reader=name, affected=a["affected"])
+        a = a or {"agree": True, "reason": "no readable answer", "affected": True,
+                  "what": "no readable answer: check it against the revised document"}
+        said = (f"objects to {doc['name']}: {a['reason']}" if not a["agree"] else
+                f"affected by {doc['name']}: {a['what']}" if a["affected"] else f"not affected by {doc['name']}.")
+        self.post(reader["id"], f"@Adaptation {name}: {said}", relay="agreement" if not a["agree"] else "affected",
+                  change=c["id"], reader=name, affected=a["affected"], agree=a["agree"])
         return a
 
+    def _gone(self):
+        """The charter strings the open change removed (an edit is a removal and an addition): a revision's checks
+        must not look for them any more."""
+        return list((self.change or {}).get("gone") or [])
+
+    def _relay_doc_revise(self, doc, objections, round_no):
+        """Code registers one more revision of a planning doc its readers objected to (no Adaptation proposal): the
+        same file, dependencies and cost, the objections as its task, and its checks following the charter (the old
+        headings kept, removed charter strings dropped). The file it overwrites is kept (_register). Returns its id,
+        or None when it can't be registered (then the latest version stands)."""
+        c, k = self.change, len(self.changes)
+        wfs = self._all_wfs()
+        f = artifact_path(doc)
+        atom = copy.deepcopy((doc.get("atoms") or [{}])[0])
+        for x in ("id", "status", "results", "attempts"):
+            atom.pop(x, None)
+        why = "; ".join(f"{a['name']}: {a['reason']}" for a in objections)
+        how = atom.get("how") if isinstance(atom.get("how"), dict) else {}
+        atom["how"] = {**how, "steps": f"Change {c['id']}, objection round {round_no}: revise {f} so that its readers can "
+                                       f"build on it: {why}. Keep everything else the change put in it."}
+        atom["verification"] = j2_change.carry_checks(atom.get("verification"), self._gone(),
+                                                      self._current_file(f) or "")
+        base = j2_change.ix_get(wfs, j2_change._root_id(wfs, doc["id"]))["name"]
+        name = f"{base} (change {k}, round {round_no})"
+        c["allowed"].append(name)
+        registered, refused, _ = self._register([{
+            "name": name, "goal_gap": why, "purpose": f"its readers objected: {why}", "outputs": doc.get("outputs"),
+            "completion_check": doc.get("completion_check") or f"{f} answers the objections",
+            "dependencies": list(doc.get("dependencies") or []), "revises": doc["id"], "parts": ["fix"], "covers": [],
+            "estimated_resources": {"money": max(1, as_int(doc.get("cost"), 1))}, "atoms": [atom]}])
+        if not registered:
+            self.post("system", f"Change {c['id']}: the objection round on {doc['name']} could not be registered "
+                                f"({'; '.join(refused)}), so its latest version stands.", relay="refused", change=c["id"])
+            return None
+        self.post("system", f"Change {c['id']}: {doc['name']} goes back for objection round {round_no}: {why}.",
+                  relay="objection", change=c["id"])
+        return registered[0]["id"]
+
+    def _relay_ruling(self, doc, objections):
+        """After RELAY_ROUNDS objection rounds Identity keeps the latest version of the doc or the one before it (the file
+        its last revision overwrote, kept beside it). Identity writes no text itself."""
+        c = self.change
+        why = "; ".join(f"{a['name']}: {a['reason']}" for a in objections)
+        times = c["rounds"].get(j2_change._root_id(self._all_wfs(), doc["id"]), 0) + 1
+        r = self.call("identity", '{"keep": "latest" | "previous", "say": str (one sentence to the agents)}',
+                      f"CHANGE {c['id']}: {doc['name']} was revised {times} time(s) for this change and its readers still "
+                      f"object: {why}. Keep the latest version, or the one before it?",
+                      lambda: json.dumps({"keep": self.relay_script.get("ruling", "latest"),
+                                          "say": "We decide between the two versions; the objection is on record."}))
+        keep = "previous" if str(r.get("keep")) == "previous" else "latest"
+        prev = doc.get("kept")
+        if keep == "previous" and prev and os.path.exists(os.path.join(self.dir, prev)):
+            shutil.copyfile(os.path.join(self.dir, prev), os.path.join(self.dir, artifact_path(doc)))
+        c.setdefault("rulings", []).append({"doc": doc["name"], "keep": keep,
+                                            "objections": [a["name"] for a in objections]})
+        self.post("identity", f"@Adaptation {r.get('say') or 'Ruling recorded.'} ({doc['name']}: {keep} version kept)",
+                  relay="ruling", change=c["id"], keep=keep)
+
+    def _current_file(self, f):
+        try:
+            with open(os.path.join(self.dir, f), encoding="utf-8") as fh:
+                return fh.read()
+        except OSError:
+            return None
+
+    def _keep_version(self, f):
+        """Copy a planning file to <stem>.v<k><ext> beside it before a revision overwrites it (k counts the kept
+        versions). Returns the kept path relative to the run, or None when there is no file yet."""
+        stem, ext = os.path.splitext(f)
+        k = 1
+        while os.path.exists(os.path.join(self.dir, f"{stem}.v{k}{ext}")):
+            k += 1
+        if not os.path.exists(os.path.join(self.dir, f)):
+            return None
+        shutil.copyfile(os.path.join(self.dir, f), os.path.join(self.dir, f"{stem}.v{k}{ext}"))
+        return f"{stem}.v{k}{ext}"
+
     def _relay_revise(self, reader, doc, asked):
-        """Code registers a revision of an affected reader (no Adaptation proposal): the same outputs, checks and cost,
-        what must change as its task, and the revised document in its dependencies so it is built after it."""
+        """Code registers a revision of an affected reader (no Adaptation proposal): the same outputs and cost, its
+        checks following the charter (removed charter strings dropped; a planning doc keeps its headings), what must
+        change as its task, and the revised document in its dependencies so it is built after it."""
         c, k = self.change, len(self.changes)
         atom = copy.deepcopy((reader.get("atoms") or [{}])[0])
         for x in ("id", "status", "results", "attempts"):
             atom.pop(x, None)
         how = atom.get("how") if isinstance(atom.get("how"), dict) else {}
         atom["how"] = {**how, "steps": f"Change {c['id']}: {asked['what']}. Otherwise as before: {how.get('steps') or ''}"}
+        atom["verification"] = j2_change.carry_checks(
+            atom.get("verification"), self._gone(),
+            (self._current_file(artifact_path(reader)) or "") if is_artifact(reader) else "")
         wfs = self._all_wfs()
         deps = [doc["name"] if j2_change._root_id(wfs, (j2_change.ix_get(wfs, x) or {}).get("id")) ==
                 j2_change._root_id(wfs, doc["id"]) else x for x in reader.get("dependencies") or []]
@@ -6571,6 +6686,7 @@ class J2Run:
                     self.change["resend"].remove(name)
                 if src and is_artifact(src) and is_artifact(wf):     # a planning document's revision rewrites its file
                     wf["revises"] = rv
+                    wf["kept"] = self._keep_version(artifact_path(src))     # the version a "previous" ruling restores
             if self.real_summary:       # J2_REALIZATION: the plan's stage (a fix keeps the stage of what it revises)
                 st = {x["name"]: x.get("stage") for x in self.real_summary.get("proposal_brief") or []}.get(wf["name"])
                 if st or (src or {}).get("stage"):

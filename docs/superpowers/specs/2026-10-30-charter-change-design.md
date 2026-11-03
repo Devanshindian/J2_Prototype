@@ -49,7 +49,7 @@ Judge-and-plan calls for one A intent: at most 3 (match, edit with its docs list
 
 ## Non-goals (deferred, one at a time later)
 
-Mid-run prompts, freeze check of old workflows, Relay agreement rounds and ruling, a separate constraints question,
+Mid-run prompts, freeze check of old workflows, a separate constraints question,
 asking only readers of the changed section, growing the catalogue, the style guide's two owners, document runs.
 
 ## What exists (deep dive, origin/main bdd8602)
@@ -137,8 +137,18 @@ words), and the rest of the change goes ahead. Only plan rule faults the retry d
 
 Adaptation gets the change plan as fixed text (like `_realization_plan`): doc revisions, then revisions (`revises`)
 and new workflows. After each doc revision is built, Relay asks its readers that the change plan did not already
-revise "affected? what?", once each, stops at "no", and treats an unreadable reply as affected. Audit runs as today.
+revise whether they agree with it and whether their own output is affected (what must change), once each, stops at
+"not affected", and treats an unreadable reply as agreed and affected. Audit runs as today.
 `change.json` records intents, decisions, docs, workflows, calls and credits.
+
+Relay agreement (3 Nov, ported from branch `change-relay`, Relay v1): a reader that objects sends the doc back for one
+more revision registered by code, with the objections as its task, at most 2 rounds; its readers answer again on the
+new version. Still objected to, Identity keeps the latest version or the previous one (the file each doc revision
+overwrites is kept as `<name>.v<k>.<ext>`). Affected readers are revised only once the doc has settled. Revisions
+registered by Relay carry their predecessor's checks without the charter strings the change removed (`gone` in
+`change.json`), and a planning doc's revision must keep every heading the old file had. `change.json` adds
+`objections`, `rulings` and `gone`. Relay v1's per-document verdicts are not ported: the change planner already
+chooses the docs to revise.
 
 ### Switch
 

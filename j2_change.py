@@ -6,8 +6,10 @@ must give, the charter diff on charter numbers, item owners, the decision rule, 
 j2_realization's Session). j2.py does the wiring.
 Nothing here names a stage, a document or a workflow: everything comes from the run. What counts as a planning
 document is the caller's test (is_doc; j2 passes is_artifact)."""
+import copy
 import json
 import os
+import re
 
 import llm
 import j2_realization as R
@@ -145,6 +147,48 @@ def parse_affected(reply):
     if not d or not isinstance(d.get("affected"), bool) or not isinstance(d.get("what"), str):
         return None
     return {"affected": d["affected"], "what": d["what"]}
+
+
+def parse_agreement(reply):
+    """{"agree": bool, "reason": str, "affected": bool, "what": str}: a reader of a revised planning doc agrees or
+    objects (ported from change-relay's j2_relay), and says whether its own output must change."""
+    d, a = _obj(reply), parse_affected(reply)
+    if not d or not a or not isinstance(d.get("agree"), bool) or not str(d.get("reason") or "").strip():
+        return None
+    return {"agree": d["agree"], "reason": str(d["reason"]).strip(), **a}
+
+
+HEADING = re.compile(r"^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$", re.M)
+
+
+def headings_of(text):
+    """The markdown headings of a document, without the #, in order, once each."""
+    return list(dict.fromkeys(HEADING.findall(text or "")))
+
+
+def carry_checks(verification, gone, old_text=""):
+    """A revision's checks, from its predecessor's (change-relay's carry_checks on this framework's diff): a
+    facts-present string that came from a charter string the change removed (gone; an edit is a removal plus an
+    addition) is dropped, and a facts check left with nothing is dropped; a document (old_text) must still have every
+    heading it had. The input is not changed."""
+    def stale(t):
+        return any(t == g or (len(t) >= 8 and t in g) for g in gone)
+
+    out = []
+    for c in copy.deepcopy(verification or []):
+        if not isinstance(c, dict):
+            continue
+        if c.get("type") == "facts-present":
+            t = c.get("target")
+            keep = [x for x in (t if isinstance(t, list) else [t]) if x and not stale(str(x))]
+            if not keep:
+                continue
+            c["target"] = keep if isinstance(t, list) else keep[0]
+        if c.get("type") == "heading-present" and old_text:
+            continue                          # replaced by the full list below
+        out.append(c)
+    return out + [{"text": f"The document still has the heading {h}.", "type": "heading-present", "target": h,
+                   "expect": True} for h in headings_of(old_text)]
 
 
 # ---- step 2, intents: what Identity changed, by charter number (charter_items position + 1; an item is active while
