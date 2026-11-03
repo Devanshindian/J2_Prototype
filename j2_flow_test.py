@@ -9058,6 +9058,7 @@ def template_library(demo=False):
         assert not os.listdir(lib), os.listdir(lib)
         for r in (off, plain):
             assert not os.path.exists(os.path.join(r.dir, "templates.json")) and not r.tpl_lib and not r.tpl_decisions
+            assert not os.path.exists(os.path.join(r.dir, "templates")), "an unflagged run keeps no templates/ folder"
             assert not any((c.get("artifact_schema") or {}).get("library") for c in calls_file(r))
             assert not any("template_route" in x for x in j2._jsonl(r.dir, "receipts.jsonl"))
             assert not any("template" in str(m.get("text")) and m["who"] == "system" and "template:" in m["text"]
@@ -9100,6 +9101,56 @@ def template_library(demo=False):
                 meta = json.load(open(os.path.join(L.vdir(e["artifact"], e["section"], e["slug"], v["version"]),
                                                    "meta.json"), encoding="utf-8"))
                 assert {u["run"] for u in meta["used_by"]} == {n1, n2}
+        # a flagged run keeps its own copy of every template it used (created, reused and generic), once per version
+        for r, ds in ((r1, d1), (r2, d2), (r3, d3)):
+            assert all(d.get("saved") for d in ds), [(d["workflow"], d.get("saved")) for d in ds if not d.get("saved")]
+            folders = {d["saved"] for d in ds}
+            assert folders == {L.run_tpl_rel(d) for d in ds} and len(folders) == len({(d["template"], d["version"]) for d in ds})
+            for d in ds:
+                sd = os.path.join(r.dir, d["saved"])
+                assert sd.startswith(os.path.join(r.dir, "templates", d["artifact"], L.slug(d["section"]))), d["saved"]
+                assert sorted(os.listdir(sd)) == ["meta.json", "model.py", "schema.json", "spec.json"], sd
+                spec = json.load(open(os.path.join(sd, "spec.json"), encoding="utf-8"))
+                assert spec["kind"] == d["kind"] and spec["name"] == d["template"] and spec["version"] == d["version"], d
+                if d["kind"] == "specialised":      # byte for byte the library's version
+                    e = next(e for e in L.index()["templates"] if e["name"] == d["template"] and e["section"] == d["section"])
+                    lv = L.vdir(d["artifact"], d["section"], e["slug"], d["version"])
+                    for n in ("spec.json", "model.py", "schema.json"):      # the immutable files, byte for byte
+                        assert open(os.path.join(sd, n), "rb").read() == open(os.path.join(lv, n), "rb").read(), (d["saved"], n)
+                    m1, m2 = (json.load(open(os.path.join(x, "meta.json"), encoding="utf-8")) for x in (sd, lv))
+                    assert {k: m1[k] for k in ("name", "version", "sha", "schema_sha")} == {k: m2[k] for k in ("name", "version", "sha", "schema_sha")}
+                    assert m1["used_by"] == m2["used_by"][:len(m1["used_by"])], "the copy is the meta as it was when the run used it"
+                elif d.get("schema_sha"):      # the design decision records no sha: the style guide is inside a page reply
+                    assert L.sha_of(json.load(open(os.path.join(sd, "schema.json"), encoding="utf-8"))) == d["schema_sha"]
+        assert {d["action"] for d in d1} >= {"created", "generic"} and "reused" in {d["action"] for d in d2}
+        # (a) the run page reads the run's own copy: with an empty library every template still shows, "from this run"
+        empty_lib = tempfile.mkdtemp(prefix="j2-lib-empty-")
+        os.environ["J2_LIBRARY_DIR"] = empty_lib
+        try:
+            shown = L.run_templates(r2.dir)
+            assert len(shown) == len(d2) and all(x["source"] == "from this run" for x in shown), [(x["workflow"], x["source"]) for x in shown]
+            for d in d2:
+                sl = "generic" if d["kind"] == "generic" else L.slug(d["template"])
+                ver = 1 if d["kind"] == "generic" else d["version"]
+                v = L.template_view(d["artifact"], L.slug(d["section"]), sl, ver, run_dir=r2.dir)
+                assert v and v["source"] == "from this run" and v["saved"] == d["saved"], (d["workflow"], v and v["source"])
+                assert set(v["files"]) == set(L.FILES) and all(f["text"] and f["sha"] for f in v["files"].values())
+                assert v["readable"]["name"] == d["template"] and v["readable"]["fields"], d["workflow"]
+                if d["kind"] == "specialised":
+                    assert L.template_view(d["artifact"], L.slug(d["section"]), sl, ver) is None, "the library is empty"
+            # a decision whose copy is gone and whose version the library lacks: "not recorded", nothing raised
+            gone = tempfile.mkdtemp(prefix="j2-run-gone-")
+            rec2 = json.load(open(os.path.join(r2.dir, "templates.json"), encoding="utf-8"))
+            json.dump(rec2, open(os.path.join(gone, "templates.json"), "w", encoding="utf-8"))
+            nr = [x["source"] for x in L.run_templates(gone) if x["kind"] == "specialised"]
+            assert nr and all(x == "not recorded" for x in nr), nr
+            d = next(d for d in d2 if d["kind"] == "specialised")
+            v = L.template_view(d["artifact"], L.slug(d["section"]), L.slug(d["template"]), d["version"], run_dir=gone)
+            assert v["source"] == "not recorded" and v["files"] == {} and v["readable"] is None, v
+            # a run without templates.json or a templates/ folder behaves as before: nothing listed
+            assert L.run_templates(off.dir) == [] and L.template_view("prd", "problem", "nothing", 1, run_dir=off.dir) is None
+        finally:
+            os.environ["J2_LIBRARY_DIR"] = lib
         thread = {e["name"] for e in idx1["templates"]}
         assert all(not d["template"].startswith("Thread") for d in d3), [d["template"] for d in d3 if d["template"].startswith("Thread")]
         assert vers(idx2) == [x for x in vers(idx3) if x[0] in thread], "run 3 changed no boutique template"
@@ -9182,6 +9233,11 @@ def template_library(demo=False):
         t2, rec = L.route(need, {"run": "extend-test", "workflow": "W-4", "atom": "W-4.a1", "agent": "mock"})
         assert rec["action"] == "extended" and rec["rule"] == "c" and t2.version == 2 and t2.name == rs.name, rec
         assert "newsletter_form_fields" in [f.name for f in t2.fields] and "classes" in [f.name for f in t2.fields]
+        ext_run = tempfile.mkdtemp(prefix="j2-run-ext-")
+        rel = L.save_into_run(ext_run, rec, t2)
+        assert rel == L.run_tpl_rel(rec) and rel.endswith("@v2") and os.path.isfile(os.path.join(ext_run, rel, "model.py")), rel
+        assert L.save_into_run(ext_run, rec, t2) == rel, "the same version is copied once"
+        assert json.load(open(os.path.join(ext_run, rel, "spec.json"), encoding="utf-8"))["version"] == 2
         assert tree_sha(v1_dir) != v1_before or True      # meta.json may gain a use; the spec and code may not
         v1 = json.load(open(os.path.join(v1_dir, "spec.json"), encoding="utf-8"))
         assert L.SpecialisedTemplate.model_validate(v1).compute_sha() == rs.sha == v1["sha"], "v1 is unchanged"
@@ -9344,7 +9400,8 @@ def template_library(demo=False):
           f"need with no facts and no fields is generic; an extra field extends to v2 with v1 unchanged; six bad specs refused and never stored; "
           f"an invalid generator falls back to generic twice and the run ends Done; {n} model.py files match their "
           "runtime classes; every builder's schema sha is its template's schema.json; the committed library/ is "
-          "unchanged ok")
+          "unchanged; every flagged run keeps its own copy of each template it used (created, extended, reused and generic, once "
+          "per version), shown from the run with an empty library, and \"not recorded\" when neither has it ok")
 
 
 def library_page(run, lib):
@@ -9361,9 +9418,9 @@ def library_page(run, lib):
     chrome = j2.j2_check.find_chrome()
     steps = ("(async () => { const wait = ms => new Promise(r => setTimeout(r, ms)), q = s => [...document.querySelectorAll(s)], r = {}; await wait(2500);"
              " r.tab = !document.getElementById('tab-library').hidden; document.getElementById('tab-library').click(); await wait(1500);"
-             " r.rows = q('[data-tplrow]').length; r.reasons = q('[data-tplrow] td:last-child').map(x => x.textContent).slice(0, 3);"
+             " r.rows = q('[data-tplrow]').length; r.reasons = q('[data-tplrow] td:last-child').map(x => x.textContent).slice(0, 3); r.sources = q('[data-tplsource]').map(x => x.dataset.tplsource);"
              " q('[data-tpltable] [data-tplopen]')[0].click(); await wait(1500);"
-             " r.readable = !!document.querySelector('[data-tplreadable]'); r.chips = q('#tplviewer .mappill').length; r.rules = q('#tplviewer li').length;"
+             " r.head = (document.querySelector('#tplviewer h3') || {}).textContent || ''; r.readable = !!document.querySelector('[data-tplreadable]'); r.chips = q('#tplviewer .mappill').length; r.rules = q('#tplviewer li').length;"
              " r.example = (document.querySelector('#tplviewer pre') || {}).textContent || '';"
              " document.querySelector('[data-tplmode=template]').click(); await wait(300);"
              " r.files = q('[data-tplfile]').map(x => x.dataset.tplfile); r.copies = q('[data-tplcopy]').length; r.shas = q('[data-tplfile] .empty').map(x => x.textContent);"
@@ -9392,12 +9449,14 @@ def library_page(run, lib):
     assert hit, ("the page did not finish its steps", dom[-300:])
     r = json.loads(htmllib.unescape(hit.group(1)))
     assert r["tab"] and r["rows"] >= 5 and all(r["reasons"]), r
+    assert len(r["sources"]) == r["rows"] and all(x == "from this run" for x in r["sources"]) and "from this run" in r["head"], (r["sources"], r["head"])
     assert r["readable"] and r["chips"] >= 1 and r["rules"] >= 1 and '"html"' in r["example"], r
     assert r["files"] == ["spec.json", "model.py", "schema.json", "meta.json"] and r["copies"] == 4 and all(s.startswith("sha ") for s in r["shas"]), r
     assert set(r["groups"]) == {"prd", "hld", "lld", "design", "website"} and r["card"], r
     assert r["sw"][0] <= r["sw"][1], ("no horizontal scroll", r["sw"])
     print(f"template library page: Library tab shown for a run with decisions, {r['rows']} routing rows with reasons, a template opened Readable "
-          f"({r['chips']} enum chips, {r['rules']} rules, an example from the run) and As template (4 files, Copy and sha each), the atom card links it ok")
+          f"({r['chips']} enum chips, {r['rules']} rules, an example from the run) and As template (4 files, Copy and sha each), every row and the viewer say "
+          "\"from this run\", the atom card links it ok")
 
 
 if __name__ == "__main__":

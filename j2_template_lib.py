@@ -28,6 +28,7 @@ import json
 import keyword
 import os
 import re
+import shutil
 import tempfile
 import time
 from typing import Any, ClassVar, Dict, List, Literal, Optional
@@ -749,20 +750,92 @@ def _enums(t):
     return out
 
 
-def load(artifact, section_slug, tslug, version):
-    """(spec, meta, files) of one stored version, or None."""
-    d = os.path.join(lib_dir(), artifact, section_slug, tslug, f"v{version}")
+FILES = ("spec.json", "model.py", "schema.json", "meta.json")
+
+
+def load_dir(d):
+    """(spec, meta, files) of one template folder (a library version, or a run's saved copy), or None."""
     spec = _read(os.path.join(d, "spec.json"))
     if not spec:
         return None
     files = {}
-    for n in ("spec.json", "model.py", "schema.json", "meta.json"):
+    for n in FILES:
         try:
             with open(os.path.join(d, n), encoding="utf-8") as f:
                 files[n] = f.read()
         except OSError:
             files[n] = None
     return spec, _read(os.path.join(d, "meta.json")) or {}, files
+
+
+def load(artifact, section_slug, tslug, version):
+    """(spec, meta, files) of one stored library version, or None."""
+    return load_dir(os.path.join(lib_dir(), artifact, section_slug, tslug, f"v{version}"))
+
+
+# ---------------------------------------------------------------- a run's own copy of the templates it used
+def run_tpl_rel(rec):
+    """Where a run keeps its copy of one decision's template: templates/<artifact>/<section-slug>/<slug>@v<N>."""
+    return os.path.join("templates", rec["artifact"], slug(rec["section"]), f"{slug(rec['template'])}@v{rec['version']}")
+
+
+def run_saved_dir(run_dir, rec):
+    """The folder of a decision's saved copy when the run has one (its "saved" path, inside the run), else None."""
+    rel = rec.get("saved")
+    if not rel or not run_dir or os.path.isabs(rel) or ".." in rel.split(os.sep):
+        return None
+    d = os.path.join(run_dir, rel)
+    return d if os.path.isfile(os.path.join(d, "spec.json")) else None
+
+
+def save_into_run(run_dir, rec, t=None):
+    """Copy the chosen template version into the run (J2_TEMPLATE_LIBRARY=1): a specialised one's four files from
+    the library, a generic one's spec, model, schema and meta generated here with kind "generic". The same version
+    is copied once. Returns the path relative to the run (None when nothing could be saved)."""
+    rel = run_tpl_rel(rec)
+    dst = os.path.join(run_dir, rel)
+    if os.path.isfile(os.path.join(dst, "spec.json")):
+        return rel
+    if t is not None:
+        src = vdir(t.artifact, t.section, slug(t.name), t.version)
+        if not all(os.path.isfile(os.path.join(src, n)) for n in FILES):
+            return None
+        os.makedirs(dst, exist_ok=True)
+        for n in FILES:
+            shutil.copyfile(os.path.join(src, n), os.path.join(dst, n))
+        return rel
+    g = generic(rec["artifact"], rec["section"])
+    if g is None:
+        return None
+    spec = g.model_dump(exclude_none=True)
+    schema = AM.transport_schema(AM.SECTION_MODELS[g.artifact][g.section])
+    src_text = codegen_generic(g)
+    _write(os.path.join(dst, "spec.json"), spec)
+    _write(os.path.join(dst, "schema.json"), schema)
+    _write(os.path.join(dst, "model.py"), src_text)
+    _write(os.path.join(dst, "meta.json"), {"schema": SCHEMA, "name": g.name, "version": g.version, "kind": "generic",
+                                            "sha": g.sha, "schema_sha": sha_of(schema),
+                                            "model_sha": hashlib.sha256(src_text.encode("utf-8")).hexdigest(),
+                                            "used_by": []})
+    return rel
+
+
+def run_templates(run_dir):
+    """GET /api/run-templates: the run's decisions, each with where its template can be read from now: "from this
+    run" (its saved copy), "from library" (the library has that version), else "not recorded"."""
+    rec = _read(os.path.join(run_dir, "templates.json")) if run_dir else None
+    out = []
+    for d in (rec or {}).get("decisions") or []:
+        out.append({**d, "source": _source(run_dir, d)})
+    return out
+
+
+def _source(run_dir, d):
+    if run_saved_dir(run_dir, d):
+        return "from this run"
+    if d.get("kind") == "generic":
+        return "from library" if generic(d.get("artifact"), d.get("section")) else "not recorded"
+    return "from library" if load(d["artifact"], slug(d["section"]), slug(d["template"]), d["version"]) else "not recorded"
 
 
 def get(ref, artifact, section):
@@ -1293,9 +1366,39 @@ def library_view():
             "groups": groups}
 
 
-def template_view(artifact, section_slug, tslug, version):
+def template_view(artifact, section_slug, tslug, version, run_dir=None):
     """GET /api/library/<artifact>/<section>/<slug>/v<N>: the four files with their shas, and the readable form.
-    "generic" as the slug serves the generic template (generic.json's entry, its schema and a model listing)."""
+    "generic" as the slug serves the generic template (generic.json's entry, its schema and a model listing). With a
+    run_dir, the run's own saved copy comes first ("from this run"), then the library ("from library"); a template
+    neither has is "not recorded"."""
+    if run_dir:
+        decs = (_read(os.path.join(run_dir, "templates.json")) or {}).get("decisions") or []
+        mine = [d for d in decs if d.get("artifact") == artifact and slug(d.get("section")) == section_slug
+                and (slug(d.get("template")) == tslug or (tslug == "generic" and d.get("kind") == "generic"))
+                and (tslug == "generic" or d.get("version") == version)]
+        for d in mine:
+            sd = run_saved_dir(run_dir, d)
+            if sd:
+                spec, meta, files = load_dir(sd)
+                cls = GenericTemplate if spec.get("kind") == "generic" else SpecialisedTemplate
+                t = cls.model_validate({**spec, **({"used_by": meta.get("used_by") or []} if cls is SpecialisedTemplate
+                                                   else {})})
+                return {"template": spec, "meta": meta, "files": _with_sha(files), "readable": readable(t),
+                        "source": "from this run", "saved": d.get("saved")}
+        got = _library_view_of(artifact, section_slug, tslug, version)
+        if got:
+            return {**got, "source": "from library"}
+        if mine:
+            d = mine[-1]
+            return {"template": {"name": d.get("template"), "version": d.get("version"), "artifact": artifact,
+                                 "section": d.get("section"), "kind": d.get("kind")}, "meta": {}, "files": {},
+                    "readable": None, "source": "not recorded", "saved": d.get("saved")}
+        return None
+    got = _library_view_of(artifact, section_slug, tslug, version)
+    return {**got, "source": "from library"} if got else None
+
+
+def _library_view_of(artifact, section_slug, tslug, version):
     if tslug == "generic":
         sec = next((s for s in AM.SECTION_MODELS.get(artifact, {}) if slug(s) == section_slug), None)
         if sec is None:

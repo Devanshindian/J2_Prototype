@@ -7714,6 +7714,13 @@ class J2Run:
                                        "template": gd.name, "version": gd.version, "kind": "generic", "score": None,
                                        "rule": "-", "reason": "the style guide is written inside the first page "
                                                               "builder's reply, so it keeps the generic template"})
+        for d in self.tpl_decisions[-2:]:      # the run keeps its own copy of each template it used (once per version)
+            if "saved" not in d:
+                try:
+                    d["saved"] = j2_template_lib.save_into_run(self.dir, d, t if d is rec else None)
+                except Exception as e:      # a copy that fails never blocks the run: it is "not recorded"
+                    d["saved"] = None
+                    self._event("system", "template_save", f"{wid}: {type(e).__name__}: {e}")
         self.save("templates.json", {"schema": j2_template_lib.SCHEMA, "library": j2_template_lib.lib_dir(),
                                      "decisions": self.tpl_decisions})
         verb = {"reused": "reused", "extended": "extended", "created": "created"}.get(rec["action"])
