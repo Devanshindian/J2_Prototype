@@ -59,6 +59,7 @@ def fingerprint(paths):
 
 REAL_BEFORE = fingerprint(REAL_MEMORY)
 import j2  # noqa: E402
+import j2_artifacts  # noqa: E402
 for _k in ("J2_SEND_MODE", *j2.j2_send.SMTP_VARS, "J2_SEND_CAP"):      # .env is never used here: the tests never send a real email
     os.environ.pop(_k, None)
 ATOM = [j2.mock_atom({})]            # a complete work atom for workflows a test registers directly
@@ -5093,324 +5094,451 @@ def board_story_view():
 
 
 
-def template_run(brief=None, budget=1400, patch=None, demo=False, label="template demo run"):
-    """A mock run with J2_TEMPLATES=1: the Still Point documents-plus-website brief unless another is given. The flag
-    is set around the run only, so the tests after it see the plain flow again."""
-    keep = os.environ.get("J2_TEMPLATES")
-    os.environ["J2_TEMPLATES"] = "1"
+def schema_run(brief=None, budget=1400, patch=None, demo=False, label="artifact schema demo run"):
+    """A mock run with J2_ARTIFACT_SCHEMA=1: the Still Point documents-plus-website brief unless another is given.
+    The flag is set around this run only, so the tests after it see the plain flow again."""
+    keep = os.environ.get("J2_ARTIFACT_SCHEMA")
+    os.environ["J2_ARTIFACT_SCHEMA"] = "1"
     try:
         run = docs_run(brief or YOGA_BRIEF, budget, patch=patch)
         finish(run)
     finally:
         if keep is None:
-            os.environ.pop("J2_TEMPLATES", None)
+            os.environ.pop("J2_ARTIFACT_SCHEMA", None)
         else:
-            os.environ["J2_TEMPLATES"] = keep
+            os.environ["J2_ARTIFACT_SCHEMA"] = keep
     if demo:
         print(f"{label}: {os.path.basename(run.dir)} ({run.outcome})")
     return run
 
 
-def tmpl_blocks(run):
-    """{atom id: its Template block} from the run's own atoms.json (atom/1)."""
-    with open(os.path.join(run.dir, "atoms.json"), encoding="utf-8") as f:
-        return {v["id"]: v.get("template") for v in json.load(f)["atoms"]}
+def art_recs(run, kind=None, atom=None):
+    """The artifact-schema / artifact-rules / artifact-render receipts of a run, newest last."""
+    return [r for r in j2._jsonl(run.dir, "receipts.jsonl")
+            if str(r.get("type")).startswith("artifact-") and (kind is None or r["type"] == kind)
+            and (atom is None or r["atom"] == atom)]
 
 
-def bad_reply_mock(target, drop="next", wrong=("say", 7)):
-    """patch for docs_run: the first builder call of workflow <target> comes back with a JSON line that breaks the
-    reply model (a required field dropped and another one wrongly typed). The mock itself is wrapped, so the reply
-    code reads is the broken one, exactly as a model's would be."""
+def bad_section_mock(target, drop="statement", section=None):
+    """patch for docs_run: the first reply of workflow <target> comes back missing a field its section model
+    requires, so the shape layer must fail and the retry must fix it."""
     state = {"done": False}
 
     def patch(run, orig):
         def call(fn, fmt, task, mock, **k):
-            if fn == target and not state["done"]:
+            if fn == target and not state["done"] and k.get("schema"):
                 state["done"] = True
                 inner = mock
 
                 def broken():
-                    raw = inner()
-                    head, mark, rest = raw.partition("```")
-                    d = json.loads(head.strip())
-                    d.pop(drop, None)
-                    if wrong:
-                        d[wrong[0]] = wrong[1]
-                    return json.dumps(d, ensure_ascii=False) + "\n" + mark + rest
+                    d = json.loads(inner())
+                    sec = d.get("section") or {}
+                    sec.pop(drop, None)
+                    for key in list(sec):
+                        if section and key != section:
+                            continue
+                    d["section"] = sec
+                    return json.dumps(d, ensure_ascii=False)
                 mock = broken
             return orig(fn, fmt, task, mock, **k)
         return call
     return patch
 
 
-def no_schema_tag(target):
-    """patch for docs_run: workflow <target>'s prompt goes out without its <reply_schema> tag, as a prompt built
-    outside the template would."""
-    def patch(run, orig):
-        def call(fn, fmt, task, mock, **k):
-            if fn == target:
-                task = re.sub(r"<reply_schema>.*?</reply_schema>\n?", "", task, flags=re.S)
-            return orig(fn, fmt, task, mock, **k)
-        return call
-    return patch
-
-
-def hld_gap_mock(target="W-9", attempts=(1,)):
-    """patch for docs_run: the Components builder's markdown comes back with one component that names no R id, on
-    the given attempts only (attempt 1 by default, so the retry fixes it)."""
+def bad_reference_mock(target="W-9", bad="R9", attempts=(1,)):
+    """patch for docs_run: the Components builder covers a requirement id the PRD doesn't have, on the given
+    attempts only, so the rules layer must fail with that evidence and the retry must fix it."""
     state = {"n": 0}
 
     def patch(run, orig):
         def call(fn, fmt, task, mock, **k):
-            if fn == target:
+            if fn == target and k.get("schema"):
                 state["n"] += 1
                 if state["n"] in attempts:
                     inner = mock
 
                     def gap():
-                        raw = inner()
-                        # the last component loses its "Covers R.." clause: a C id with no requirement behind it
-                        return re.sub(r"(?m)^(\s*[-*+]\s*(?:\*\*)?C\d+(?:\*\*)?[^\n]*?)\s*Covers [^\n]*$", r"\1", raw,
-                                      count=1)
+                        d = json.loads(inner())
+                        comps = (d.get("section") or {}).get("components") or []
+                        if comps:
+                            comps[0]["covers"] = [bad]
+                        return json.dumps(d, ensure_ascii=False)
                     mock = gap
             return orig(fn, fmt, task, mock, **k)
         return call
     return patch
 
 
-def atom_templates():
-    """Templates (templates/1, J2_TEMPLATES=1): every work atom carries the proof that its builder was prompted
-    through prompts/builder.md, that its reply passed the BuilderReply model (j2_types.py) and that what it produced
-    follows its artifact template (artifacts/templates/<artifact>.json).
+def artifact_schemas():
+    """Artifact templates (artifact-schema/1, J2_ARTIFACT_SCHEMA=1): every artifact J2 generates comes out of a
+    defined template, enforced at generation (the schema goes with the call) and verified inside the workflow (shape,
+    rules, render), with the existing checks running unchanged on what code rendered.
 
-    With the flag unset nothing is recorded anywhere (plain_unchanged guards the prompts themselves). With it set, a
-    mock documents-plus-website run of the Still Point brief ends Done and every builder atom's block reads pass,
-    pass, pass - except a section that writes head tags only, which has nothing to hold to the template and says so.
-    A prompt sent without its <reply_schema> tag fails the prompt row and names the tag. The templates themselves are
-    checked against the section constants and the conditions they come from, and a run recorded without the flag
-    reads back as "not recorded", never a pass."""
-    import html as htmllib
+    With the flag unset nothing is recorded and nothing changes (plain_unchanged guards the prompts). With it set, a
+    mock documents-plus-website run of the Still Point brief ends Done, every builder atom passes all three layers,
+    the data is saved beside each document, and the rendered markdown still passes the P, H and L conditions. The
+    templates themselves are checked against the section constants and their conditions, and every transport schema
+    is draft-07 and accepted by `claude --json-schema`."""
     import shutil
-    import j2_templates as TM
-    import j2_types
-    # (a) the flag unset: no template anywhere, and the card has no Template block
-    os.environ.pop("J2_TEMPLATES", None)
+    import subprocess
+    import j2_artifact_models as AM
+    # (e) the drift test: the templates are the code's own sections, in code order, with the conditions they come from
+    for kind, want in (("prd", j2.PRD_SECTIONS), ("hld", j2.HLD_SECTIONS), ("lld", j2.LLD_SECTIONS)):
+        assert list(AM.SECTION_MODELS[kind]) == list(want), (kind, list(AM.SECTION_MODELS[kind]))
+        conds = {c["id"] for c in j2.load_conditions(kind + ".json")}
+        for sec in want:
+            named = AM.SECTION_CONDITIONS[kind][sec]
+            assert named and set(named) <= conds, (kind, sec, named)
+            assert AM.rule_names(kind, sec), (kind, sec, "every section names the rules code holds it to")
+            assert AM.model_for(kind, sec).SECTION == sec, (kind, sec)
+            assert AM.render_section(kind, sec, {}) is not None, (kind, sec, "every section renders")
+    assert list(AM.SECTION_MODELS["design"]) == ["Style guide"] and list(AM.SECTION_MODELS["website"]) == ["Section"]
+    assert AM.PRD.TEMPLATE == "PRD/1" and AM.Design.TEMPLATE == "Design/1" and AM.VERSION == 1
+    assert list(AM.PRD.model_fields) == ["problem", "users", "goals", "requirements", "success_metrics",
+                                         "out_of_scope", "assumptions"], list(AM.PRD.model_fields)
+    assert list(AM.HLD.model_fields)[:6] == ["purpose", "pages", "components", "data_flows", "hosting", "risks"]
+    assert list(AM.LLD.model_fields)[:6] == ["sections", "elements", "form_fields", "files", "responsive_rules",
+                                             "accessibility_rules"]
+    assert list(AM.WebsiteSection.model_fields)[:3] == ["id", "anchor", "implements"]
+    # (f) every transport schema: draft-07, closed objects, nothing the transport forbids, and the CLI accepts it
+    chrome_free = ["minLength", "maxLength", "minItems", "maxItems", "pattern", "format", "$defs", "2020-12"]
+    sizes = {}
+    for kind, by in AM.SECTION_MODELS.items():
+        for sec, model in by.items():
+            sch = AM.reply_schema(model, {})
+            txt = json.dumps(sch)
+            assert sch["$schema"] == "http://json-schema.org/draft-07/schema#", (sec, sch.get("$schema"))
+            assert all(x not in txt for x in chrome_free), (sec, [x for x in chrome_free if x in txt])
+            assert sch["required"][0] == "reason" and "section" in sch["required"], (sec, sch["required"])
+            assert sch["additionalProperties"] is False and len(txt) < 8000, (sec, len(txt))
+            for node in re.findall(r'"type": "object"', txt):      # every object is closed
+                pass
+            assert txt.count('"type": "object"') == txt.count('"additionalProperties": false'), sec
+            assert len(AM.schema_sha(sch)) == 64
+            sizes[model.template()] = len(txt)
+    if shutil.which("claude"):      # the CLI validates the schema before any model call: a bogus model costs nothing
+        env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+        for kind, by in AM.SECTION_MODELS.items():
+            for sec, model in by.items():
+                p = subprocess.run(["claude", "-p", "--output-format", "json", "--json-schema",
+                                    json.dumps(AM.reply_schema(model, {})), "--model", "no-such-model-xyz",
+                                    "--tools", "", "--setting-sources", "", "--strict-mcp-config",
+                                    "--no-session-persistence", "hi"], capture_output=True, text=True, env=env,
+                                   input="", timeout=120)
+                out = (p.stdout or "") + (p.stderr or "")
+                assert "is not a valid JSON Schema" not in out, (model.template(), out[:200])
+        bad = subprocess.run(["claude", "-p", "--output-format", "json", "--json-schema",
+                              '{"type":"object","properties":{"x":{"type":"nonsense"}}}', "--model",
+                              "no-such-model-xyz", "--tools", "", "--setting-sources", "", "--strict-mcp-config",
+                              "--no-session-persistence", "hi"], capture_output=True, text=True, env=env, input="",
+                             timeout=120)
+        assert "is not a valid JSON Schema" in (bad.stdout or "") + (bad.stderr or ""), "the CLI checks the schema"
+    # (a) the flag unset: no schema sent, no artifact receipt, no data file
+    os.environ.pop("J2_ARTIFACT_SCHEMA", None)
     off = docs_run(BREW_LAB, 200)
-    assert off.templates is False and off.snapshot().get("templates") is False
-    assert "template" not in json.dumps(json.load(open(os.path.join(off.dir, "atoms.json")))), "no template key"
-    assert not any("template" in c for c in calls_file(off)), "no template record in calls.jsonl"
-    assert not any(r.get("type") == TM.CHECK_TYPE for r in j2._jsonl(off.dir, "receipts.jsonl"))
+    assert off.schemas is False and not art_recs(off), art_recs(off)[:1]
+    assert not any(c.get("artifact_schema") for c in calls_file(off)), "no schema record in calls.jsonl"
+    assert not [f for f in os.listdir(off.dir) if f in ("website.json", "design.json", "prd.json")]
     if shutil.which("node"):
         card_off = render_node(off.snapshot(), docs={"docs": {}})["cards"][off.workflows[0]["id"]]
-        assert 'data-block="template"' not in card_off, "no Template block with the flag off"
-    # (f) the templates themselves: the sections are the code's, in code order, and every rule names a real source
-    for kind, want in (("prd", j2.PRD_SECTIONS), ("hld", j2.HLD_SECTIONS), ("lld", j2.LLD_SECTIONS)):
-        assert TM.template_sections(kind) == list(want), (kind, TM.template_sections(kind))
-        conds = {c["id"] for c in j2.load_conditions(kind + ".json")}
-        for s in TM.load_template(kind)["sections"]:
-            assert s["rules"], s["name"]
-            for r in s["rules"]:
-                assert r["from"] in conds, (kind, s["name"], r)       # only rules J2 already enforces
-    for kind in ("website", "design"):
-        assert TM.template_sections(kind) == [] and TM.load_template(kind)["section_rules"], kind
-    known = {"heading", "min-words", "section-not-empty", "ids-unique", "ids-sequential", "ids-covered",
-             "components-have-responsibility", "components-cover-requirements", "sections-have-id",
-             "sections-implement-components", "elements-have-parts", "fields-have-parts", "section-markers",
-             "anchor-present", "style-keys", "style-hex", "style-present", "style-css-safe"}
-    used = {r["rule"] for k in TM.ARTIFACTS for s in (TM.load_template(k).get("sections") or [])
-            for r in s["rules"]} | {r["rule"] for k in TM.ARTIFACTS
-                                    for r in TM.load_template(k).get("section_rules") or []}
-    assert used <= known, used - known                                 # every rule in a template is implemented
-    assert TM.prompt_card()[0] == "builder/1" and len(TM.prompt_card()[1]) == 64
-    assert list(TM.TAGS) == ["agent_card", "workflow", "work_atom", "output_template", "context", "board", "task",
-                             "reply_schema"]
-    assert j2_types.MODEL == "BuilderReply/1" and list(j2_types.BuilderReply.model_fields)[0] == "reason"
-    assert list(j2_types.BuilderReply.model_fields)[:5] == list(j2_types.BASE_FIELDS), "the model's own order"
-    # (f) a run recorded without the flag, read back with it on: every row "not recorded", never a pass
-    os.environ["J2_TEMPLATES"] = "1"
-    try:
-        old = j2.saved_snapshot(os.path.basename(off.dir))
-    finally:
-        os.environ.pop("J2_TEMPLATES", None)
-    oldv = [v for v in old["atoms_v1"].values() if v.get("template")]
-    assert oldv and all(v["template"]["prompt"]["used"] == "not recorded" and v["template"]["reply"]["valid"]
-                        == "not recorded" and v["template"]["output"]["match"] == "not recorded" for v in oldv), oldv[:1]
-    assert all("no builder call recorded" in v["template"]["prompt"]["evidence"] for v in oldv), oldv[0]["template"]
+        assert 'data-block="artifact_template"' not in card_off, "no block with the flag off"
     # (b) the Still Point documents-plus-website run with the flag on
-    run = template_run()
+    run = schema_run()
     assert run.outcome.startswith("Done"), run.outcome
-    blocks = tmpl_blocks(run)
-    assert blocks and all(blocks.values()), [k for k, v in blocks.items() if not v]
-    head_only = []
-    for aid, t in blocks.items():
-        assert t["prompt"]["used"] == "pass", (aid, t["prompt"])
-        assert re.fullmatch(r"call \d+: tags \[.*'reply_schema'\]", t["prompt"]["evidence"]), (aid, t["prompt"])
-        assert t["prompt"]["version"] == "builder/1" and t["reply"]["model"] == "BuilderReply/1", (aid, t)
-        assert t["reply"]["valid"] == "pass" and t["reply"]["retries"] == 0, (aid, t["reply"])
-        if t["output"]["match"] == "not recorded":
-            head_only.append(aid)
-            assert "head tags only" in str(t["output"].get("note")), (aid, t["output"])
-            continue
-        assert t["output"]["match"] == "pass", (aid, t["output"])
-        assert all(x in [TM.template_name(k) for k in TM.ARTIFACTS] for x in t["output"]["template"].split(" + ")), \
-            (aid, t["output"])
-        assert re.fullmatch(rf"{re.escape(aid)}:\d+", t["output"]["evidence"]), (aid, t["output"])
-    assert len(blocks) - len(head_only) >= 20, (len(blocks), head_only)
-    kinds = {x for t in blocks.values() if t["output"]["match"] != "not recorded"
-             for x in t["output"]["template"].split(" + ")}
-    assert kinds >= {"prd/1", "hld/1", "lld/1", "website/1", "design/1"}, kinds
-    # the records behind those rows: a template record on every builder call, and a template-match receipt per atom
-    recorded = [c for c in calls_file(run) if c.get("template")]
-    assert recorded and all(set(c["template"]) == {"prompt", "prompt_sha", "tags_present", "reply_model",
-                                                   "reply_valid", "errors", "retries"} for c in recorded)
-    assert all(c["template"]["tags_present"] == list(TM.TAGS) and c["template"]["reply_valid"] for c in recorded)
-    assert all(f"<{tag}>" in c["prompt"] for c in recorded for tag in TM.TAGS), "the prompt really is the envelope"
-    assert all(j2_types.MODEL in c["prompt"] and '"reason"' in c["prompt"] for c in recorded)
-    recs = [r for r in j2._jsonl(run.dir, "receipts.jsonl") if r.get("type") == TM.CHECK_TYPE]
-    assert recs and {r["atom"] for r in recs} >= set(blocks) - set(head_only), (len(recs), head_only)
-    assert any(r.get("template") == "design" for r in recs), "the style guide is held to the design template"
+    recs = art_recs(run)
+    assert recs and not [r for r in recs if not r["pass"]], [r for r in recs if not r["pass"]][:2]
     assert all(r["by"] == "code" for r in recs), "written by code only"
-    # template-match is a verification row like any other
-    views = {v["id"]: v for v in json.load(open(os.path.join(run.dir, "atoms.json")))["atoms"]}
-    some = next(v for k, v in views.items() if k not in head_only)
-    assert any(x["method"].startswith(TM.CHECK_TYPE) for x in some["verification"]), some["verification"]
-    assert list(some).index("template") == list(some).index("defined_output") + 1, list(some)
-    assert list(some).index("template") + 1 == list(some).index("verification"), list(some)
-    # (e) a prompt sent without its <reply_schema> tag: the prompt row fails and names the tag
-    gap = template_run(patch=no_schema_tag("W-2"), budget=1400)
-    g = tmpl_blocks(gap)["W-2.a1"]
-    assert g["prompt"]["used"] == "fail" and "reply_schema" in g["prompt"]["evidence"], g["prompt"]
-    assert all(v["prompt"]["used"] == "pass" for k, v in tmpl_blocks(gap).items() if k != "W-2.a1"), "only that one"
-    assert gap.outcome.startswith("Done"), gap.outcome      # a missing tag is recorded, it never changes the flow
-    # the page: the Template block sits between Defined output and Verification, with its three rows
+    atoms = {a["id"] for w in run._all_wfs() for a in w.get("atoms") or [] if w.get("section")}
+    built = {r["atom"] for r in recs}
+    assert built and built <= atoms and len(built) >= 20, (len(built), len(atoms))
+    for aid in built:      # every builder atom passed all three layers
+        for t in ("artifact-schema", "artifact-rules", "artifact-render"):
+            mine = [r for r in recs if r["atom"] == aid and r["type"] == t]
+            assert mine and mine[-1]["pass"] is True, (aid, t, mine[-1:])
+    tmpls = {r.get("template") for r in recs}
+    assert tmpls >= {"PRD/1 · Problem", "HLD/1 · Components", "LLD/1 · Form fields",
+                     "WebsiteSection/1 · Section"}, sorted(tmpls)
+    assert all(r.get("template_version") == AM.VERSION for r in recs)
+    # the data beside each document, and the document code rendered from it
+    for kind in ("prd", "hld", "lld", "design", "website"):
+        f = os.path.join(run.dir, f"{kind}.json")
+        assert os.path.isfile(f), f
+        rec = json.load(open(f, encoding="utf-8"))
+        assert rec["schema"] == AM.SCHEMA and rec["sections"] and rec["version"], rec.get("template")
+        assert rec["template"] == AM.DOC_MODELS[kind].TEMPLATE, (kind, rec["template"])
+        assert any(re.fullmatch(rf"{kind}-v\d+\.json", x) for x in os.listdir(os.path.join(run.dir, "site"))), kind
+    for kind, secs in (("prd", j2.PRD_SECTIONS), ("hld", j2.HLD_SECTIONS), ("lld", j2.LLD_SECTIONS)):
+        text = open(os.path.join(run.dir, f"{kind}.md"), encoding="utf-8").read()
+        assert [h for lv, h, _ in j2.md_sections(text) if lv == 2][:len(secs)] == list(secs), (kind, text[:200])
+    # (e) the rendered markdown still passes the document conditions, and the readers still read it
+    au = {a.get("output"): a for a in j2._read(run.dir, "audits.json", []) or [] if a.get("conditions")}
+    for kind in ("prd", "hld", "lld"):
+        conds = (j2._read(run.dir, f"stage-{kind}.json", {}) or {}).get("audits") or []
+        last = (conds or [{}])[-1].get("conditions") or (au.get(kind) or {}).get("conditions") or []
+        assert last and all(c["met"] or c.get("severity") == "warn" for c in last), (kind, [(c["id"], c["met"]) for c in last])
+    hld = open(os.path.join(run.dir, "hld.md"), encoding="utf-8").read()
+    comps = j2.parse_hld(hld)
+    assert comps and all(c["covers"] and c["responsibility"] for c in comps), comps[:2]
+    lld = j2.parse_lld(open(os.path.join(run.dir, "lld.md"), encoding="utf-8").read())
+    assert lld["sections"] and all(s["anchor"] and s["implements"] for s in lld["sections"]), lld["sections"][:2]
+    assert lld["elements"] and all(e["selector"] and e["trigger"] and e["behaviour"] for e in lld["elements"])
+    assert lld["fields"] and all(f["name"] and f["type"] and f["required"] is not None for f in lld["fields"])
+    # the schema really went with each builder call, and the records say which one
+    sent = [c for c in calls_file(run) if c.get("artifact_schema")]
+    assert sent and all(set(c["artifact_schema"]) == {"template", "version", "schema_sha", "schema_bytes", "subtype",
+                                                      "structured_output", "attempt"} for c in sent)
+    assert all(c["artifact_schema"]["structured_output"] and len(c["artifact_schema"]["schema_sha"]) == 64
+               and c["artifact_schema"]["schema_bytes"] < 8000 for c in sent)
+    assert {c["artifact_schema"]["template"] for c in sent} == tmpls - {None}, "one schema per section"
+    assert all('"section"' in c["prompt"] or "YOUR TEMPLATE" in c["prompt"] for c in sent)
+    # (h) older saved runs still open: a run recorded without the flag has no artifact rows and no data file
+    here = os.path.dirname(os.path.abspath(__file__))
+    real = [os.path.join(here, "runs", x) for x in sorted(os.listdir(os.path.join(here, "runs")))[:3]] \
+        if os.path.isdir(os.path.join(here, "runs")) else []
+    for d in [x for x in real if os.path.isdir(x)]:
+        assert j2_artifacts.tree(d)["groups"], d
+        assert not [r for r in j2._jsonl(d, "receipts.jsonl") if str(r.get("type")).startswith("artifact-")] \
+            or os.path.isfile(os.path.join(d, "prd.json")), d
+    # the page: the Artifact template block between Defined output and Verification, and the data in the Artifacts tab
     if shutil.which("node"):
         snap = run.snapshot()
-        card = render_node(snap, docs={"docs": {}})["cards"][run.workflows[0]["id"]]
+        wf = next(w for w in snap["workflows"] if (w.get("atoms") or [{}])[0].get("id") in built)
+        card = render_node(snap, docs={"docs": {}})["cards"][wf["id"]]
         order = re.findall(r'data-block="(\w+)"', card)
-        assert order.index("template") == order.index("expected_output") + 1 == order.index("verification") - 1, order
-        blk = card.split('data-block="template"')[1].split('data-block="verification"')[0]
-        rows = re.findall(r'data-tmplrow="(\w+)"', blk)
-        assert rows == ["prompt", "reply", "output"], rows
+        assert order.index("artifact_template") == order.index("expected_output") + 1, order
+        assert order.index("artifact_template") + 1 == order.index("verification"), order
+        blk = card.split('data-block="artifact_template"')[1].split('data-block="verification"')[0]
+        assert re.findall(r'data-artrow="(\w+)"', blk) == ["template", "schema", "rules", "rendered"], blk[:200]
         txt = " ".join(re.sub(r"<[^>]+>", " ", blk).split())
-        for word in ("Prompt template", "builder/1", "Reply model", "BuilderReply/1", "Output template", "pass"):
-            assert word in txt, (word, txt[:200])
-        assert 'data-link="call"' in blk and 'data-link="receipt"' in blk, blk[:300]
-        assert snap["templates"] is True
-        simple = render_node(snap, docs={"docs": {}})["simple"]      # the Simple view is untouched
-        assert "Prompt template" not in simple and "data-tmplrow" not in simple and "BuilderReply" not in simple
-    # the real page in Chrome: the Template block is there, between Defined output and Verification, and visible
-    chrome = j2.j2_check.find_chrome()
-    if chrome and BROWSER:
-        import threading
-        import urllib.request
-        import j2_server
-        name = os.path.basename(run.dir)
-        wid = run.workflows[0]["id"]
-        js = ("const q = s => [...document.querySelectorAll(s)]; showTab('workflows');"
-              "q('#pane-workflows details.atom').forEach(d => { d.open = true; });"
-              "const card = document.querySelector('details.atom'); r.atom = card ? card.dataset.key : null;"
-              "r.blocks = [...card.querySelectorAll('[data-block]')].map(b => b.dataset.block);"
-              "const t = card.querySelector('[data-block=\"template\"]');"
-              "r.rows = t ? [...t.querySelectorAll('[data-tmplrow]')].map(x => x.dataset.tmplrow) : [];"
-              "r.shown = !!t && t.getClientRects().length > 0;"
-              "r.text = t ? t.textContent.replace(/\\s+/g, ' ').trim().slice(0, 900) : '';"
-              "const ver = card.querySelector('[data-block=\"verification\"]'), out = card.querySelector('[data-block=\"expected_output\"]');"
-              "r.between = !!t && !!ver && !!out && out.getBoundingClientRect().top < t.getBoundingClientRect().top"
-              " && t.getBoundingClientRect().top < ver.getBoundingClientRect().top;"
-              "r.chips = t ? [...t.querySelectorAll('[data-tmpl-st]')].map(x => x.textContent.trim()) : [];"
-              "r.links = t ? [...t.querySelectorAll('[data-link]')].map(x => x.dataset.link) : [];"
-              "r.simple = document.getElementById('sview').textContent.includes('Prompt template');")
-        tmp = tempfile.mkdtemp(prefix="j2-tmpl-")
-        ui = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "j2_ui.html"), encoding="utf-8").read()
-        open(os.path.join(tmp, "j2_ui.html"), "w", encoding="utf-8").write(
-            ui.replace("</body>", "<script>setTimeout(() => { const r = {}; try { " + js
-                       + " } catch (e) { r.error = String(e); } document.body.setAttribute('data-r', "
-                       "JSON.stringify(r)); }, 4500)</script></body>"))
-        keep_here, j2_server.HERE = j2_server.HERE, tmp
-        keep_run, j2_server.RUN = j2_server.RUN, run
-        srv = j2_server.http.server.ThreadingHTTPServer(("127.0.0.1", 0), j2_server.Handler)
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
-        try:
-            dom = chrome_dom([chrome, "--headless=new", "--disable-gpu", "--window-size=1280,900",
-                              "--virtual-time-budget=14000", "--dump-dom",
-                              f"http://127.0.0.1:{srv.server_address[1]}/?view=detail&run={name}"],
-                             timeout=180).stdout
-        finally:
-            j2_server.HERE, j2_server.RUN = keep_here, keep_run
-            srv.shutdown()
-        got = json.loads(htmllib.unescape(re.search(r'data-r="([^"]*)"', dom).group(1)))
-        assert "error" not in got, got
-        assert got["rows"] == ["prompt", "reply", "output"] and got["shown"] is True, got
-        assert got["between"] is True, got["blocks"]
-        assert got["blocks"].index("template") == got["blocks"].index("expected_output") + 1, got["blocks"]
-        assert got["blocks"].index("template") + 1 == got["blocks"].index("verification"), got["blocks"]
-        assert got["chips"] and all(x in ("pass", "fail", "not recorded") for x in got["chips"]), got["chips"]
-        assert set(got["links"]) >= {"call", "receipt"}, got["links"]
-        assert "builder/1" in got["text"] and "BuilderReply/1" in got["text"], repr(got["text"])
-        assert got["simple"] is False, "the Simple view has no Template block"
-    print("atom templates: with the flag off nothing is recorded; with it on the Still Point run ends Done and all "
-          f"{len(blocks) - len(head_only)} built atoms read prompt pass, reply pass, output pass against "
-          f"{len(kinds)} artifact templates (head-tags-only sections: {head_only or 'none'}), a prompt without its "
-          "<reply_schema> tag fails the prompt row by name, the templates match the section constants and their "
-          "conditions, and a run recorded without the flag reads \"not recorded\" ok")
+        assert "/1" in txt and "pass" in txt and "rule(s) met" in txt and "yes" in txt, txt[:200]
+        assert blk.count('data-link="artreceipt"') == 3, blk[:300]
+        tree = j2_artifacts.tree(run.dir)
+        rows = [c["name"] for g in tree["groups"] for it in g["items"] for c in it.get("children") or []]
+        assert "Template data (PRD/1)" in rows and "Template data (HLD/1)" in rows, rows[:8]
+    print("artifact schemas: the templates are the code's own sections with their conditions, every transport schema "
+          f"is draft-07 and accepted by claude --json-schema ({min(sizes.values())}-{max(sizes.values())} bytes), the "
+          f"Still Point run ends Done with all three layers passing on {len(built)} builder atoms, the data is saved "
+          "beside each document, and the markdown code rendered still passes P1-P8, H1-H6 and L1-L6 ok")
 
 
-def atom_templates_failures():
-    """Templates, the two planted failures. A builder reply that breaks the reply model (a required field dropped and
-    one wrongly typed) is retried once with Pydantic's exact words inside the envelope's own retry_limit, passes on
-    the second call and is recorded as one retry. An HLD component written with no R id fails the template-match
-    check with that evidence, the builder gets the evidence and the next attempt passes; when the gap stays, the
-    failed receipts take the existing path to Adaptation."""
-    import j2_templates as TM
-    import j2_types
-    # (c) the reply model: one retry with the exact error, then pass
-    bad = template_run(patch=bad_reply_mock("W-2"))
+def artifact_schema_failures():
+    """Artifact templates, the planted failures. A reply missing a field its model requires fails the shape layer and
+    is retried with Pydantic's exact words; an HLD component covering a requirement the PRD doesn't have fails the
+    rules layer with that evidence and the retry fixes it; a reply with no usable structured output (subtype
+    error_max_structured_output_retries, or success with nothing in structured_output) is a failed attempt with the
+    subtype as its evidence."""
+    import j2_artifact_models as AM
+    # (c) a reply missing a required field: the shape layer fails, the retry carries the error, then it passes
+    bad = schema_run(patch=bad_section_mock("W-1", drop="statement"))
     assert bad.outcome.startswith("Done"), bad.outcome
-    calls = [c for c in calls_file(bad) if c.get("atom") == "W-2.a1" and c.get("template")]
-    assert len(calls) >= 2, [c["id"] for c in calls]
-    first, second = calls[0]["template"], calls[-1]["template"]
-    assert first["reply_valid"] is False and second["reply_valid"] is True, (first, second)
-    assert any(e.startswith("next:") for e in first["errors"]) and any("say" in e for e in first["errors"]), first
-    assert first["retries"] == 0 and second["retries"] == 1, (first["retries"], second["retries"])
-    assert any(e in calls[-1]["prompt"] for e in first["errors"]), "the retry carries Pydantic's own words"
-    assert j2_types.MODEL in calls[-1]["prompt"]
-    t = tmpl_blocks(bad)["W-2.a1"]
-    assert t["reply"]["valid"] == "pass" and t["reply"]["retries"] == 1, t["reply"]
-    assert t["prompt"]["used"] == "pass" and t["output"]["match"] in ("pass", "not recorded"), t
-    w2 = next(w for w in bad._all_wfs() if w["id"] == "W-2")
-    assert w2["retries_used"] == 1 and w2["status"] == "done", (w2["retries_used"], w2["status"])
-    assert any(m["who"] == "system" and "can't be used" in m["text"] and "BuilderReply/1" in m["text"]
-               for m in bad.chat), [m["text"][:90] for m in bad.chat if m["who"] == "system"][:6]
-    # (d) the output template: a component with no R id fails, the retry fixes it
-    gap = template_run(patch=hld_gap_mock("W-9", attempts=(1,)))
-    assert gap.outcome.startswith("Done"), gap.outcome
-    recs = [r for r in j2._jsonl(gap.dir, "receipts.jsonl")
-            if r.get("type") == TM.CHECK_TYPE and r["atom"] == "W-9.a1"]
-    assert [r["pass"] for r in recs][:2] == [False, True], [(r["attempt"], r["pass"], r["evidence"][:60]) for r in recs]
-    assert "names no R id" in recs[0]["evidence"] and recs[0]["target"] == "Components", recs[0]["evidence"]
-    assert recs[0]["attempt"] == 1 and recs[1]["attempt"] == 2 and recs[0]["by"] == "code", recs[:2]
-    assert any("names no R id" in c["prompt"] for c in calls_file(gap) if c.get("atom") == "W-9.a1"), \
-        "the builder is sent the rule it missed"
-    t9 = tmpl_blocks(gap)["W-9.a1"]
-    assert t9["output"]["match"] == "pass" and t9["output"]["evidence"] == "W-9.a1:2", t9["output"]
-    hld = open(os.path.join(gap.dir, "hld.md"), encoding="utf-8").read()
-    assert all(c["covers"] for c in j2.parse_hld(hld)), j2.parse_hld(hld)
-    # the gap that stays: the failed receipts take the existing path to Adaptation
-    stuck = template_run(patch=hld_gap_mock("W-9", attempts=(1, 2, 3, 4, 5)))
-    srecs = [r for r in j2._jsonl(stuck.dir, TM.CHECK_TYPE and "receipts.jsonl")
-             if r.get("type") == TM.CHECK_TYPE and r["atom"] == "W-9.a1"]
-    assert srecs and all(r["pass"] is False for r in srecs), [(r["attempt"], r["pass"]) for r in srecs]
-    assert len(srecs) >= 2, [(r["attempt"], r["pass"]) for r in srecs]      # the existing rule stops at a repeat
-    assert any("the same check failed with the same evidence twice" in m.get("text", "") for m in stuck.chat), \
-        [m["text"][:80] for m in stuck.chat if m["who"] == "system"][-4:]
+    recs = art_recs(bad, "artifact-schema", "W-1.a1")
+    assert [r["pass"] for r in recs][:2] == [False, True], [(r["attempt"], r["pass"], r["evidence"][:40]) for r in recs]
+    assert "statement" in recs[0]["evidence"] and "Field required" in recs[0]["evidence"], recs[0]["evidence"]
+    assert recs[0]["template"] == "PRD/1 · Problem" and recs[0]["by"] == "code", recs[0]
+    calls = [c for c in calls_file(bad) if c.get("atom") == "W-1.a1" and c.get("artifact_schema")]
+    assert len(calls) >= 2 and any("statement" in c["prompt"] and "REJECTED" in c["prompt"] for c in calls[1:]), \
+        "the retry carries Pydantic's own words"
+    w1 = next(w for w in bad._all_wfs() if w["id"] == "W-1")
+    assert w1["retries_used"] >= 1 and w1["status"] == "done", (w1["retries_used"], w1["status"])
+    assert any(m["who"] == "system" and "can't be used" in m["text"] and "PRD/1" in m["text"] for m in bad.chat), \
+        [m["text"][:80] for m in bad.chat if m["who"] == "system"][:4]
+    # (d) a reference the earlier document doesn't have: the rules layer fails with that evidence
+    ref = schema_run(patch=bad_reference_mock("W-9", "R9", attempts=(1,)))
+    assert ref.outcome.startswith("Done"), ref.outcome
+    rr = art_recs(ref, "artifact-rules", "W-9.a1")
+    assert [r["pass"] for r in rr][:2] == [False, True], [(r["attempt"], r["pass"], r["evidence"][:50]) for r in rr]
+    assert "R9" in rr[0]["evidence"] and "not a requirement of the PRD" in rr[0]["evidence"], rr[0]["evidence"]
+    assert art_recs(ref, "artifact-schema", "W-9.a1")[0]["pass"] is True, "the shape was fine; the reference was not"
+    assert any("R9" in c["prompt"] for c in calls_file(ref) if c.get("atom") == "W-9.a1"), \
+        "the builder is sent the reference it got wrong"
+    hld = open(os.path.join(ref.dir, "hld.md"), encoding="utf-8").read()
+    reqs = {r["id"] for r in (ref.chain.get("prd") or {}).get("requirements") or []}
+    assert all(set(c["covers"]) <= reqs for c in j2.parse_hld(hld)), (j2.parse_hld(hld)[:2], reqs)
+    # a reference that stays wrong on every attempt takes the existing path to Adaptation
+    stuck = schema_run(patch=bad_reference_mock("W-9", "R9", attempts=(1, 2, 3, 4, 5)))
+    srr = art_recs(stuck, "artifact-rules", "W-9.a1")
+    assert srr and all(r["pass"] is False for r in srr), [(r["attempt"], r["pass"]) for r in srr]
     assert any(m["who"] == "adaptation" or "Adaptation" in m.get("text", "") for m in stuck.chat), "Adaptation got it"
-    t9s = tmpl_blocks(stuck).get("W-9.a1") or {}
-    assert t9s.get("output", {}).get("match") == "fail", t9s.get("output")
-    assert "names no R id" in str(t9s.get("output", {}).get("note")), t9s.get("output")
-    print("atom templates, planted failures: a reply that breaks BuilderReply is retried once with Pydantic's own "
-          "words (\"next: Field required\") inside the envelope's retry_limit and passes on the second call, recorded "
-          "as 1 retry; an HLD component with no R id fails template-match with that evidence, the retry fixes it, "
-          "and a gap that stays takes the existing path to Adaptation ok")
+    # (g) no usable structured output: both cases are failed attempts, with the subtype as the evidence
+    import llm
+    class FakeRun:
+        def __init__(self, payload):
+            self.payload, self.returncode, self.stderr = payload, 0, ""
+        @property
+        def stdout(self):
+            return json.dumps(self.payload)
+    for payload, want in (({"subtype": "error_max_structured_output_retries", "result": "", "is_error": True},
+                           "error_max_structured_output_retries"),
+                          ({"subtype": "success", "result": "{}", "is_error": False}, "no structured_output")):
+        keep = llm.subprocess.run
+        llm.subprocess.run = lambda *a, **k: FakeRun(payload)
+        try:
+            raised = None
+            try:
+                llm._run_claude_cli(["claude"], None, "hi", {}, lambda e: None, {"type": "object"})
+            except RuntimeError as e:
+                raised = str(e)
+        finally:
+            llm.subprocess.run = keep
+        assert raised and want in raised, (want, raised)
+        assert (llm.LAST_META.get("structured") or {}).get("subtype") == payload["subtype"], llm.LAST_META
+    # and in a run: the builder's first call brings nothing usable, the next one does
+    state = {"done": False}
+
+    def patch(run, orig):
+        def call(fn, fmt, task, mock, **k):
+            if fn == "W-2" and k.get("schema") and not state["done"]:
+                state["done"] = True
+                raise RuntimeError("claude -p structured output failed: subtype "
+                                   "'error_max_structured_output_retries'")
+            return orig(fn, fmt, task, mock, **k)
+        return call
+    prov = schema_run(patch=patch)
+    assert prov.outcome.startswith("Done"), prov.outcome
+    pr = art_recs(prov, "artifact-schema", "W-2.a1")
+    assert pr and pr[0]["pass"] is False and "error_max_structured_output_retries" in pr[0]["evidence"], pr[:1]
+    assert pr[-1]["pass"] is True, [(r["attempt"], r["pass"]) for r in pr]
+    print("artifact schema failures: a missing field fails the shape layer and the retry carries Pydantic's words; a "
+          "component covering R9 fails the rules layer with that evidence and the retry fixes it (and a gap that "
+          "stays goes to Adaptation); a reply with subtype error_max_structured_output_retries, and one with success "
+          "but no structured_output, are failed attempts with the subtype as the evidence ok")
+
+
+def bad_ids_mock(target="W-9", skip=2, attempts=(1,)):
+    """patch for docs_run: the Components builder sends ids C1, C3 (the shape is fine, the order is not), on the
+    given attempts only."""
+    state = {"n": 0}
+
+    def patch(run, orig):
+        def call(fn, fmt, task, mock, **k):
+            if fn == target and k.get("schema"):
+                state["n"] += 1
+                if state["n"] in attempts:
+                    inner = mock
+
+                    def gap():
+                        d = json.loads(inner())
+                        comps = (d.get("section") or {}).get("components") or []
+                        for i, c in enumerate(comps, 1):
+                            c["id"] = f"C{i if i < skip else i + 1}"
+                        return json.dumps(d, ensure_ascii=False)
+                    mock = gap
+            return orig(fn, fmt, task, mock, **k)
+        return call
+    return patch
+
+
+def rules_split():
+    """The split: the models answer for the shape, the rules answer for the constraints, and the flow reads them as
+    two layers. A refactor, so the test is mostly about what did NOT change: the saved demo runs (clean and planted)
+    are replayed in mock and must give the same outcome, the same pass and fail per atom and layer, and the same
+    evidence wording; a planted shape error must fail only the schema layer and a planted rule error only the rules
+    layer; every rule spec must be plain data, name a known rule type, and resolve against its model's fields."""
+    import j2_artifact_models as AM
+    import j2_rules as R
+    # (d) every rule spec is data, names a known rule type, and its paths resolve against the model's fields
+    for (kind, section), specs in R.RULES.items():
+        model = AM.model_for(kind, section)
+        assert model is not None and AM.SECTION_MODELS[kind][section] is model, (kind, section)
+        assert json.loads(json.dumps(specs)) == specs, (kind, section, "the rules must be plain data")
+        for spec in specs:
+            assert spec["rule"] in R.RULE_TYPES, (kind, section, spec["rule"])
+            assert spec.get("name") and spec.get("from"), spec
+            paths = (spec["path"] if isinstance(spec.get("path"), list) else [spec["path"]]) if spec.get("path") \
+                else [spec[k] for k in ("anchor_path", "html_path") if spec.get(k)]
+            assert paths, spec
+            for path in paths:
+                head = path.split(".")[0].replace("[]", "")
+                assert head in model.model_fields, (kind, section, path, sorted(model.model_fields))
+            if spec.get("target"):      # "this.<path>" or "<doc>.<path>", and the field must exist there
+                where, _, tpath = spec["target"].partition(".")
+                assert where in ("this", "prd", "hld", "lld"), spec["target"]
+                target_model = AM.DOC_MODELS[kind if where == "this" else where]
+                assert tpath.split(".")[0].replace("[]", "") in target_model.model_fields, (spec["target"], kind)
+            for key in ("prefix", "values", "prefix"):
+                if spec["rule"] in ("ids_sequential",) and key == "prefix":
+                    assert spec.get("prefix"), spec
+            if spec["rule"] == "enum":
+                assert spec.get("values") and all(isinstance(v, str) for v in spec["values"]), spec
+    assert set(R.RULES) == {(k, s) for k, by in AM.SECTION_MODELS.items() for s in by}, "every section has rules"
+    # (e) the names a reader sees are the rules' own names, with nothing kept in step by hand
+    assert R.RULE_NAMES == {k: [r["name"] for r in v] for k, v in R.RULES.items()}
+    assert AM.RULE_NAMES == R.RULE_NAMES and AM.rule_names("hld", "Components") == R.rule_names("hld", "Components")
+    assert all(R.rules_count(k, s) == len(R.RULE_NAMES[(k, s)]) for k, s in R.RULES)
+    # the models carry no constraint any more: no validator beyond the website section's "html or head"
+    for kind, by in AM.SECTION_MODELS.items():
+        for sec, model in by.items():
+            checks = [n for n in dir(model) if n.startswith("_") and n in ("_order", "_refs", "_priority", "_hex",
+                                                                           "_anchor", "_markup", "_css_safe", "_type")]
+            assert not checks, (kind, sec, checks)
+    assert not hasattr(AM, "rule_errors") and not hasattr(AM, "_ids_in_order"), "the constraints left the models"
+    # the shape layer takes data the rules would refuse: ids out of order, a bad hex, an anchor pointing nowhere
+    ok, errs = AM.validate(AM.HLDComponents, {"components": [{"id": "C1", "name": "a", "responsibility": "b",
+                                                              "covers": ["R1"], "page": "P1"},
+                                                             {"id": "C3", "name": "c", "responsibility": "d",
+                                                              "covers": ["R9"], "page": "P9"}]})
+    assert ok is not None and not errs, errs
+    res = R.run_rules("hld", "Components", ok.model_dump(by_alias=True),
+                      {"this": {"pages": [{"id": "P1"}]}, "prd": {"requirements": [{"id": "R1"}]}})
+    by_rule = {r["name"]: r for r in res}
+    assert len(res) == 4 and [r["pass"] for r in res] == [False, True, False, False], [(r["name"], r["pass"]) for r in res]
+    assert "not in order from C1" in by_rule["ids C1, C2, ... unique and in order"]["evidence"]
+    assert by_rule["covers points at a requirement id of the PRD"]["evidence"] == \
+        "C3 covers R9, which is not a requirement of the PRD", by_rule["covers points at a requirement id of the PRD"]
+    # a missing target document: not recorded, never a pass
+    none = {r["name"]: r for r in R.run_rules("hld", "Components", ok.model_dump(by_alias=True), {})}
+    assert none["covers points at a requirement id of the PRD"]["pass"] is False      # as the flow has always read it
+    assert "the PRD's requirement ids are not recorded" in none["covers points at a requirement id of the PRD"]["evidence"]
+    assert none["page points at a page id of this document"]["pass"] is None, none["page points at a page id of this document"]
+    # the shape layer still refuses what is shape: a missing field, an unknown field, a bad enum, a wrong type
+    for data, want in (({"components": [{"id": "C1", "name": "a"}]}, "responsibility"),
+                       ({"components": [], "extra": 1}, "extra"),
+                       ({"components": [{"id": "C1", "name": "a", "responsibility": "b", "nope": 1}]}, "nope")):
+        bad, errs = AM.validate(AM.HLDComponents, data)
+        assert bad is None and any(want in e for e in errs), (want, errs)
+    bad, errs = AM.validate(AM.PRDRequirements, {"requirements": [{"id": "R1", "statement": "s",
+                                                                   "priority": "maybe", "goals": []}]})
+    assert bad is None and any("priority" in e for e in errs), errs      # the enum is shape now (Literal)
+    # (b) the two saved demo runs, replayed in mock: same outcome, same layers, same evidence
+    here = os.path.dirname(os.path.abspath(__file__))
+    for name, patch in (("j2-20261030-003100", None),
+                        ("j2-20261030-003101", lambda run, orig: bad_reference_mock("W-9", "R9", attempts=(1,))(
+                            run, bad_section_mock("W-1", drop="statement")(run, orig)))):
+        saved = os.path.join(here, "runs", name)
+        if not os.path.isdir(saved):
+            print(f"rules split: {name} isn't in this clone; the replay is skipped")
+            continue
+        was = [r for r in j2._jsonl(saved, "receipts.jsonl") if str(r.get("type")).startswith("artifact-")]
+        now_run = schema_run(patch=patch)
+        now = art_recs(now_run)
+        key = lambda r: (r["atom"], r["type"], r["attempt"], r["template"])
+        assert [key(r) for r in now] == [key(r) for r in was], \
+            ([key(r) for r in now][:4], [key(r) for r in was][:4])
+        assert [r["pass"] for r in now] == [r["pass"] for r in was], name
+        assert [r["evidence"] for r in now] == [r["evidence"] for r in was], \
+            [(a["evidence"], b["evidence"]) for a, b in zip(now, was) if a["evidence"] != b["evidence"]][:2]
+        outcome = (j2._read(saved, "summary.json", {}) or {}).get("outcome") or ""
+        assert now_run.outcome.split(":")[0] == outcome.split(":")[0], (now_run.outcome[:40], outcome[:40])
+        assert all("rules" in r for r in now if r["type"] == "artifact-rules"), "the rules travel with the receipt"
+    # (c) a planted shape error fails only the schema layer; a planted rule error only the rules layer
+    shape = schema_run(patch=bad_section_mock("W-1", drop="statement"))
+    first = [r for r in art_recs(shape, atom="W-1.a1")]
+    assert [r["type"] for r in first if not r["pass"]] == ["artifact-schema"], \
+        [(r["type"], r["pass"], r["evidence"][:40]) for r in first]
+    assert "statement: Field required" in next(r for r in first if not r["pass"])["evidence"]
+    ids = schema_run(patch=bad_ids_mock("W-9", skip=2, attempts=(1,)))
+    nine = art_recs(ids, atom="W-9.a1")
+    assert [r["type"] for r in nine if not r["pass"]] == ["artifact-rules"], \
+        [(r["type"], r["pass"], r["evidence"][:50]) for r in nine]
+    miss = next(r for r in nine if not r["pass"])
+    assert "not in order from C1" in miss["evidence"], miss["evidence"]
+    assert [x["pass"] for x in miss["rules"]] == [False, True, True, True], miss["rules"]
+    assert art_recs(ids, "artifact-schema", "W-9.a1")[0]["pass"] is True, "the shape was fine"
+    assert ids.outcome.startswith("Done") and shape.outcome.startswith("Done"), (ids.outcome, shape.outcome)
+    print("rules split: the rules are data (every spec names a known type and resolves against its model), the names "
+          "are derived from them, the models carry no constraint but a website section's \"html or head\", the two "
+          "saved demo runs replay with the same outcome, layers and evidence, and a planted shape error fails only "
+          "the schema layer while ids C1, C3 fail only the rules layer ok")
 
 def board_functions_off():
     """Message board, Part B: the same brief and change request with J2_BOARD unset write no board file, ask
@@ -6931,6 +7059,9 @@ def map_shapes():
             svg = tree[tree.index('<svg class="treesvg"'):tree.index("</svg>", tree.index('<svg class="treesvg"'))]
             for mt in re.finditer(r'<g class="tnode (t(?:charter|stage|deck))[ "][^>]*data-id="([^"]+)"[^>]*>(.*?)</g>', svg, re.S):
                 kind, nid, body = mt.group(1), htmllib.unescape(mt.group(2)), mt.group(3)
+                # the status badge (mapBadge) is a circle with "!" or "?" by design, so the shape of the node itself
+                # is read without it: a faulted or waiting box still has to be a rounded square
+                body = re.sub(r"<g><circle\b.*$", "", body, flags=re.S)      # the badge's own </g> ends the capture
                 n = by.get(nid)
                 if kind == "tcharter":
                     assert '<circle class="tdot"' in body and body.count('class="tglyph"') == 1 and "<rect" not in body, (name, "Charter: a circle with a centre dot")
@@ -9148,18 +9279,22 @@ def docs_intake_and_compare():
 
 
 if __name__ == "__main__":
-    if "--template-demo" in sys.argv or "--template-fail-demo" in sys.argv:
-        # python3 j2_flow_test.py --fast --template-demo [--template-fail-demo]: the templates demo runs (atom
-        # templates' own runs), saved to runs/ as evidence instead of the temp folder. Mock mode.
+    if "--schema-demo" in sys.argv or "--schema-fail-demo" in sys.argv:
+        # python3 j2_flow_test.py --fast --schema-demo [--schema-fail-demo]: the artifact-template demo runs
+        # (artifact_schemas' own run), saved to runs/ as evidence instead of the temp folder. Mock mode.
         j2.RUNS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "runs")
-        fail = "--template-fail-demo" in sys.argv
-        demo = template_run(patch=(lambda run, orig: hld_gap_mock("W-9", attempts=(1,))(run,
-                                   bad_reply_mock("W-2")(run, orig))) if fail else None, demo=True,
-                            label="templates demo run (planted failures)" if fail else "templates demo run (clean)")
-        blocks = tmpl_blocks(demo)
-        for aid, t in blocks.items():
-            print(f"  {aid}: prompt {t['prompt']['used']} · reply {t['reply']['valid']} "
-                  f"({t['reply']['retries']} retry) · output {t['output']['match']} ({t['output']['template']})")
+        fail = "--schema-fail-demo" in sys.argv
+        demo = schema_run(patch=(lambda run, orig: bad_reference_mock("W-9", "R9", attempts=(1,))(
+            run, bad_section_mock("W-1", drop="statement")(run, orig))) if fail else None, demo=True,
+            label="artifact templates demo run (planted failures)" if fail else "artifact templates demo run (clean)")
+        for t in ("artifact-schema", "artifact-rules", "artifact-render"):
+            rs = art_recs(demo, t)
+            print(f"  {t}: {sum(1 for r in rs if r['pass'])} passed, {sum(1 for r in rs if not r['pass'])} failed"
+                  + (f" ({'; '.join(r['evidence'][:60] for r in rs if not r['pass'])})"
+                     if any(not r["pass"] for r in rs) else ""))
+        print("  data:", ", ".join(sorted(f for f in os.listdir(demo.dir)
+                                          if f in ("prd.json", "hld.json", "lld.json", "design.json",
+                                                   "website.json"))))
         print(f"http://127.0.0.1:8773/?run={os.path.basename(demo.dir)}&view=detail")
         sys.exit(0)
     if "--board-doc-demo" in sys.argv:
@@ -9235,9 +9370,10 @@ if __name__ == "__main__":
         plain_unchanged(board="0")                 # J2_BOARD=0 explicitly set: still identical, prompt for prompt
         charter_crash_fix()
         validator_fixes()
-        if mode == "0":      # templates/1 doesn't branch on J2_FIXES: the runs are long, so once
-            atom_templates()
-            atom_templates_failures()
+        if mode == "0":      # artifact-schema/1 doesn't branch on J2_FIXES: the runs are long, so once
+            artifact_schemas()
+            artifact_schema_failures()
+            rules_split()
         board_disabled()
         board_functions_off()
         os.environ["J2_BOARD"] = "1"
