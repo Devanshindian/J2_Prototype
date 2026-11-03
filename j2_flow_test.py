@@ -7191,35 +7191,13 @@ def map_tree():
         for r in same_row.values():
             r.sort(key=lambda n: n["x"])
             assert all(r[k + 1]["box"][0] - r[k]["box"][2] >= 24 - 0.2 for k in range(len(r) - 1)), (name, "at least 24px between labels")
-        # every workflow: in the tree (a deliverable's workflows) and in its stage's circle
+        # every workflow: in the tree (a deliverable's workflows) or in its team (the team's solar system draws exactly its workflows: graph_map)
         wids = [w["id"] for w in json.load(open(os.path.join(j2.RUNS_DIR, name, "workflows.json"), encoding="utf-8"))]
         stages = [n for n in t["nodes"] if n["kind"] == "stage"]
-        circled = set()
-        for st in stages:
-            o = render_node(snap, docs={"docs": {}, "map": mp, "tree": {"open": st["id"]}})
-            ot = o["tree"]
-            fo = ot["focus"]
-            assert ot["open"] == st["id"] and fo["mode"] == "oval" and sorted(x["id"] for x in fo["nodes"] if x["role"] == "wf") == sorted(st["workflows"]), (name, st["id"])
-            svg = o["map"][o["map"].index('<svg class="treesvg'):o["map"].index("</svg>", o["map"].index('<svg class="treesvg'))]
-            shown = {x["id"] for x in fo["nodes"]}
-            for n in t["nodes"]:      # the team, what it reads and made keep their words; every other node fades, its words hidden
-                g = re.search(r'<g class="tnode ([^"]*)" data-id="%s"' % re.escape(htmllib.escape(n["id"])), svg)
-                assert g and (("tdim" in g.group(1) and "thide" in g.group(1)) == (n["id"] not in shown)), (name, st["id"], n["id"], "every other node fades, its words hidden")
-            assert svg.count('class="tnode twf') == len(st["workflows"]) and svg.count('class="tedge fedge spoke"') == len(st["workflows"])
-            circled |= {x["id"] for x in fo["nodes"] if x["role"] == "wf"}
-        placed = circled | {w for n in t["nodes"] for w in n["workflows"]}
+        placed = {w for n in t["nodes"] for w in n["workflows"]}
         missing = [w for w in wids if w not in placed]
         assert not missing or all(f"workflows not placed on the map: " in x and all(w in x for w in missing) for x in mp["not_recorded"] if "not placed" in x), (name, missing)
-        assert not missing, (name, "every workflow is in the tree or its stage's circle", missing)
-        # a workflow picked in the circle: its panel (delivers, reads, read by, checks, status, Open) and its own links
-        st = max(stages, key=lambda x: len(x["workflows"]))
-        flows = {w["id"]: w for w in mp["workflows"]}
-        wid = next((w for w in st["workflows"] if flows[w]["reads"]), st["workflows"][0])
-        o = render_node(snap, docs={"docs": {}, "map": mp, "tree": {"open": st["id"], "wf": wid}})["map"]
-        pn = o[o.index('data-wfpanel="%s"' % wid):]
-        pn = pn[:pn.index("</aside>")]
-        assert all(k in pn for k in ("status: ", "delivers: ", "reads: ", "read by: ", "checks: ", f'data-wfcard="{wid}">Open<')), pn
-        assert 'class="treesvg tfocused"' in o and o.count('class="tnode twf') == len(st["workflows"]) and 'fedge spoke' not in o, (name, wid, "a picked workflow is focused in place")
+        assert not missing, (name, "every workflow is in the tree or its team", missing)
         # the Line toggle: the metro drawing, as before
         ln = render_node(snap, docs={"docs": {}, "map": mp, "mapview": "line"})["map"]
         assert 'data-view="line"' in ln and '<svg class="mapsvg"' in ln and 'data-mapview="line" aria-pressed="true"' in ln
@@ -7253,23 +7231,20 @@ def map_tree():
               "r.rest = q('.tflow').length; r.hid = hid; ev(busiest, 'mouseover');"
               "r.flow = q('.tflow').map(c => [c.dataset.from, c.dataset.to, c.classList.contains('fin'), c.querySelector('animateMotion').getAttribute('path'), c.querySelector('animateMotion').getAttribute('dur')]);"
               "r.edges = touching(hid).map(e => [e.dataset.from, e.dataset.to, e.getAttribute('d'), e.classList.contains('hot')]); ev(busiest, 'mouseout'); r.after0 = q('.tflow').length;"
-              "ev(st, 'click');"
-              "setTimeout(() => { r.tfocus = [q('.treesvg.tfocused').length, q('.tpill').length, q('[data-treeopen]').length, q('#pane-map .mappanel').map(x => x.dataset.stagepanel || ''), q('.tnode.open').length]; r.tback = !document.querySelector('[data-treeback]').hidden;"
-              " ev(q('[data-treeopen]')[0], 'click'); setTimeout(() => { const g = q('.tnode.tstage').find(x => x.dataset.id === id), svg = document.querySelector('.treesvg');"
-              " r.open = g.classList.contains('open'); r.ring = q('.tring .twf').length; r.shown = q('.tfit').length; r.back = !document.querySelector('[data-treeback]').hidden;"
-              " r.dim = q('.tnode.tdim').length; r.all = q('.tnode').length; r.stagePanel = q('#pane-map .mappanel').map(x => x.dataset.stagepanel || '');"
-              " r.words = q('.tnode.thide .tlab').filter(x => x.getBoundingClientRect().width > 0).length;"
-              " const w = q('.tring .twf')[0]; ev(w, 'mouseover'); r.wflow = q('.tflow').length; r.wlinks = q('.tedge.hot').length; ev(w, 'mouseout');"
+              "r.zInit = TREE.zoom; ev(st, 'click');"
+              "setTimeout(() => { r.tfocus = [q('.treesvg.tfocused').length, q('.tpill').length, q('[data-treeopen]').length, q('#pane-map .mappanel').map(x => x.dataset.stagepanel || ''), q('.consvg').length]; r.tback = !document.querySelector('[data-treeback]').hidden;"
+              " ev(q('[data-treeopen]')[0], 'click'); setTimeout(() => { const c = document.querySelector('.consvg');"
+              " r.team = [c.dataset.kind, c.dataset.cons, q('.consvg .cnode.k-wf').length, q('.consvg .cnode.k-centre').length]; const w = q('.consvg .cnode.k-wf').sort((a, b) => b.dataset.cid.localeCompare(a.dataset.cid))[0]; r.wid = w.dataset.cid;"
               " ev(w, 'click'); setTimeout(() => { const box = r_ => { const b = r_.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; };"
-              " r.focused = q('.treesvg.tfocused').length; r.twf = q('.tfit').map(box); r.svgbox = box(document.querySelector('.treesvg'));"
-              " r.panels = q('#pane-map .mappanel').length; r.pb = box(document.querySelector('.treepanel')); r.card = box(document.querySelector('.treebox')); r.chat = box(document.querySelector('#dview .chat')); r.needs = box(document.getElementById('needs'));"
-              " r.wfcard = !!document.querySelector('.treepanel [data-wfcard]');"
-              " ev(q('.tnodes > .tnode.tdeck')[0], 'click'); r.second = q('#pane-map .mappanel').map(x => x.dataset.panel || x.dataset.wfpanel || x.dataset.stagepanel).concat(q('.consvg').map(x => x.dataset.cons));      /* an artifact opens its constellation, no other panel */"
-              " document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); r.esc1 = q('#pane-map .mappanel').map(x => x.dataset.stagepanel || x.dataset.panel || x.dataset.wfpanel);"
-              " document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));"
-              " setTimeout(() => { r.z0 = TREE.zoom; const h = q('.tnode.tstage').find(x => x.dataset.id === id); r.after = [q('.tnode.open').length, q('.tdim').length, h.getAttribute('transform') === 'translate(' + h.dataset.x + ',' + h.dataset.y + ')', q('.twf').length, q('#pane-map .mappanel').length];"
+              " r.lit = [q('.consvg.focusing').length, q('.consvg .cline.lit').length, q('.conspanel').length]; r.pb = box(document.querySelector('.conspanel')); r.card = box(document.querySelector('.consbox')); r.chat = box(document.querySelector('#dview .chat')); r.needs = box(document.getElementById('needs'));"
+              " ev(q('.consvg .cnode.k-wf').find(x => x.dataset.cid === r.wid), 'click'); setTimeout(() => { const s2 = document.querySelector('.consvg'); r.wfsun = [s2.dataset.kind, s2.dataset.cons];"
+              " document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); setTimeout(() => { r.esc1 = [document.querySelector('.consvg').dataset.kind];"
+              " document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); setTimeout(() => { r.esc2 = [q('.consvg').length, q('.treesvg.tfocused').length];"
+              " document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); setTimeout(() => { r.z0 = TREE.zoom; const h = q('.tnode.tstage').find(x => x.dataset.id === id);"
+              "  r.after = [q('.treesvg.tfocused').length, q('.tdim').length, h.getAttribute('transform') === 'translate(' + h.dataset.x + ',' + h.dataset.y + ')', q('#pane-map .mappanel').length];"
+              "  ev(q('.tnodes > .tnode.tdeck')[0], 'click'); r.second = q('#pane-map .mappanel').map(x => x.dataset.panel || x.dataset.stagepanel).concat(q('.consvg').map(x => x.dataset.cons)); consBack();      /* an artifact opens its constellation, no other panel */"
               "  document.querySelector('[data-mapview=line]').click(); r.line2 = [...document.querySelectorAll('.mapsvg')].some(x => getComputedStyle(x).display !== 'none') ? 'block' : 'none'; r.tree2 = getComputedStyle(document.querySelector('.treebox')).display;"
-              "  r.z = r.z0; document.querySelector('[data-mapview=tree]').click(); document.body.setAttribute('data-r', JSON.stringify(r)); }, 1500); }, 700); }, 900); }, 900);")
+              "  r.z = r.z0; document.querySelector('[data-mapview=tree]').click(); document.body.setAttribute('data-r', JSON.stringify(r)); }, 900); }, 900); }, 900); }, 900); }, 700); }, 900); }, 900);")
         got = probe(js)
         assert got["d3"] == "object" and got["tree"] == "block" and got["line"] == "none", got
         assert got["fits"] == [True, True, True], ("the whole tree fits 1440x900 at load, no scrolling", got)
@@ -7281,29 +7256,24 @@ def map_tree():
         for a, b, fin, path, dur in got["flow"]:
             assert (a, b) in lines and path == lines[(a, b)][0] and fin == (b == got["hid"]) and dur == "1.5s", (a, b, fin, got["hid"])
         assert {f[2] for f in got["flow"]} == {True, False} or len(got["flow"]) == 1, "lines in and lines out, when it has both"
-        # a team: clicking it focuses it (its panel has the button that opens its workflows); opened, its workflows, what it reads and made keep their words and
-        # every other node fades with its words hidden; one panel
+        # a team: clicking it focuses it (its panel has the button that opens it); opened, it is a solar system of what it made with its workflows round it (no team
+        # node); a workflow clicked lights what it read with its panel inside the map card, clicked again it is the sun; Esc steps back to the team, the focus, the Tree
+        meets = lambda a, b: a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
         assert got["tfocus"][:3] == [1, 1, 1] and got["tfocus"][3] == [got["id"]] and got["tfocus"][4] == 0 and got["tback"], got
-        assert got["open"] and got["ring"] > 0 and got["back"] and got["shown"] > got["ring"] and got["stagePanel"] == [got["id"]], got
-        assert got["words"] == 0 and got["dim"] > 0 and got["dim"] + got["shown"] == got["all"], got
-        assert got["wflow"] == got["wlinks"] > 0, ("a circle workflow's line flows on hover", got)
-        # the workflow panel: inside the map card, never over the Chat or the Needs you strip; a second item replaces it
+        assert got["team"][0] == "team" and got["team"][1] == got["id"] and got["team"][2] > 0 and got["team"][3] == 1, ("the open team", got["team"])
         pb, card, chat, needs = got["pb"], got["card"], got["chat"], got["needs"]
         inside = pb[0] >= card[0] - 0.5 and pb[1] >= card[1] - 0.5 and pb[2] <= card[2] + 0.5 and pb[3] <= card[3] + 0.5
-        meets = lambda a, b: a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
-        assert got["panels"] == 1 and got["wfcard"] and inside and not meets(pb, chat) and not meets(pb, needs) and pb[3] <= 900, got
-        assert len(got["second"]) == 1 and got["second"][0].startswith("work:"), ("one panel at a time", got)
-        sv = got["svgbox"]      # the open circle moved (and if needed zoomed out) so no workflow or its words sit under the panel, all still in the map
-        assert got["focused"] == 1 and got["twf"] and all(not meets(b, pb) and b[0] >= sv[0] - 0.5 and b[2] <= sv[2] + 0.5 and b[1] >= sv[1] - 0.5 and b[3] <= sv[3] + 0.5 for b in got["twf"]), (got["twf"], pb, sv)
-        assert not got["z"] or (abs(got["z"]["k"] - 1) < 1e-6 and abs(got["z"]["x"]) < 0.5 and abs(got["z"]["y"]) < 0.5), ("closing puts the view back", got["z"])
-        assert got["esc1"] == [got["id"]] and got["after"] == [0, 0, True, 0, 0], ("Esc closes the panel, then the stage", got)
+        assert got["lit"][0] == 1 and got["lit"][2] == 1 and inside and not meets(pb, chat) and not meets(pb, needs) and pb[3] <= 900, ("a workflow lights what it read, its panel in the card", got["lit"], pb, card)
+        assert got["wfsun"] == ["wf", got["wid"]] and got["esc1"] == ["team"] and got["esc2"] == [0, 1], ("again: its sun; Esc: the team, then the focus", got)
+        assert got["after"] == [0, 0, True, 0] and got["z"] == got["zInit"], ("Esc closes the focus; the view is back where it was", got["after"], got["z"], got["zInit"])
+        assert len(got["second"]) == 1 and got["second"][0].startswith("work:"), ("an artifact opens its own sun, no other panel", got)
         assert got["line2"] != "none" and got["tree2"] == "none", "the Line toggle shows the metro map"
         # reduced motion: no dots, small arrowheads on the lit lines instead
         rm = probe(base + "ev(busiest, 'mouseover'); r.rm = [q('.tflow').length, touching(hid).filter(e => e.getAttribute('marker-end')).length, touching(hid).length];"
                    "document.body.setAttribute('data-r', JSON.stringify(r));", ("--force-prefers-reduced-motion",))
         assert rm["rm"][0] == 0 and rm["rm"][1] == rm["rm"][2] > 0, ("reduced motion: arrowheads, nothing moves", rm)
-    print("map tree: Charter, stages, deliverables below what they read; the same run draws the same; every workflow in the tree or its stage's "
-          "circle; no labels overlap, 24px apart; a stage's circle round it with the rest faded, a picked workflow's panel and links, Esc returns; "
+    print("map tree: Charter, stages, deliverables below what they read; the same run draws the same; every workflow in the tree or its team; "
+          "no labels overlap, 24px apart; a team focused, opened as its solar system, a workflow lit then its sun, Esc steps back; "
           "Line shows the metro map ok (" + ", ".join(report) + ")")
 
 
@@ -7366,8 +7336,9 @@ def map_focus():
             assert t["crossings"] == 0 and t["W"] > 0, (name, t["pairs"])
             flows = {w["id"]: w for w in m["workflows"]}
             stages = {n["id"]: n for n in t["nodes"] if n["kind"] == "stage"}
-            assert set(fa["wfs"]) == set(flows) and set(fa["stages"]) == set(stages) == set(fa["ovals"]) and all(fa["wfs"].values()), (name, "focus data for every team and workflow")
+            assert set(fa["stages"]) == set(stages) and all(fa["stages"].values()), (name, "focus data for every team")
             io = {sid: ([l["from"] for l in t["links"] if l["to"] == sid and l["kind"] in ("reads", "plan")], [l["to"] for l in t["links"] if l["from"] == sid and l["kind"] == "made"]) for sid in stages}
+            made_by = {l["to"]: l["from"] for l in t["links"] if l["kind"] == "made"}
 
             def geometry(F, what):
                 nodes = {n["id"]: n for n in F["nodes"]}
@@ -7381,6 +7352,7 @@ def map_focus():
                 for e in F["edges"]:
                     pts = arc_points(e["d"])
                     assert {e["from"], e["to"]} <= set(nodes), (name, what, e)
+                    assert (nodes[e["from"]]["kind"] == "stage") != (nodes[e["to"]]["kind"] == "stage"), (name, what, e["from"], e["to"], "a team-team or artifact-artifact line")
                     for id_, bx in boxes:
                         if id_ in (e["from"], e["to"]):
                             if nodes[id_]["role"] == "focus":
@@ -7393,32 +7365,19 @@ def map_focus():
             sid0 = sorted(stages)[0]      # a focused team's panel has one open button (a second click on the team does the same), no second link
             pm = render_node(snap, docs={"docs": {}, "map": m, "tree": {"focus": sid0}})["map"]
             assert pm.count("data-treeopen=") == 1 and "Open these workflows" not in pm and "Open its workflows" in pm, (name, sid0, "one open button")
-            for sid, F in fa["stages"].items():      # a team focused in the Tree
+            for sid, F in fa["stages"].items():      # a team focused in the Tree: its makers, what it reads, it, what it made, its readers
                 nodes = geometry(F, "team " + sid)
                 ins, outs = io[sid]
-                got_in = {n["id"] for n in F["nodes"] if n["role"] == "in"}
-                assert set(ins) == got_in and set(outs) == {n["id"] for n in F["nodes"] if n["role"] == "out"}, (name, sid, "a team's inputs and outputs")
+                role = lambda *r: {n["id"] for n in F["nodes"] if n["role"] in r}
+                assert set(ins) == role("in") and set(outs) == role("out"), (name, sid, "a team's inputs and outputs")
+                makers = {made_by[a] for a in ins if made_by.get(a) not in (None, sid)}
+                readers = {l["to"] for l in t["links"] if l["kind"] == "reads" and l["from"] in outs and l["to"] != sid}
+                assert role("maker", "peer", "reader") == makers | readers, (name, sid, "the teams beside it: makers of its inputs and readers of its outputs")
+                want = ({(a, sid) for a in ins} | {(sid, a) for a in outs} | {(made_by[a], a) for a in ins if made_by.get(a) in makers}
+                        | {(a, r) for a in outs for r in readers if any(l["kind"] == "reads" and l["from"] == a and l["to"] == r for l in t["links"])})
+                assert {(e["from"], e["to"]) for e in F["edges"]} == want, (name, sid, "every line is a team making an artifact or reading one")
                 assert nodes[sid]["role"] == "focus" and (nodes[sid]["label"] == by[sid]["label"]), (name, sid)
                 seen["teams"] += 1
-            for sid, F in fa["ovals"].items():      # a team opened: its workflows, what it reads on the left, what it made on the right
-                nodes = geometry(F, "open " + sid)
-                ins, outs = io[sid]
-                assert set(ins) == {n["id"] for n in F["nodes"] if n["role"] == "in"} and set(outs) == {n["id"] for n in F["nodes"] if n["role"] == "out"}, (name, sid, "an open team's inputs and outputs")
-                assert sorted(n["id"] for n in F["nodes"] if n["role"] == "wf") == sorted(stages[sid]["workflows"]), (name, sid, "every workflow of the team")
-                assert all(n["x"] < nodes[sid]["x"] for n in F["nodes"] if n["role"] == "in") or True
-                seen["ovals"] += 1
-            for wid, F in fa["wfs"].items():      # a workflow focused
-                w = flows[wid]
-                nodes = geometry(F, "workflow " + wid)
-                role = lambda r: [n["id"] for n in F["nodes"] if n["role"] == r]
-                assert nodes[wid]["role"] == "focus" and nodes[wid]["label"].startswith(wid), (name, wid)
-                for r in w["reads"]:      # every recorded read is a team-mate, the deliverable that holds it, or marked as not on the map
-                    assert r in role("peer-in") or (flows[r]["box"] and flows[r]["box"] in role("in")) or f"wf:{r}" in role("in"), (name, wid, r, "a recorded read is not drawn")
-                    seen["reads"] += 1
-                for o in set(w["out"]) | ({w["box"]} if w["box"] else set()):
-                    assert o in role("out") or o in role("in"), (name, wid, o, "a recorded output is not drawn")
-                    seen["made"] += 1
-                seen["workflows"] += 1
             seen["runs"] += 1
         # the drawn page: the team and the workflow of run 174314, and the picture a focus leaves behind when Esc is pressed
         name = "j2-20261026-174314"
@@ -7427,7 +7386,7 @@ def map_focus():
             snap = {"workflows": [], "chat": []}
             base = render_node(snap, docs={"docs": {}, "map": m})
             st = next(n for n in base["tree"]["nodes"] if n["kind"] == "stage" and "W-8" in n["workflows"])
-            for state, label in (({"focus": st["id"]}, "team"), ({"open": st["id"]}, "open"), ({"open": st["id"], "wf": "W-8"}, "workflow")):
+            for state, label in (({"focus": st["id"]}, "team"),):
                 o = render_node(snap, docs={"docs": {}, "map": m, "tree": state})
                 svg = o["map"][o["map"].index('<svg class="treesvg'):o["map"].index("</svg>", o["map"].index('<svg class="treesvg'))]
                 F = o["tree"]["focus"]
@@ -7441,7 +7400,7 @@ def map_focus():
                         send = next((x for x in base["tree"]["nodes"] if x["id"] == n["id"]), {}).get("tag") == "Send"
                         assert ("tglyphl" in g_) == send and ('<rect class="tdot"' in g_) and "stroke=" in g_, (name, label, n["id"], "action: envelope, artifact: square, status on the outline")
             plain = render_node(snap, docs={"docs": {}, "map": m})["map"]
-            for state in ({"focus": ""}, {"open": "", "wf": "", "focus": ""}):
+            for state in ({"focus": ""},):
                 assert render_node(snap, docs={"docs": {}, "map": m, "tree": state})["map"] == plain, (name, "with nothing focused the Tree is drawn as before")
     finally:
         j2.RUNS_DIR = keep_dir
@@ -7481,21 +7440,9 @@ def map_focus():
                 shutil.copytree(os.path.join(repo, name), os.path.join(j2.RUNS_DIR, name))      # read only: the test's own copy
             js = (base + "go(["
                   "() => { r.tree0 = pos(); r.treeEdges = q('.tedge').filter(vis).map(e => e.getAttribute('d')); ev(stage(), 'click'); },"
-                  "() => { r.teamFlags = [q('.treesvg.tfocused').length, q('.tpill').length, q('[data-treeopen]').length, q('.tflow').length, q('.treepanel a, .treepanel [data-mapgo]').length]; r.teamPanelText = q('.treepanel')[0].textContent; snap('team'); r.teamPeers = q('.tnode.tstage.tfit').length; ev(q('.tpill')[0], 'click'); },"
-                  "() => { r.reopened = [q('.tnode.open').length, q('.tring .twf').length, q('.treesvg.tfocused').length]; ev(q('[data-treeback]')[0], 'click'); },"
-                  "() => { r.reclosed = same(r.tree0); ev(stage(), 'click'); },"
-                  "() => { ev(q('.tpill')[0], 'click'); },"
-                  "() => { snap('oval'); r.oval0 = pos(); r.ring = q('.tring .twf').length; r.ovalFocused = q('.treesvg.tfocused').length; ev(w8(), 'click'); r.sync = [q('.treesvg.tmoving').length, q('.tpill').length]; },"
-                  "() => { snap('wf'); r.wfFlags = [q('.treesvg.tfocused').length, q('.treepanel [data-wfcard]').length, q('.treepanel [data-agent]').length]; ev(q('.tfit.twf').find(x => x.dataset.wf !== 'W-8'), 'click'); },"
-                  "() => { r.moved = q('.tpill.twf').map(x => x.dataset.wf); esc(); },"
-                  "() => { r.esc = [q('.tpill.twf').length, q('.tring .twf').length, same(r.oval0)]; ev(w8(), 'click'); },"
-                  "() => { ev(q('.tpill.twf')[0], 'click'); },"
-                  "() => { r.again = [q('.tpill.twf').length, q('.treepanel [data-wfcard]').length, q('.treesvg.tfocused').length]; ev(q('[data-treeback]')[0], 'click'); },"
-                  "() => { r.back = [q('.tpill.twf').length, q('.tnode.open').length, same(r.oval0)]; ev(w8(), 'click'); },"
-                  "() => { ev(q('.treesvg')[0], 'click'); },"
-                  "() => { r.empty = [q('.tpill.twf').length, q('.tnode.open').length, same(r.oval0)]; esc(); },"
-                  "() => { r.closed = [q('.tnode.open').length, q('.tring').length, same(r.tree0)]; ev(stage(), 'click'); },"
-                  "() => { esc(); },"
+                  "() => { r.teamFlags = [q('.treesvg.tfocused').length, q('.tpill').length, q('[data-treeopen]').length, q('.tflow').length, q('.treepanel a, .treepanel [data-mapgo]').length]; r.teamPanelText = q('.treepanel')[0].textContent; snap('team'); ev(q('.tpill')[0], 'click'); },"
+                  "() => { const c = q('.consvg')[0]; r.opened = [c ? c.dataset.kind : '', c ? c.dataset.cons : '', stage() ? 1 : 0, q('.consvg .cnode.k-wf').length]; ev(q('[data-consback]')[0], 'click'); },"
+                  "() => { r.backFromTeam = [q('.consvg').length, q('.treesvg.tfocused').length]; esc(); },"
                   "() => { r.escTeam = [q('.treesvg.tfocused').length, same(r.tree0)]; ev(stage(), 'click'); },"
                   "() => { ev(q('[data-treeback]')[0], 'click'); },"
                   "() => { r.backTeam = [q('.treesvg.tfocused').length, same(r.tree0)]; ev(stage(), 'click'); },"
@@ -7503,14 +7450,13 @@ def map_focus():
                   "() => { r.emptyTeam = [q('.treesvg.tfocused').length, same(r.tree0)]; }"
                   "]);")
             got = probe(name, js)
+            team = next(n for n in M.build(os.path.join(repo, name))["nodes"] if n["kind"] == "engine" and "W-8" in (n.get("workflows") or []))
             assert all(re.fullmatch(r"M[-\d. ]+ (L[-\d. ]+|A[-\d. ]+)", d) for d in got["treeEdges"]), (name, "the Tree's edges on the page are lines or arcs")
             assert got["teamFlags"][:3] == [1, 1, 1] and got["teamFlags"][4] == 0 and got["teamPanelText"].count("Open") == 1 and "Open these workflows" not in got["teamPanelText"], (name, "a team is focused by a click; its panel has one open button", got["teamFlags"], got["teamPanelText"])
-            assert got["reopened"][0] == 1 and got["reopened"][1] > 0 and got["reopened"][2] == 1 and got["reclosed"], (name, "a second click on the focused team opens it; Back returns to the Tree", got["reopened"], got["reclosed"])
-            assert got["ring"] > 0 and got["ovalFocused"] == 1 and got["sync"] == [1, 1], (name, "the team is opened; the glide starts at once", got["ring"], got["sync"])
-            assert got["wfFlags"] == [1, 1, 1] and got["moved"] and got["moved"] != ["W-8"], (name, "W-8 is focused, with its panel and See conversation and thinking; another workflow moves the focus", got["wfFlags"], got["moved"])
-            assert got["esc"] == [0, got["ring"], True] and got["again"] == [1, 1, 1] and got["back"] == [0, 1, True] and got["empty"] == [0, 1, True], (name, "Esc, Back and empty space clear the workflow focus and the nodes return; a second click keeps the focus and shows its details", got["esc"], got["again"], got["back"], got["empty"])
-            assert got["closed"] == [0, 0, True] and got["escTeam"] == [0, True] and got["backTeam"] == [0, True] and got["emptyTeam"] == [0, True], (name, "the Tree comes back", got["closed"], got["escTeam"], got["backTeam"], got["emptyTeam"])
-            for state in ("team", "oval", "wf"):
+            assert got["opened"][0] == "team" and got["opened"][2] == 0 and got["opened"][3] > 0, (name, "a second click on the focused team opens its solar system", got["opened"])
+            assert got["backFromTeam"] == [0, 1], (name, "Back from the team returns to the team focused in the Tree", got["backFromTeam"])
+            assert got["escTeam"] == [0, True] and got["backTeam"] == [0, True] and got["emptyTeam"] == [0, True], (name, "Esc, Back and empty space bring the Tree back", got["escTeam"], got["backTeam"], got["emptyTeam"])
+            for state in ("team",):
                 s_ = got[state]
                 assert s_["settled"] and s_["moving"] == 0 and s_["vb"] == f"0 0 {s_['data'][0]} {s_['data'][1]}" and s_["faded"] > 0 and s_["words"] == 0 and s_["panel"] == 1, (name, state, "the nodes land on the drawing, the rest fades without words, one panel")
                 rects = [(it["id"], k, r_) for it in s_["items"] for k, r_ in [("dot", it["dot"])] + [("text", t_) for t_ in it["texts"]]]
@@ -7530,12 +7476,12 @@ def map_focus():
         # reduced motion: no animation, the same layout at once
         name = "j2-20261026-174314"
         if name in names:
-            rm = probe(name, base + "ev(stage(), 'click'); r.a = [q('.treesvg.tmoving').length, q('.treesvg.tfocused').length, settled()]; ev(q('[data-treeopen]')[0], 'click'); ev(w8(), 'click'); r.b = [q('.treesvg.tmoving').length, q('.tpill.twf').length, settled(), q('.treesvg')[0].getAttribute('viewBox') === '0 0 ' + q('.treesvg')[0].dataset.w + ' ' + q('.treesvg')[0].dataset.h];"
+            rm = probe(name, base + "ev(stage(), 'click'); r.a = [q('.treesvg.tmoving').length, q('.treesvg.tfocused').length, settled()]; ev(q('[data-treeopen]')[0], 'click'); r.b = [q('.consvg.cmoving').length, q('.consvg[data-kind=team]').length, 1, 1];"
                        " document.body.setAttribute('data-r', JSON.stringify(r));", ("--force-prefers-reduced-motion",))
             assert rm["a"] == [0, 1, True] and rm["b"] == [0, 1, True, True], ("reduced motion: the layout is there at once", rm)
-    print(f"map focus: {seen['runs']} runs: every edge of the Tree ({seen['tree edges']}) and of {seen['teams']} focused teams, {seen['ovals']} open teams and {seen['workflows']} focused workflows ({seen['focus edges']} edges) is one line or one arc, none through a shape or a label, "
-          f"no overlaps; every recorded input and output ({seen['reads']} reads, {seen['made']} outputs of workflows) a labelled shape; same run, same picture"
-          + (f"; real page, {seen['browser']} runs: team, open team and workflow focus, Esc / Back / a second click / empty space return, nodes glide, reduced motion sits at once" if seen.get("browser") else "") + " ok")
+    print(f"map focus: {seen['runs']} runs: every edge of the Tree ({seen['tree edges']}) and of {seen['teams']} focused teams ({seen['focus edges']} edges) is one line or one arc, none through a shape or a label, "
+          "no overlaps, every line a team making or reading an artifact (no team-team line): makers of its inputs above them, readers of its outputs below them; same run, same picture"
+          + (f"; real page, {seen['browser']} runs: team focus, a second click opens the team's solar system, Back returns to the focus, Esc / Back / empty space return, reduced motion sits at once" if seen.get("browser") else "") + " ok")
 
 
 def map_line():
@@ -7772,7 +7718,7 @@ def left_bar():
               " showTab('lessons'); r.reveal = [head('adaptation').getAttribute('aria-expanded'), vis(q('[data-tab=lessons]')[0])]; r.dim = q('#railsub [data-dim]').map(b => b.dataset.tab + '=' + b.dataset.dim + '|' + b.title);"
               " const dm = q('#railsub [data-dim]')[0]; if (dm){ dm.click(); r.dimClick = [vis(document.getElementById('pane-' + dm.dataset.tab)), dm.getAttribute('aria-selected')]; }"
               " q('[data-tab=priorities]')[0].click(); r.prio = [vis(document.getElementById('pane-priorities')), document.getElementById('pane-priorities').textContent.length > 20];"
-              " q('[data-tab=workflows]')[0].click(); await wait(200); const wl = q('#pane-workflows [data-wfmap]')[0]; r.wfn = q('#pane-workflows [data-wfmap]').length; if (wl){ wl.click(); await wait(500); r.wfmap = [vis(document.getElementById('pane-map')), TREE.wf === wl.dataset.wfmap, TREE.open === wl.dataset.stage, q('.treesvg.tfocused').length]; }"
+              " q('[data-tab=workflows]')[0].click(); await wait(200); const wl = q('#pane-workflows [data-wfmap]')[0]; r.wfn = q('#pane-workflows [data-wfmap]').length; if (wl){ wl.click(); await wait(500); r.wfmap = [vis(document.getElementById('pane-map')), CONS.kind === 'wf' && CONS.id === wl.dataset.wfmap, (CONS.path[0] || {}).id === wl.dataset.stage, q('.consvg[data-kind=wf]').length]; consBack(); }"
               " showTab('rundetails'); r.mode = document.getElementById('mode').textContent;"
               " const ac = q('[data-railact]')[0]; if (ac){ ac.click(); await wait(100); r.act = [vis(document.getElementById('pane-map')), MAPPIN === ac.dataset.railact]; mapSelect(''); }"
               " const fl = q('[data-railfn]')[0]; if (fl){ fl.click(); r.fn = document.querySelector('.tabs [aria-selected=true]').dataset.tab; q('[data-railgo]')[0].click(); r.go = vis(document.getElementById('pane-conflicts')); const pl = q('[data-railsec]')[0]; pl.click(); r.prioLink = head('conflicts').getAttribute('aria-expanded'); }"
@@ -7807,7 +7753,7 @@ def left_bar():
                 assert r["dimClick"] == [True, "true"], (run, "a dimmed tab is still clickable", r["dimClick"])
             assert r["prio"] == [True, True], (run, "the Priorities view opens", r["prio"])
             if r["wfn"]:
-                assert r["wfmap"] == [True, True, True, 1], (run, "a workflow's Map link opens its team and focuses it in the Tree", r["wfmap"])
+                assert r["wfmap"] == [True, True, True, 1], (run, "a workflow's Map link opens its sun, its team's solar system one step back", r["wfmap"])
             assert "run " + run in r["mode"] and "credits" in r["mode"], (run, "Run details keeps the configuration: run id, model, budget", r["mode"])
             assert (("conflicts:true" in r["secs"]) if run == with_c else ("conflicts" not in r["secs"])) and "artifacts:true" in r["secs"], (run, "Conflicts (when the run has any) and Artifacts start open", r["secs"])
             if "act" in r:
@@ -8041,36 +7987,48 @@ def graph_map():
         try:
             run_ = lambda x: json.loads(subprocess.run([node, os.path.join(here, "j2_graph_layout.js"), os.path.join(here, "j2_ui.html"), x], capture_output=True, text=True, timeout=600, check=True).stdout)
             mp, sp = os.path.join(tmp, "maps.json"), os.path.join(tmp, "syn.json")
-            json.dump({k: {"constellations": v["constellations"]} for k, v in maps.items()}, open(mp, "w"))
+            json.dump(maps, open(mp, "w"), default=str)
             json.dump(sy, open(sp, "w"))
             lay, lay2, syl = run_(mp), run_(mp), run_(sp)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
-        arts, suns = [L for L in lay if "id" in L], [L for L in lay if "wf" in L]
+        import math
+        arts, suns, teams = [L for L in lay if "id" in L], [L for L in lay if "wf" in L], [L for L in lay if "team" in L]
         assert lay == lay2 and len(arts) == arts_n and all(L["again"] for L in lay), ("every artifact and workflow laid out, the same twice", len(arts), arts_n)
         meets = lambda a, b: a[0] < b[2] - 0.5 and b[0] < a[2] - 0.5 and a[1] < b[3] - 0.5 and b[1] < a[3] - 0.5
         inside = lambda p, b: b[0] + 1 < p[0] < b[2] - 1 and b[1] + 1 < p[1] < b[3] - 1
         dense = lambda pts: [(pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t / 20, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t / 20) for i in range(len(pts) - 1) for t in range(21)]
+        near = lambda b, n: math.hypot(max(b[0] - n["x"], 0, n["x"] - b[2]), max(b[1] - n["y"], 0, n["y"] - b[3]))
+        wfish = lambda v, n: n["kind"] in ("wf", "badge") or (n["kind"] == "centre" and v["kind"] == "wf")      # a workflow, or a node standing for workflows
+
+        def no_wf_wf(where, v, lines):      # every line has an artifact (or an input) at one end at least: never workflow to workflow
+            by_ = {n["id"]: n for n in v["nodes"]}
+            for a, b in lines:
+                assert not (wfish(v, by_[a]) and wfish(v, by_[b])), (where, "a workflow-workflow line", a, b)
+
         def at_rest(where, v, ring=True):
             ids = [n["id"] for n in v["nodes"]]
             assert len(ids) == len(set(ids)), (where, "a node twice")
             assert all(isinstance(n["x"], (int, float)) and n["x"] == n["x"] for n in v["nodes"]), (where, "a node without a place")
-            labs = [(n["slot"] or n["id"], n["label"]["box"]) for n in v["nodes"] if n["label"]]
+            labs = [(n["id"], n["label"]["box"]) for n in v["nodes"] if n["label"]]
+            assert not any("…" in l for n in v["nodes"] if n["label"] for l in n["label"]["lines"]), (where, "a label cut short")
+            no_wf_wf(where, v, [(e["from"], e["to"]) for e in v["rest"]])
             if not v["quiet"]:
                 for i, (a, p) in enumerate(labs):
                     assert not any(meets(p, q) for b, q in labs[i + 1:]), (where, "two labels overlap at rest", a)
-                    assert not any(meets(p, n["box"]) for n in v["nodes"] if (n["slot"] or n["id"]) != a and n["kind"] != "centre"), (where, "a label over a shape at rest", a)
+                    assert not any(meets(p, n["box"]) for n in v["nodes"] if n["id"] != a and n["kind"] != "centre"), (where, "a label over a shape at rest", a)
+                    own = next(n for n in v["nodes"] if n["id"] == a)
+                    assert all(near(p, n) > near(p, own) for n in v["nodes"] if n["id"] != a), (where, "a label nearer another node than its own", a)
                 for e in v["rest"]:
                     for a, p in labs:
                         assert not any(inside(q, p) for q in dense(e["pts"])), (where, "a line through a label at rest", e["from"], e["to"], a)
             if not ring:
                 return []
             lead = [n for n in v["nodes"] if n["kind"] in ("section", "empty", "part") or (n["kind"] == "wf" and n["role"] == "builder" and not any(m_["slot"] == n["slot"] and m_["kind"] in ("section", "empty") for m_ in v["nodes"]))]
-            import math
             angs = [(math.atan2(n["x"], -n["y"]) + 2 * math.pi) % (2 * math.pi) for n in lead]
             assert angs == sorted(angs), (where, "ring order clockwise from the top")
             return lead
-        quiet_n = 0
+        quiet_n = sec_n = 0
         for L in arts:
             C = maps[L["run"]]["constellations"][L["id"]]
             v, where = L["rest"], (L["run"], L["id"])
@@ -8080,6 +8038,9 @@ def graph_map():
             for s in C["slots"]:
                 if s["section"]:
                     assert kinds[s["section"]]["kind"] == "section", (where, s["section"])
+                    sec_ = s["label"] if s["label"].endswith(" section") else f"{s['label']} section"
+                    assert " ".join(kinds[s["section"]]["label"]["lines"]) == sec_ or v["quiet"], (where, s["section"], "the section's whole name beside its diamond", kinds[s["section"]]["label"])
+                    sec_n += 1
                 if s["empty"]:
                     assert kinds["slot:" + s["builder"]]["kind"] == "empty", (where, "a workflow with no output has a dashed slot", s["builder"])
                 many = 1 + len(s["fixes"]) > 3
@@ -8094,6 +8055,7 @@ def graph_map():
             node_of_art = lambda a: a if a in kinds else None
             for fid, F in L["focus"].items():
                 n = kinds[fid]
+                no_wf_wf(where + (fid,), v, [(a, b) for a, b, k in F["lines"]])
                 reads = {(a, b) for a, b, k in F["lines"] if k == "reads"}
                 if n["kind"] == "input":      # only that input's own lines: to every workflow that read it
                     want = {(fid, stand[w]) for w, f in C["workflows"].items() if fid in f["reads"]}
@@ -8121,6 +8083,41 @@ def graph_map():
             assert sorted(got["L"]) == sorted(set(v["left"])) and sorted(got["R"]) == sorted(outs), (where, "reads on the left, outputs on the right, each once", got)
             assert all(n["kind"] in ("centre", "section", "input") for n in v["nodes"]), (where, "only artifacts round a workflow")
             at_rest(where, v, ring=False)
+        # every team as its own solar system: exactly its workflows (no team node), a star for each artifact it made (the one most of them built in the middle),
+        # each workflow orbiting the star it built, the inputs from other teams; at rest and in every focus, no workflow-workflow line, labels clear and beside their own
+        top_ = lambda a: ":".join(a.split(":")[1:-1]) if a.startswith("sec:") else a
+        team_lines = 0
+        for L in teams:
+            m_, v, where = maps[L["run"]], L["rest"], (L["run"], L["team"])
+            cx = {}
+            for C in m_["constellations"].values():
+                for w, f in C["workflows"].items():
+                    x = cx.setdefault(w, {"reads": [], "outs": []})
+                    x["reads"] = f["reads"]
+                    for s_ in C["slots"]:
+                        if w in [s_["builder"]] + s_["fixes"]:
+                            o = s_["section"] or ("" if s_["empty"] else C["id"])
+                            if o and top_(o) not in x["outs"]:
+                                x["outs"].append(top_(o))
+            arts_ = {a for C in m_["constellations"].values() for a in [C["id"]] + [s_["section"] for s_ in C["slots"] if s_["section"]]}
+            wfs, tree = L["tree"]["wfs"], L["tree"]
+            stars = {o for w in wfs for o in cx.get(w, {"outs": []})["outs"]} | set(tree["made"])
+            inputs = {a for w in wfs for a in cx.get(w, {"reads": []})["reads"] if a in arts_ and top_(a) not in stars} | {a for a in tree["read"] if a not in stars}
+            assert L["again"] and sorted(w["id"] for w in L["wfs"]) == sorted(wfs) and set(L["stars"]) == stars and set(L["inputs"]) == inputs, (where, "a team view shows exactly its workflows, its artifacts and its inputs", L["stars"], stars, L["inputs"], inputs)
+            kinds = {n["id"]: n for n in v["nodes"]}
+            assert not any(i.startswith("stage:") for i in kinds) and sum(n["kind"] == "centre" for n in v["nodes"]) == 1 and v["kind"] == "team", (where, "no team node, one star in the middle")
+            if stars:
+                assert kinds[L["stars"][0]]["kind"] == "centre" and all(kinds[a]["kind"] == "star" for a in L["stars"][1:]), (where, "the main star in the middle, the others outside the orbit")
+            for w in L["wfs"]:
+                assert kinds[w["id"]]["kind"] == "wf" and kinds[w["id"]]["role"] == w["role"] and (not w["built"] or w["star"] in w["built"]), (where, w, "a workflow orbits a star it built")
+            assert {(e["from"], e["to"]) for e in v["rest"]} == {(w["id"], a) for w in L["wfs"] for a in w["built"] if a in kinds}, (where, "at rest, each workflow's line to what it built")
+            at_rest(where, v, ring=False)
+            for fid, F in L["focus"].items():
+                no_wf_wf(where + (fid,), v, [(a, b) for a, b, k in F["lines"]])
+                if kinds[fid]["kind"] == "wf":      # a workflow lights exactly what it read: an input, or its own team's star that holds it
+                    want = {a if a in kinds else top_(a) for a in cx.get(fid, {"reads": []})["reads"] if (a if a in kinds else top_(a)) in kinds}
+                    assert {a for a, b, k in F["lines"] if k == "reads"} == want and set(F["eat"]) == want, (where, fid, "a workflow lights exactly what it read", F["lines"], want)
+                team_lines += len(F["lines"])
         # the scale rules, at their thresholds
         S = {(r["run"], json.dumps(r.get("state"), sort_keys=True)): r["rest"] for r in syl if "id" in r}
         rest = lambda k, st=None: S[(k, json.dumps(st, sort_keys=True))] if st else next(r["rest"] for r in syl if r["run"] == k and "id" in r and "state" not in r)
@@ -8135,8 +8132,9 @@ def graph_map():
         assert len(rest("n100")["nodes"]) == 100 and not rest("n100")["quiet"] and len(rest("n101")["nodes"]) == 101 and rest("n101")["quiet"], "over 100 nodes: labels on hover"
         for r in syl:
             at_rest((r["run"], r.get("state"), r.get("wf")), r["rest"], ring="id" in r)
-        layout_note = (f"node: {len(arts)} artifact suns at rest and in every focus and {len(suns)} workflow suns (exactly their reads left, outputs right, artifacts only), the same twice, "
-                       f"no label overlaps, no line through a label, ring in run order ({quiet_n} with labels on hover); a 24-section 50-workflow artifact on one ring with every label; badges at 3/4 workflows, groups at 12/13 inputs, hover labels at 100/101 nodes")
+        layout_note = (f"node: {len(arts)} artifact suns at rest and in every focus, {len(suns)} workflow suns (exactly their reads left, outputs right, artifacts only) and {len(teams)} team views "
+                       f"(exactly their workflows, artifacts and inputs, no team node, {team_lines} focus lines), the same twice, no workflow-workflow line, no label overlaps, cut or nearer another node "
+                       f"({sec_n} section names whole beside their diamonds), no line through a label, ring in run order ({quiet_n} with labels on hover); a 24-section 50-workflow artifact on one ring with every label; badges at 3/4 workflows, groups at 12/13 inputs, hover labels at 100/101 nodes")
     # the real page (Chrome, 1440x900): 174314's Website, clicked on the Tree
     seen = {}
     run = "j2-20261026-174314"
@@ -8226,8 +8224,8 @@ def contrast(a, b):
 def warm_ui():
     """Warm UI: every colour of j2_ui.html is a theme token (no hex, rgb or hsl outside the two token sets, so none in map rendering);
     text tokens keep 4.5:1 and line tokens 3:1 in both sets; the Style guide has no tab of its own. With Chrome (--browser), for every run:
-    the Tree, the Line, every artifact sun and every workflow sun render in dark and in light with no page error and no colour in the
-    markup, the maps' colours follow the theme at once (no reload); Appearance is Dark by default and the choice persists across a reload."""
+    the Tree, the Line, every team focused and opened, every artifact sun and every workflow sun render in dark and in light with no page error and no colour in the
+    markup, with words at least 11px on screen, never cut and never overlapping another node's, the maps' colours follow the theme at once (no reload); Appearance is Dark by default and the choice persists across a reload."""
     import html as htmllib
     import threading
     import j2_server
@@ -8257,16 +8255,24 @@ def warm_ui():
     if chrome and BROWSER and names:
         js = ("const errs = []; addEventListener('error', e => errs.push(String(e.message))); const hexy = /(?:fill|stroke|color|background)[=:]\\s*\"?(?:#[0-9a-f]{3}|rgb)/i;"
               " const tok = k => { const d = document.createElement('i'); d.style.color = `var(--${k})`; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };"
-              " const views = {dark: 0, light: 0}, bad = [], bgs = {}; showTab('map'); r.first = [document.documentElement.dataset.theme, document.querySelector('[data-themepick=\"dark\"]').getAttribute('aria-pressed')];"
+              " const sunTo = p => { Object.assign(CONS, {path: [p], id: p.id, kind: p.kind, focus: '', fan: {}, grp: {}}); paintMap(); };      /* no glide: the drawing as it lands */"
+              " let small = 99; const views = {dark: 0, light: 0}, bad = [], bgs = {}; showTab('map'); r.first = [document.documentElement.dataset.theme, document.querySelector('[data-themepick=\"dark\"]').getAttribute('aria-pressed')];"
               " const look = (th, what, sel, bgk) => { const s = document.querySelector(sel); if (!s){ bad.push([th, what, 'missing']); return; } views[th]++; if (hexy.test(s.outerHTML)) bad.push([th, what, 'colour in markup']);"
               "   const cs = getComputedStyle(s), t = s.querySelector('text'); if (bgk && cs.backgroundColor !== tok(bgk) && !cs.backgroundImage.includes(tok(bgk).slice(0, 12))) bad.push([th, what, 'background', cs.backgroundColor, cs.backgroundImage.slice(0, 80), tok(bgk)]);"
-              "   if (t && !getComputedStyle(t).fill) bad.push([th, what, 'no text fill']); (bgs[what.split(' ')[0]] = bgs[what.split(' ')[0]] || {})[th] = cs.backgroundColor + cs.backgroundImage.slice(0, 40); };"
+              "   if (t && !getComputedStyle(t).fill) bad.push([th, what, 'no text fill']); (bgs[what.split(' ')[0]] = bgs[what.split(' ')[0]] || {})[th] = cs.backgroundColor + cs.backgroundImage.slice(0, 40);"
+              "   if (what.startsWith('line') || th === 'light') return;      /* the words: at least 11px on screen, never cut, no two nodes' words overlapping (once per view: the layout is the theme's) */"
+              "   const groups = [...s.querySelectorAll('.tnode, .cnode')].map(g => [...g.querySelectorAll('text')].filter(x => x.getBoundingClientRect().width > 0 && getComputedStyle(x).display !== 'none' && !s.classList.contains('quiet')));"
+              "   for (const ts of groups) for (const x of ts){ const px = parseFloat(getComputedStyle(x).fontSize) * x.getScreenCTM().a; small = Math.min(small, px); if (px < 10.95) bad.push([th, what, 'under 11px', x.textContent, px]); if (x.textContent.includes('…')) bad.push([th, what, 'cut', x.textContent]); }"
+              "   const rects = groups.map(ts => ts.map(x => [x.getBoundingClientRect(), x.textContent]));"
+              "   for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) for (const [a, ta] of rects[i]) for (const [b, tb] of rects[j]) if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) bad.push([th, what, 'words overlap', ta, tb, [a.left, a.top, a.right, a.bottom].map(Math.round), [b.left, b.top, b.right, b.bottom].map(Math.round)]); };"
               " for (const run of RUNS){ const m = await (await fetch('/api/map?run=' + encodeURIComponent(run), {cache: 'no-store'})).json(); for (const k of Object.keys(MAP)) delete MAP[k]; Object.assign(MAP, m);"
               "   for (const th of ['light', 'dark']){ document.querySelector(`[data-themepick=\"${th}\"]`).click(); if (document.documentElement.dataset.theme !== th) bad.push([th, run, 'theme not set']);"
-              "     consBack(); MAPVIEW = 'tree'; paintMap(); look(th, 'tree ' + run, '.treesvg', 'mapbg'); MAPVIEW = 'line'; paintMap(); look(th, 'line ' + run, '.mapsvg:not(.consvg)', 'panel'); MAPVIEW = 'tree';"
-              "     for (const a of Object.keys(m.constellations || {})){ consOpen(a); look(th, 'sun ' + run + ' ' + a, '.consvg', 'sky1'); }"
-              "     for (const w of Object.keys(consIndex(MAP).wf)){ consGo([{id: w, kind: 'wf'}]); look(th, 'wfsun ' + run + ' ' + w, '.consvg', 'sky1'); } consBack(); } }"
-              " r.views = views; r.kinds = Object.keys(bgs); r.bad = bad.slice(0, 20); r.nbad = bad.length; r.errs = errs; r.flip = Object.entries(bgs).map(([k, v]) => [k, v.dark !== v.light]);"
+              "     consBack(); MAPVIEW = 'tree'; TREE.focus = ''; TREE.zoom = null; paintMap(); look(th, 'tree ' + run, '.treesvg', 'mapbg'); MAPVIEW = 'line'; paintMap(); look(th, 'line ' + run, '.mapsvg:not(.consvg)', 'panel'); MAPVIEW = 'tree';"
+              "     for (const sid of Object.keys(mapTree(MAP).stages)){ TREE.focus = sid; TREE.zoom = null; paintMap(); look(th, 'tfocus ' + run + ' ' + sid, '.treesvg', 'mapbg'); TREE.focus = ''; TREE.zoom = null;"
+              "       sunTo({id: sid, kind: 'team'}); look(th, 'team ' + run + ' ' + sid, '.consvg', 'sky1'); consBack(); }"
+              "     for (const a of Object.keys(m.constellations || {})){ sunTo({id: a, kind: 'art'}); look(th, 'sun ' + run + ' ' + a, '.consvg', 'sky1'); }"
+              "     for (const w of Object.keys(consIndex(MAP).wf)){ sunTo({id: w, kind: 'wf'}); look(th, 'wfsun ' + run + ' ' + w, '.consvg', 'sky1'); } consBack(); } }"
+              " r.views = views; r.small = small; r.kinds = Object.keys(bgs); r.bad = bad.slice(0, 20); r.nbad = bad.length; r.errs = errs; r.flip = Object.entries(bgs).map(([k, v]) => [k, v.dark !== v.light]);"
               " document.querySelector('[data-themepick=\"light\"]').click();"
               " const f = document.createElement('iframe'); f.style.cssText = 'width:900px;height:600px'; document.body.appendChild(f); const loaded = () => new Promise(ok => f.onload = ok);"
               " f.src = location.href; await loaded(); await wait(800); r.reload1 = [f.contentDocument.documentElement.dataset.theme, f.contentDocument.querySelector('[data-themepick=\"light\"]').getAttribute('aria-pressed')];"
@@ -8298,9 +8304,10 @@ def warm_ui():
         assert "error" not in r and not r["errs"], r
         assert r["first"] == ["dark", "true"], ("Dark by default", r["first"])
         assert r["nbad"] == 0 and r["views"]["dark"] == r["views"]["light"] > 2 * len(names), ("every map view in both themes, colours from the tokens", r["bad"], r["views"])
-        assert all(x[1] for x in r["flip"]) and r["kinds"] == ["tree", "line", "sun", "wfsun"], ("each kind of map changes with the theme, no reload", r["flip"], r["kinds"])
+        assert all(x[1] for x in r["flip"]) and r["kinds"] == ["tree", "line", "tfocus", "team", "sun", "wfsun"], ("each kind of map changes with the theme, no reload", r["flip"], r["kinds"])
         assert r["reload1"] == ["light", "true"] and r["reload2"][0] == r["reload2"][2] and r["reload2"][1] == "true" and r["stored"] == "dark", ("the choice persists across a reload", r)
-        note = f"Chrome: {r['views']['dark']} map views per theme over {len(names)} runs (Tree, Line, every artifact and workflow sun), no page error, the choice kept across a reload"
+        note = (f"Chrome at 1440x900: {r['views']['dark']} map views per theme over {len(names)} runs (Tree, Line, every team focused and opened, every artifact and workflow sun), no page error; "
+                f"words at least 11px (smallest {r['small']:.1f}px), never cut, no two nodes' words overlapping; the choice kept across a reload")
     print(f"warm UI: no hard-coded colour outside the two token sets, {len(THEME_TEXT)} text tokens 4.5:1 and the map lines 3:1 in dark and light, no Style guide tab; {note} ok")
 
 
