@@ -4132,7 +4132,7 @@ BREW_FACTS = (" Users: coffee lovers and office staff. Problem: people can't see
               "features: see the menu with prices, pre-order a coffee, find the shop, read the opening hours. "
               "Constraints: one page only. Success: 30 pre-orders per week.")
 DESIGN_BRIEF = BREW_LAB + " Write the design docs first." + BREW_FACTS
-PLAIN_CHECKPOINT = "13ccccd"   # plain_unchanged compares the working tree with this commit; move it when the plain path changes on purpose
+PLAIN_CHECKPOINT = "94bffd0"   # plain_unchanged compares the working tree with this commit; move it when the plain path changes on purpose
 CHECKPOINT = "0657d93"         # the commit before the design-document work: a plain brief must behave exactly as there
 
 
@@ -4415,8 +4415,8 @@ def plain_unchanged(checkpoint=None, slim=None, board=None):
              "  'calls': [[c['fn'], h(c['system']), h(c['prompt'])] for c in rows],\n"
              "  'workflows': h(json.dumps([{k: v for k, v in w.items() if k not in ('t',)} for w in r.workflows], sort_keys=True))}))\n")
     old = tempfile.mkdtemp(prefix="j2-checkpoint-")
-    tar = subprocess.run(["git", "archive", checkpoint, "--", "j2.py", "j2_check.py", "llm.py", "conditions", "agents"]
-                         + (["j2_schema.py"] if subprocess.run(["git", "cat-file", "-e", f"{checkpoint}:j2_schema.py"], cwd=here).returncode == 0 else []), cwd=here,
+    # the whole checkpoint tree: a newer checkpoint's j2.py imports modules (j2_artifacts, j2_board, ...) an old list missed
+    tar = subprocess.run(["git", "archive", checkpoint, "--", ":(exclude)runs", ":(exclude)docs"], cwd=here,
                          capture_output=True)
     if tar.returncode:
         print(f"plain brief unchanged: skipped (checkpoint {checkpoint} not in this clone)")
@@ -9365,7 +9365,7 @@ if __name__ == "__main__":
             agent_view()
         docs_repeat_failure()
         docs_intake_and_compare()
-        plain_unchanged("f6938b2", slim="0")      # J2_SLIM=0 is the old path, prompt for prompt
+        plain_unchanged("94bffd0", slim="0")      # J2_SLIM=0 path, prompt for prompt, since the Identity item rule
         plain_unchanged()                         # the default (slim) path against the commit made right after the flip
         plain_unchanged(board="0")                 # J2_BOARD=0 explicitly set: still identical, prompt for prompt
         charter_crash_fix()
