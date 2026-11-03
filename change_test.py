@@ -929,6 +929,51 @@ ok(not SCENARIO.search(plan_text) and not SCENARIO.search(relay_text.split("\n",
    "the change plan's hand-off and the relay question name no scenario")
 
 
+# Relay v1's agreement, ported: a reader may object; the doc goes back for a round (at most 2), then Identity rules
+run, names, asked, new = relay_run({"Design": "object-once"})
+log = json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))[-1]
+ok("Plan (change 1, round 1)" in names and "Plan (change 1, round 2)" not in names and asked["Design"]["round"] == 1
+   and asked["Design"]["agree"] and [a["name"] for a in log["objections"]] == ["Design"] and not log["rulings"]
+   and run.outcome.startswith("Done"),
+   "relay: an objection sends the doc back once; its readers answer again on the new version and the run ends Done")
+ok(any(m.get("relay") == "objection" and "round 1" in m["text"] for m in run.chat)
+   and any("objects to Plan (change 1)" in m["text"] for m in run.chat), "the objection and the round are posted")
+kept = [f for f in os.listdir(os.path.join(run.dir, "artifacts")) if re.fullmatch(r"plan\.v\d+\.md", f)]
+ok(len(kept) == 2 and new[0].get("kept") == "artifacts/plan.v1.md",
+   "each revision of a planning doc keeps the file it overwrites (plan.v1.md, plan.v2.md)")
+run, names, asked, new = relay_run({"Design": "object"})
+log = json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))[-1]
+ok("Plan (change 1, round 2)" in names and "Plan (change 1, round 3)" not in names
+   and [r["keep"] for r in log["rulings"]] == ["latest"] and len(log["objections"]) == 3 and run.outcome.startswith("Done"),
+   "after 2 objection rounds Identity rules (latest by default) and the walk goes on")
+run, names, asked, new = relay_run({"Design": "object", "ruling": "previous"})
+art = os.path.join(run.dir, "artifacts")
+last = next(w for w in run._all_wfs() if w["name"] == "Plan (change 1, round 2)")
+ok(open(os.path.join(art, "plan.md"), encoding="utf-8").read()
+   == open(os.path.join(run.dir, last["kept"]), encoding="utf-8").read()
+   and [r["keep"] for r in json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))[-1]["rulings"]]
+   == ["previous"], "a 'previous' ruling puts back the version the last round overwrote")
+ok(any("Do you agree with it? Object only if it breaks what you make" in t for f, t in TASKS if f.startswith("W-"))
+   and any("revision round 2, after objections" in t for f, t in TASKS if f.startswith("W-")),
+   "the reader's question asks for agreement and names the round")
+# A revision's checks follow the charter: removed strings are not looked for; a doc keeps its headings
+gone = ["At least three difficulty levels (such as Easy, Medium and Hard) can be chosen"]
+ver = [{"type": "facts-present", "target": ["Easy, Medium and Hard", "New Game"], "expect": True},
+       {"type": "facts-present", "target": "Easy, Medium and Hard", "expect": True},
+       {"type": "heading-present", "target": "Old", "expect": True}]
+out = ch.carry_checks(ver, gone, "# Plan\n\n## Levels\ntext\n## Levels\n")
+ok(out[0]["target"] == ["New Game"] and len([c for c in out if c["type"] == "facts-present"]) == 1
+   and [c["target"] for c in out if c["type"] == "heading-present"] == ["Plan", "Levels"] and ver[0]["target"][0].startswith("Easy"),
+   "carry_checks: removed charter strings dropped (a check left empty goes), the old file's headings kept, input untouched")
+ok(ch.parse_agreement('{"agree": false, "reason": "breaks the grid", "affected": true, "what": "x"}')["agree"] is False
+   and ch.parse_agreement('{"agree": true, "affected": false, "what": ""}') is None,
+   "an agreement reply needs agree, a reason, affected and what")
+run, names, asked, new = relay_run({})
+log = json.load(open(os.path.join(run.dir, "change.json"), encoding="utf-8"))[-1]
+ok(log["gone"] == [t for t in old if t not in run.goal["done_when"]] and len(log["gone"]) == 1
+   and log["objections"] == [] and log["rulings"] == [],
+   "change.json records the charter strings the change removed, and no objections or rulings when every reader agreed")
+
 def weak_mocks(goal, plan, added):
     """No workflow owns the new item; its new workflow stays below the gate after its one repair."""
     m = BASE_CH_MOCKS(goal, plan, added)
