@@ -1306,6 +1306,20 @@ def codegen_generic(t):
     return head + codegen(t2)
 
 
+def run_example(run_dir, spec, tslug):
+    """The data a run's builder sent for this template's section, when the run used this template (else None)."""
+    rec = _read(os.path.join(run_dir, "templates.json")) or {}
+    used = [d for d in rec.get("decisions") or [] if d.get("artifact") == spec.get("artifact")
+            and d.get("section") == spec.get("section")
+            and (slug(d.get("template")) == tslug or (tslug == "generic" and d.get("kind") == "generic"))
+            and (tslug == "generic" or d.get("version") == spec.get("version"))]
+    if not used:
+        return None
+    doc = _read(os.path.join(run_dir, f"{spec.get('artifact')}.json")) or {}
+    data = (doc.get("sections") or {}).get(spec.get("section"))
+    return {"workflow": used[-1].get("workflow"), "data": data} if data else None
+
+
 def _with_sha(files):
     return {n: {"text": v, "sha": hashlib.sha256(v.encode("utf-8")).hexdigest() if v is not None else None}
             for n, v in files.items()}

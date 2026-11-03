@@ -17,6 +17,7 @@ import j2_agent
 import j2_artifacts
 import j2_map
 import j2_story
+import j2_template_lib
 import llm
 from j2 import HERE, J2Run, clear_lessons
 
@@ -128,6 +129,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if u.path == "/api/plan":       # the Workflows tab: the stages the Strategist chose and the replans (realization.json)
             d = j2.saved_dir(run) if run else RUN.dir
             return self._send(200, json.dumps(j2_map.plan_view(d if d and os.path.isdir(d) else None), ensure_ascii=False))
+        if u.path == "/api/library":    # the Library tab: every template, grouped by artifact and section (template-library/1)
+            return self._send(200, json.dumps(j2_template_lib.library_view(), ensure_ascii=False))
+        if u.path.startswith("/api/library/"):      # one template version: /api/library/<artifact>/<section>/<slug>/v<N>
+            parts = u.path[len("/api/library/"):].split("/")
+            ok = (len(parts) == 4 and parts[0] in j2_template_lib.ARTIFACTS
+                  and all(re.fullmatch(r"[a-z0-9-]+", x) for x in parts[1:3]) and re.fullmatch(r"v\d+", parts[3]))
+            got = j2_template_lib.template_view(parts[0], parts[1], parts[2], int(parts[3][1:])) if ok else None
+            d = j2.saved_dir(run) if run else RUN.dir
+            if got and d and os.path.isdir(d):      # an example filled from this run's data, when the run used it
+                got["example"] = j2_template_lib.run_example(d, got["template"], parts[2])
+            return self._send(200, json.dumps(got, ensure_ascii=False)) if got else self._send(404, '{"error": "no such template"}')
+        if u.path == "/api/run-templates":      # this run's routing decisions (templates.json); none recorded: an empty list
+            d = j2.saved_dir(run) if run else RUN.dir
+            rec = j2._read(d, "templates.json", {}) if d and os.path.isdir(d) else {}
+            return self._send(200, json.dumps({"decisions": (rec or {}).get("decisions") or []}, ensure_ascii=False))
         if u.path == "/api/artifacts":  # the Artifacts tab: deliverables, then evidence and records (artifacts/types.json)
             d = j2.saved_dir(run) if run else RUN.dir
             return self._send(200, json.dumps(j2_artifacts.listing(d if d and os.path.isdir(d) else None), ensure_ascii=False))
