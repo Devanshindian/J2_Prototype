@@ -904,8 +904,9 @@ def fact_fields(facts):
     return out
 
 
-def fingerprint(artifact, section, business_type, facts):
-    return sha_of([artifact, section, str(business_type or ""), sorted(set(facts))])
+def fingerprint(artifact, section, business_type, facts, fields=()):
+    """sha of (artifact, section, business_type, sorted facts, sorted needed field names)."""
+    return sha_of([artifact, section, str(business_type or ""), sorted(set(facts)), sorted(set(fields))])
 
 
 def make_need(artifact, section, business_type, facts, site, extra_fields=(), workflow="", atom=""):
@@ -913,11 +914,15 @@ def make_need(artifact, section, business_type, facts, site, extra_fields=(), wo
     fields it asks for (from the facts and the work atom / input documents). Fingerprint by code."""
     facts = sorted(set(str(f) for f in facts if str(f or "").strip()))
     derived = fact_fields(facts) if (artifact, section) in FACT_FIELD_SECTIONS else []
-    fields = [f.name for f, _ in derived] + [f.name for f, _ in extra_fields]
+    fields = sorted(set([f.name for f, _ in derived] + [f.name for f, _ in extra_fields]))
+    enums = {}
+    for f, _ in derived + list(extra_fields):
+        if f.enum:
+            enums[f.name] = sorted(set(enums.get(f.name, [])) | set(f.enum))
     return {"artifact": artifact, "section": section, "business_type": str(business_type or NOT_RECORDED),
-            "facts": facts, "fields": sorted(set(fields)), "site": site or NOT_RECORDED,
+            "facts": facts, "fields": fields, "field_enums": enums, "site": site or NOT_RECORDED,
             "workflow": workflow, "atom": atom,
-            "fingerprint": fingerprint(artifact, section, business_type, facts),
+            "fingerprint": fingerprint(artifact, section, business_type, facts, fields),
             "_derived": derived + list(extra_fields)}
 
 
@@ -926,12 +931,23 @@ def make_need(artifact, section, business_type, facts, site, extra_fields=(), wo
 FACT_FIELD_SECTIONS = {("prd", "Requirements"), ("website", "Section")}
 
 
+def has_field(need, row, name):
+    """A template has a needed field when it has the name and, if the need lists values for it (an enum from the
+    facts or the LLD), its enum allows every one of them (a field with no enum allows any value)."""
+    if name not in (row.get("fields") or []):
+        return False
+    want = (need.get("field_enums") or {}).get(name)
+    have = (row.get("enums") or {}).get(name)
+    return not want or have is None or set(want) <= set(have)
+
+
 def coverage(need, row):
     """(score, facts covered, fields covered): (needed facts it has + needed fields it has) / (all needed). A need
     with nothing in it scores 0: nothing to reuse a template for."""
-    facts, fields = set(need["facts"]), set(need["fields"])
-    hf, hd = len(facts & set(row.get("facts") or [])), len(fields & set(row.get("fields") or []))
-    total = len(facts) + len(fields)
+    facts = set(need["facts"])
+    hf = len(facts & set(row.get("facts") or []))
+    hd = sum(1 for n in need["fields"] if has_field(need, row, n))
+    total = len(facts) + len(need["fields"])
     return (round((hf + hd) / total, 4) if total else 0.0), hf, hd
 
 
@@ -946,7 +962,8 @@ def candidates(need):
             out.append({"name": e["name"], "slug": e["slug"], "version": v["version"], "score": score,
                         "facts_covered": hf, "fields_covered": hd, "description": v.get("description"),
                         "fields": v.get("fields"), "enums": v.get("enums"),
-                        "fingerprint_match": need["fingerprint"] in (v.get("fingerprints") or [])})
+                        "fingerprint_match": need["fingerprint"] in (v.get("fingerprints") or []),
+                        "has_fields": hd == len(need["fields"])})
     out.sort(key=lambda c: (-int(c["fingerprint_match"]), -c["score"], -c["version"], c["name"]))
     return out
 
@@ -1050,7 +1067,7 @@ def mock_generator(need, gen, cands, hint):
     """The mock generator: deterministic, built from the need's facts only. It does what the code's hint says
     (extend the best candidate, or create), and reuses a template when its fingerprint matches."""
     top = cands[0] if cands else None
-    if top and top["fingerprint_match"]:
+    if top and top["fingerprint_match"] and top["has_fields"]:
         return {"action": "reuse", "template": f"{top['name']}@{top['version']}", "spec": None,
                 "reason": "the same need (same fingerprint) made this template"}
     if hint == "extend" and top:
@@ -1089,15 +1106,18 @@ def route(need, ctx, ask=None):
     use = {"run": ctx.get("run"), "workflow": ctx.get("workflow"), "atom": ctx.get("atom")}
     base = {"workflow": ctx.get("workflow"), "atom": ctx.get("atom"), "artifact": need["artifact"],
             "section": need["section"], "fingerprint": need["fingerprint"], "facts": len(need["facts"]),
-            "fields": len(need["fields"]), "candidates": [{k: c[k] for k in ("name", "version", "score")}
-                                                          for c in cands[:3]]}
+            "fields": len(need["fields"]), "needed_fields": list(need["fields"]),
+            "needed_enums": dict(need.get("field_enums") or {}),
+            "candidates": [{k: c[k] for k in ("name", "version", "score", "fingerprint_match", "has_fields")}
+                           for c in cands[:3]]}
 
     def done(t, action, score, reason, **extra):
         rec = {**base, "action": action, "template": t.name if t else (gen.name if gen else NOT_RECORDED),
                "version": t.version if t else AM.VERSION, "kind": "specialised" if t else "generic",
                "score": score, "reason": reason, **extra}
         if t:
-            _, hf, hd = coverage(need, {"facts": t.context.facts_used, "fields": [f.name for f in t.fields]})
+            _, hf, hd = coverage(need, {"facts": t.context.facts_used, "fields": [f.name for f in t.fields],
+                                        "enums": _enums(t)})
             rec["covers"] = f"covers {hf} of {len(need['facts'])} facts" + (
                 f" and {hd} of {len(need['fields'])} fields" if need["fields"] else "")
             mark_used(t, {**use, "action": action}, need["fingerprint"])
@@ -1111,11 +1131,15 @@ def route(need, ctx, ask=None):
                       "score": None, "reason": f"no generic template for {need['artifact']} {need['section']!r}"}
     cov = lambda c: f"covers {c['facts_covered']} of {len(need['facts'])} facts" + (
         f" and {c['fields_covered']} of {len(need['fields'])} fields" if need["fields"] else "")
-    # a) the same fingerprint: the same need made (or used) this version
-    if top and top["fingerprint_match"]:
-        t = get(f"{top['name']}@{top['version']}", need["artifact"], need["section"])
+    # nothing to specialise: no facts and no extra fields -> the generic template, never a specialised one
+    if not need["facts"] and not need["fields"]:
+        return done(None, "generic", None, NOTHING_TO_SPECIALISE, rule="0")
+    # a) the same fingerprint, and the template has every needed field (with the needed values): this version
+    hit = next((c for c in cands if c["fingerprint_match"] and c["has_fields"]), None)
+    if hit:
+        t = get(f"{hit['name']}@{hit['version']}", need["artifact"], need["section"])
         if t:
-            return done(t, "reused", top["score"], f"same fingerprint: {cov(top)}", rule="a")
+            return done(t, "reused", hit["score"], f"same fingerprint: {cov(hit)}", rule="a")
     # b) a candidate that covers everything
     if top and top["score"] >= 1.0:
         t = get(f"{top['name']}@{top['version']}", need["artifact"], need["section"])
@@ -1147,6 +1171,7 @@ def route(need, ctx, ask=None):
                 "builder fills the generic template", rule="e", attempts=2, refused=tries)
 
 
+NOTHING_TO_SPECIALISE = "no facts or extra fields to specialise"
 GEN_SYSTEM = ("You are J2's template generator. You write closed JSON templates for one business, in its own words, "
               "from its recorded facts only. Code checks every reply and refuses anything outside the rules.")
 

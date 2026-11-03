@@ -9076,14 +9076,21 @@ def template_library(demo=False):
             assert r.outcome.startswith("Done"), r.outcome
             assert not [x for x in art_recs(r) if not x["pass"]], [x["evidence"] for x in art_recs(r) if not x["pass"]][:3]
         d1, d2, d3 = (tpl_decisions(r) for r in (r1, r2, r3))
+        empty = lambda d: not d["facts"] and not d["fields"]
         w1 = [d for d in d1 if d["artifact"] == "website"]
-        assert w1 and all(d["action"] == "created" and d["kind"] == "specialised" for d in w1), [(d["workflow"], d["action"]) for d in w1]
+        needy1 = [d for d in w1 if not empty(d)]
+        assert needy1 and all(d["action"] == "created" and d["kind"] == "specialised" for d in needy1), [(d["workflow"], d["action"]) for d in w1]
+        assert [d["workflow"] for d in w1 if empty(d)] == ["W-5"], "the viewport fix covers no fact and needs no field"
+        assert all(d["action"] == "generic" and d["rule"] == "0" and d["reason"] == L.NOTHING_TO_SPECIALISE
+                   for d in w1 if empty(d)), [d for d in w1 if empty(d)]
         assert [d for d in d1 if d["artifact"] == "design"][0]["action"] == "generic", "the style guide keeps the generic template"
-        made1 = {(d["template"], d["version"]) for d in w1}
-        assert len(made1) == len(w1) >= 4, made1
+        made1 = {(d["template"], d["version"]) for d in needy1}
+        assert len(made1) == len(needy1) >= 4, made1
         w2 = [d for d in d2 if d["artifact"] == "website"]
+        assert [(d["workflow"], d["template"], d["version"], d["action"]) for d in w2 if empty(d)] == \
+            [(d["workflow"], d["template"], d["version"], d["action"]) for d in w1 if empty(d)]
         assert [(d["workflow"], d["template"], d["version"]) for d in w2] == [(d["workflow"], d["template"], d["version"]) for d in w1]
-        assert all(d["action"] == "reused" and d["rule"] == "a" for d in w2), [(d["workflow"], d["action"], d["rule"]) for d in w2]
+        assert all(d["action"] == "reused" and d["rule"] == "a" for d in w2 if not empty(d)), [(d["workflow"], d["action"], d["rule"]) for d in w2]
         vers = lambda idx: sorted((e["name"], v["version"], v["sha"]) for e in idx["templates"] for v in e["versions"])
         assert vers(idx1) == vers(idx2), "run 2 made no new version"
         for e in idx2["templates"]:
@@ -9100,6 +9107,12 @@ def template_library(demo=False):
             for c in d.get("candidates") or []:
                 if c["name"] in thread:
                     assert c["score"] < 0.5, (d["workflow"], c)
+        # run 3's page workflows: no reuse of a template that lacks their fields; the empty ones are generic
+        late = {d["workflow"]: d for d in d3 if d["artifact"] == "website" and d["workflow"] in ("W-21", "W-22", "W-23", "W-24")}
+        assert len(late) == 4 and late["W-24"]["action"] == "generic" and late["W-24"]["rule"] == "0", late.get("W-24")
+        for d in late.values():
+            if d["needed_fields"]:
+                assert d["action"] != "reused" or d["rule"] == "a", d
         req = next(d for d in d3 if d["artifact"] == "prd" and d["section"] == "Requirements")
         assert req["action"] == "created", req
         rs = L.get(f"{req['template']}@{req['version']}", "prd", "Requirements")
@@ -9145,9 +9158,14 @@ def template_library(demo=False):
                     assert d["rule"] == "c" and 0.5 <= d["score"] < 1.0, d
                 elif d["action"] == "reused":
                     assert d["rule"] in ("a", "b") and (d["rule"] == "a" or d["score"] >= 1.0), d
+                    row = next(v for e in L.index()["templates"] for v in e["versions"]
+                               if e["name"] == d["template"] and e["section"] == d["section"] and v["version"] == d["version"])
+                    nd = {"fields": d["needed_fields"], "field_enums": d["needed_enums"]}
+                    assert all(L.has_field(nd, row, f) for f in d["needed_fields"]), ("a reuse has every needed field", d)
                     if d["rule"] == "a":
-                        assert any(d["fingerprint"] in v["fingerprints"] for e in L.index()["templates"]
-                                   for v in e["versions"] if e["name"] == d["template"] and v["version"] == d["version"])
+                        assert d["fingerprint"] in row["fingerprints"], d
+                elif d["action"] == "generic":
+                    assert d["rule"] in ("0", "e") and (d["rule"] == "e" or (empty(d) and d["reason"] == L.NOTHING_TO_SPECIALISE)), d
                 assert set(d) >= {"workflow", "atom", "artifact", "section", "action", "template", "version", "score",
                                   "reason"}, d
         # (c) extend: the same need plus a fact naming one more field makes v2; v1 is unchanged and still compiles
@@ -9170,6 +9188,38 @@ def template_library(demo=False):
         assert L.transport(v1) == json.load(open(os.path.join(v1_dir, "schema.json"), encoding="utf-8")), "v1 compiles"
         again, rec2 = L.route(need, {"run": "extend-test-2", "workflow": "W-4", "atom": "W-4.a1"})
         assert rec2["action"] == "reused" and again.version == 2, rec2
+        # fix 1: the fingerprint includes the sorted needed field names
+        fa = L.fingerprint("website", "Section", "boutique", ["f1"], ["form_fields", "elements"])
+        assert fa == L.fingerprint("website", "Section", "boutique", ["f1"], ["elements", "form_fields"]), "sorted"
+        assert fa != L.fingerprint("website", "Section", "boutique", ["f1"], ["elements"]) != \
+            L.fingerprint("website", "Section", "boutique", ["f1"]), "a different field list is a different need"
+        el = lambda vals: (L.FieldSpec(name="elements", type="list[string]", required=False, enum=vals,
+                                       description="the elements"), [])
+        nA = L.make_need("website", "Section", "studio", ["Fact A"], "Site", [el(["#a"])])
+        nB = L.make_need("website", "Section", "studio", ["Fact A"], "Site")
+        assert nA["fields"] == ["elements"] and nA["fingerprint"] != nB["fingerprint"], (nA["fields"], nB["fields"])
+        # fix 2: same fingerprint, but the template lacks a needed value -> scoring, not reuse by rule (a)
+        lib3 = tempfile.mkdtemp(prefix="j2-lib-")
+        os.environ["J2_LIBRARY_DIR"] = lib3
+        tA, rA = L.route(nA, {"run": "fix2", "workflow": "W-1", "atom": "W-1.a1"})
+        assert rA["action"] == "created" and rA["rule"] == "d", rA
+        nC = L.make_need("website", "Section", "studio", ["Fact A"], "Site", [el(["#b"])])
+        assert nC["fingerprint"] == nA["fingerprint"], "same facts, same field names: same fingerprint"
+        cC = L.candidates(nC)[0]
+        assert cC["fingerprint_match"] and not cC["has_fields"] and cC["score"] == 0.5, cC
+        tC, rC = L.route(nC, {"run": "fix2", "workflow": "W-2", "atom": "W-2.a1"})
+        assert rC["action"] == "extended" and rC["rule"] == "c" and tC.version == 2, rC
+        assert set(next(f.enum for f in tC.fields if f.name == "elements")) == {"#a", "#b"}
+        tA2, rA2 = L.route(nA, {"run": "fix2", "workflow": "W-1", "atom": "W-1.a1"})
+        assert rA2["action"] == "reused" and rA2["rule"] == "a", rA2
+        # fix 3: no facts and no extra fields -> generic, never a specialised template, nothing written
+        before3 = tree_sha(lib3)
+        tE, rE = L.route(L.make_need("website", "Section", "studio", [], "Site"), {"run": "fix3", "workflow": "W-5",
+                                                                                 "atom": "W-5.a1"})
+        assert tE is None and rE["action"] == "generic" and rE["kind"] == "generic" and rE["rule"] == "0" \
+            and rE["reason"] == "no facts or extra fields to specialise", rE
+        assert tree_sha(lib3) == before3, "a generic decision writes nothing to the library"
+        os.environ["J2_LIBRARY_DIR"] = lib
         # (e) safety: each bad spec is refused with its reason, and never stored
         base = json.load(open(os.path.join(v1_dir, "spec.json"), encoding="utf-8"))
 
@@ -9230,8 +9280,10 @@ def template_library(demo=False):
         d4 = tpl_decisions(r4)
         assert r4.outcome.startswith("Done"), r4.outcome
         assert all(d["action"] == "generic" and d["kind"] == "generic" for d in d4), [(d["workflow"], d["action"]) for d in d4]
-        wfs4 = [d["workflow"] for d in d4 if d["artifact"] == "website"]
-        assert all(asked.count(w) == 2 for w in wfs4) and all(d["rule"] == "e" for d in d4 if d["artifact"] == "website")
+        wfs4 = [d["workflow"] for d in d4 if d["artifact"] == "website" and not empty(d)]
+        assert wfs4 and all(asked.count(w) == 2 for w in wfs4) and all(
+            d["rule"] == "e" for d in d4 if d["artifact"] == "website" and not empty(d))
+        assert all(d["rule"] == "0" and d["workflow"] not in asked for d in d4 if d["artifact"] == "website" and empty(d))
         assert not L.index()["templates"] and not [x for x in art_recs(r4) if not x["pass"]]
         for c in calls_file(r4):
             if c.get("artifact_schema"):
@@ -9288,7 +9340,8 @@ def template_library(demo=False):
     print(f"template library: generic.json matches the models and RULES (a hand edit is caught); unset writes nothing; "
           f"Thread & Loom created {len(made1)} templates, run 2 reused all of them (rule a, no new version, used_by both "
           f"runs); Still Point Yoga created its own ({req['template']} with classes day/time/price) and reused no "
-          f"boutique template; an extra field extends to v2 with v1 unchanged; six bad specs refused and never stored; "
+          f"boutique template; the fingerprint holds the needed fields, rule (a) reuses only a template with every needed field, a "
+          f"need with no facts and no fields is generic; an extra field extends to v2 with v1 unchanged; six bad specs refused and never stored; "
           f"an invalid generator falls back to generic twice and the run ends Done; {n} model.py files match their "
           "runtime classes; every builder's schema sha is its template's schema.json; the committed library/ is "
           "unchanged ok")
