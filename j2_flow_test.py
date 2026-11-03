@@ -5057,7 +5057,7 @@ def board_story_view():
     ui = open(os.path.join(os.path.dirname(os.path.abspath(j2.__file__)), "j2_ui.html"), encoding="utf-8").read()
     assert 'id="tab-story" data-tab="story" aria-selected="false" hidden' in ui, "the button starts hidden"
     assert '$("tab-board").hidden = $("tab-story").hidden = !s.has_board;' in ui, "and follows has_board"
-    assert ui.index('id="tab-story"') < ui.index('id="tab-board"') < ui.index('data-tab="style"'), \
+    assert ui.index('id="tab-story"') < ui.index('id="tab-board"') < ui.index('data-tab="lessons"'), \
         "the Board story button is the first entry under Internals"
     assert "@media (max-width:700px){.storyflow{display:block" in ui, "the strip stacks on a phone"
     if not shutil.which("node"):
@@ -6562,26 +6562,34 @@ def by_fn(fn, rng, calls):
 
 
 def artifacts_tree():
-    """The Artifacts tab as a tree (artifacts-tree/1) for every run under runs/: Plan, Specs, Deliverables, Proof, Records; every file in
-    artifacts.json exactly once; every spec has its maker; makers, readers and statuses are j2_map.build's; no deliverable under Records.
-    Run 174314: 5 specs, the Website with its style guide, 14 versions and 2 screenshots. The tab renders it, Records collapsed."""
+    """The Artifacts page as a tree (artifacts-tree/1) for every run under runs/: Plan, Specs, Deliverable, Proof; every file in
+    artifacts.json exactly once; every spec has its maker and the Style guide is a spec; screenshots only under Proof (Verification
+    proof); makers, readers and statuses are j2_map.build's; no deliverable among the run records. Run 174314: 5 specs and the Style
+    guide, the Website with 11 sections folded and 14 versions, 2 screenshots. The page: one line per item with one status tag."""
     import collections
     import j2_artifacts as A
     import j2_map as M
     repo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "runs")
     names = sorted(n for n in os.listdir(repo) if os.path.isfile(os.path.join(repo, n, "workflows.json"))) if os.path.isdir(repo) else []
-    seen = 0
+    seen = shots_n = style_n = 0
     for name in names:
         d = os.path.join(repo, name)
         m = M.build(d)
         t = A.tree(d, m)
         groups = {g["id"]: g for g in t["groups"]}
-        assert [g["id"] for g in t["groups"]] == ["plan", "specs", "deliverables", "proof", "records"] and groups["records"]["collapsed"], name
+        assert [g["id"] for g in t["groups"]] == ["plan", "specs", "deliverables", "proof"], name
         files = A.tree_files(t)
         dup = [f for f, k in collections.Counter(files).items() if k > 1]
         assert not dup, (name, "a file twice", dup)
-        listed = [r["file"] for r in (json.load(open(os.path.join(d, "artifacts.json"), encoding="utf-8")).get("rows") or [])] if os.path.isfile(os.path.join(d, "artifacts.json")) else []
+        rows = (json.load(open(os.path.join(d, "artifacts.json"), encoding="utf-8")).get("rows") or []) if os.path.isfile(os.path.join(d, "artifacts.json")) else []
+        listed = [r["file"] for r in rows]
+        rows = A.listing(d)["deliverables"] + A.listing(d)["records"]      # what the page lists, with each file's type
         assert all(files.count(f) == 1 for f in listed), (name, [f for f in listed if f not in files])
+        shots = {r["file"] for r in rows if r.get("type") == "screenshots" and os.path.isfile(os.path.join(d, r["file"]))}
+        under = {g_: set(A.tree_files({"groups": [groups[g_]]})) for g_ in groups}
+        proof_shots = [x for x in groups["proof"]["items"] if x["name"] == "Verification proof"]
+        assert shots == {k["file"] for x in proof_shots for k in x["children"]} and not any(shots & under[g_] for g_ in ("plan", "specs", "deliverables")), (name, "screenshots only under Proof")
+        shots_n += len(shots)
         by = {n["id"]: n for n in m["nodes"]}
         step = {e["to"]: by[e["from"]] for e in m["edges"] if e["kind"] == "step" and by.get(e["from"], {}).get("kind") == "engine"}
         readers = lambda nid: {w for e in m["edges"] if e["kind"] in ("step", "handoff") and e["from"] == nid and by[e["to"]]["kind"] == "engine" for w in e.get("readers") or []}      # a read ends at the team that read it
@@ -6596,39 +6604,51 @@ def artifacts_tree():
                 assert x["read_by"] == len(readers(n["id"])), (name, x["name"])
             assert x["status"] == (n.get("send") or A.TREE_STATUS.get(n["status"], n["status"]) if n.get("tag") == "Send" else A.TREE_STATUS.get(n["status"], "filed")), (name, x["name"])
         for x in groups["specs"]["items"]:
-            if x.get("node"):
+            if x.get("node") and by[x["node"]].get("tag") == "Spec":
                 assert x["made_by"] and x["made_by"].get("persona") and x["made_by"].get("workflows"), (name, x["name"], "every spec has its maker")
-        spec_nodes = {n["id"] for n in m["nodes"] if n.get("tag") == "Spec"}
-        assert {x.get("node") for x in groups["specs"]["items"] if x.get("node")} == spec_nodes, name
+        guide_nodes = {n["id"] for n in m["nodes"] if n.get("tag") in ("Spec", "Style")}
+        assert {x.get("node") for x in groups["specs"]["items"] if x.get("node")} == guide_nodes, name
+        style = {n["id"] for n in m["nodes"] if n.get("tag") == "Style"}
+        assert [x.get("node") for x in items if x.get("node") in style] == sorted(style), (name, "the Style guide once, under Specs")
+        style_n += len(style)
         deliver = {n.get("file") for n in m["nodes"] if n["kind"] == "work" and n.get("tag") not in ("Send", "Charter") and n.get("file")}
-        assert not deliver & set(A.tree_files({"groups": [groups["records"]]})), (name, "a deliverable under Records")
+        recs = [x for x in groups["proof"]["items"] if x["name"] == "Run records"]
+        assert not deliver & set(A.tree_files({"groups": [{"items": recs}]})) and all(x["collapsed"] for x in recs), (name, "a deliverable among the run records")
         seen += 1
     if "j2-20261026-174314" in names:
-        t = A.tree(os.path.join(repo, "j2-20261026-174314"))
+        d74 = os.path.join(repo, "j2-20261026-174314")
+        t = A.tree(d74)
         g = {x["id"]: x for x in t["groups"]}
-        assert [x["name"] for x in g["specs"]["items"]] == ["Product spec", "Design guide", "Copy guide", "Hint method", "Architecture"], g["specs"]["items"]
-        web = next(x for x in g["deliverables"]["items"] if x["name"] == "Website")
+        assert [x["name"] for x in g["specs"]["items"]] == ["Product spec", "Design guide", "Copy guide", "Hint method", "Architecture", "Style guide"], g["specs"]["items"]
+        guide = g["specs"]["items"][-1]
+        assert guide["file"] == "style.json" and guide["made_by"] == {"persona": "Web Developer", "workflows": ["W-6"]}
+        assert g["deliverables"]["label"] == "Deliverable" and [x["name"] for x in g["deliverables"]["items"]] == ["Website"]
+        web = g["deliverables"]["items"][0]
         kids = {k["name"]: k for k in web["children"]}
-        assert kids["Style guide"]["file"] == "style.json" and kids["Style guide"]["made_by"] == {"persona": "Web Developer", "workflows": ["W-6"]}
-        assert kids["Versions"]["count"] == 14 and kids["Versions"]["collapsed"] and kids["Screenshots"]["count"] == 2, kids
+        assert kids["Versions"]["count"] == 14 and kids["Versions"]["collapsed"] and kids["Sections"]["count"] == 11 and kids["Sections"]["collapsed"] and "Screenshots" not in kids, kids
         assert web["made_by"]["persona"] == "Web Developer" and web["version"] == 14 and web["workflows"] == 12, web
+        assert [x["name"] for x in g["proof"]["items"]][0] == "Verification proof" and g["proof"]["items"][0]["count"] == 2
         plan = {x["name"]: x for x in g["plan"]["items"]}
         assert "zone analyze" in plan["Realization plan"]["note"] and "plan confidence 0.85" in plan["Realization plan"]["note"] and plan["Workflows"]["note"] == "17 workflows"
         assert plan["Realization plan"]["children"][0]["file"] == "realization.md"
         assert plan["Realization plan"]["made_by"] == {"function": "Adaptation (scored by the confidence judge)"}, "Adaptation's plan reply, saved by code"
-        # the tab: five collapsible groups with counts, Records closed, each row with maker, status, size and Open
-        html = render_node({"workflows": [], "chat": []}, docs={"docs": {}, "artifacts": {**A.listing(os.path.join(repo, "j2-20261026-174314")), "tree": t}})["artifacts"]
-        assert [re.sub(r"<[^>]+>", "", h).split()[0] for h in re.findall(r"<summary><h3>.*?</h3>", html)] == ["Plan", "Specs", "Deliverables", "Proof", "Records"]
-        assert 'data-key="artg-records">' in html and 'data-key="artg-plan" open>' in html, "Records start collapsed"
-        assert "made by Product Manager (W-1)" in html and "read by 7 workflows" in html and "made by Web Developer (W-6)" in html and 'data-artopen="artifacts/hint-method.md"' in html
+        # the page: four groups; one line per item (name, maker, one status tag, Open); the sections folded; the screenshots as thumbnails
+        html = render_node({"workflows": [], "chat": []}, docs={"docs": {}, "artifacts": {**A.listing(d74), "tree": t}})["artifacts"]
+        assert [re.sub(r"<[^>]+>", "", h).split()[0] for h in re.findall(r'<h3 class="arthead">.*?</h3>', html)] == ["Plan", "Specs", "Deliverable", "Proof"]
+        assert "Product Manager (W-1) · Product plan · read by 7" in html and "Web Developer (W-6)" in html and 'data-artopen="artifacts/hint-method.md"' in html
+        assert "<summary>11 sections</summary>" in html and "<summary>14 versions</summary>" in html and html.count('class="artshot"') == 2
+        assert html.index('data-group="specs"') < html.index('data-art="style.json"') < html.index('data-group="deliverables"'), "the Style guide under Specs"
+        tails = re.findall(r'<div class="artrow" data-art="([^"]*)">.*?<span class="artr">(.*?)</span></div>', html, re.S)
+        assert len(tails) == html.count('<div class="artrow"') and all(r.count('class="arttag') == (0 if a == "Verification proof" else 1) for a, r in tails), "one status tag per line"
     if "j2-20261027-130930" in names:
         t = A.tree(os.path.join(repo, "j2-20261027-130930"))
         prd = next(x for g in t["groups"] if g["id"] == "deliverables" for x in g["items"])
         sends = {k["name"]: k["status"] for k in prd["children"] if k.get("node", "").startswith("work:W-")}
         assert sends == {"Email · PRD done": "sent", "Send a test email": "skipped (cap)"}, sends      # under the document they report
-    print(f"artifacts tree: {seen} runs, Plan / Specs / Deliverables / Proof / Records, every artifacts.json file once, every spec with its maker, "
-          "makers, readers and statuses from j2_map.build, no deliverable under Records; 174314: 5 specs, Website with its style guide, "
-          "14 versions, 2 screenshots; 130930: the emails under the PRD with sent and skipped ok")
+    print(f"artifacts tree: {seen} runs, Plan / Specs / Deliverable / Proof, every artifacts.json file once, every spec with its maker, "
+          f"the Style guide under Specs ({style_n}), {shots_n} screenshots only under Proof, makers, readers and statuses from j2_map.build, "
+          "no deliverable among the run records; 174314: 5 specs and the Style guide, Website with 11 sections folded and 14 versions, "
+          "2 screenshots as thumbnails, one status tag per line; 130930: the emails under the PRD with sent and skipped ok")
 
 
 def agent_view():
@@ -6695,8 +6715,7 @@ def agent_view():
     if "j2-20261026-174314" in names:
         t = A.tree(os.path.join(repo, "j2-20261026-174314"))
         web = next(x for g in t["groups"] if g["id"] == "deliverables" for x in g["items"] if x["name"] == "Website")
-        code = next(k for k in web["children"] if k["name"] == "Code")
-        by = next(k for k in code["children"] if k["name"] == "By section")["children"]
+        by = next(k for k in web["children"] if k["name"] == "Sections")["children"]
         assert len(by) == 11 and {x["code"]["section"]: x.get("rewritten", {}).get("by") for x in by if x.get("rewritten")} == {"W-14": "W-16", "W-15": "W-17"}, by
         v = G.view(os.path.join(repo, "j2-20261026-174314"), "W-8")
         assert v["thinking"][0]["reason"] and v["thinking"][0]["reply"]["text"], "a builder's stated reason and reply, from its own reply record"
@@ -7693,7 +7712,7 @@ def left_bar():
             # dimmed tabs: exactly those whose data this run lacks
             lacks = {"goal": not snap["goal"], "charter": not snap["goal"], "report": not report and not summ.get("outcome"), "workflows": not wfs, "priorities": not has, "timeline": not chat,
                      "audit": not snap["audits"], "preview": not versions, "docs": not snap["docset"] and not docfiles, "artifacts": not any(g["count"] for g in t["groups"]),
-                     "style": not snap["style"], "lessons": not (snap["lessons_used"] or snap["lessons_saved"]), "playbooks": not (snap["playbooks_used"] or snap["playbook_saved"])}
+                     "lessons": not (snap["lessons_used"] or snap["lessons_saved"]), "playbooks": not (snap["playbooks_used"] or snap["playbook_saved"])}
             dimmed = {t_["tab"] for x in model for t_ in x["tabs"] if t_["dim"]}
             assert dimmed == {k for k, v in lacks.items() if v}, (name, "dimmed tabs are the ones with no data", dimmed ^ {k for k, v in lacks.items() if v})
             assert all(t_["dim"] for x in model for t_ in x["tabs"] if t_["tab"] in ("lessons", "playbooks") and lacks[t_["tab"]]) and not any(t_["dim"] for x in model for t_ in x["tabs"] if t_["tab"] in ("rundetails", "runsettings", "conflicts", "map")), (name, "reasons given; the settings are never dimmed")
@@ -7724,7 +7743,8 @@ def left_bar():
             html = out["artifacts"]
             audited = {a.get("version") for a in snap["audits"]}
             want_n = sum(1 for x in rows if (x.get("version") is not None and x["version"] in audited) or (x.get("file") == "goal.json" and snap["goal"]))
-            assert "not audited" not in html and html.count('class="artaudit"') == want_n, (name, "no row says not audited; the rows a record names show their status", html.count('class="artaudit"'), want_n)
+            got_n = len(re.findall(r'class="arttag \w+">(?:audited|validated)', html))      # the Audit status is the row's one tag where a record names it
+            assert "not audited" not in html and got_n == want_n, (name, "no row says not audited; the rows a record names show their status", got_n, want_n)
             seen["artifact rows"] += len(rows)
             seen["artifact audit"] += want_n
             seen["runs"] += 1
@@ -8183,6 +8203,107 @@ def graph_map():
              "its section makes Website the sun again, Esc steps back one each time then the Map, Product spec only its own lines and glows, zoom, Fit, Back, reduced motion" if seen else "") + " ok")
 
 
+THEME_TEXT = ("ink", "muted", "accent", "ok", "bad", "validator", "warm1", "warm2", "warm3", "identity", "adaptation", "priority", "coordination", "audit", "system",
+              "wf0", "wf1", "wf2", "wf3", "wf4", "wf5", "flowin", "flowout", "sec", "bld", "fix", "doc")      # tokens used as words on the page
+
+
+def theme_tokens(ui):
+    """The two token sets of j2_ui.html, var() references resolved: {"dark": {name: "#rrggbb"}, "light": {...}}."""
+    dark = dict(re.findall(r"--([\w-]+):([^;}]+)", re.search(r"(?s)\n:root\{color-scheme:dark;(.*?)\n\}", ui).group(1)))
+    light = {**dark, **dict(re.findall(r"--([\w-]+):([^;}]+)", re.search(r"(?s):root\[data-theme=light\]\{color-scheme:light;(.*?)\}", ui).group(1)))}
+    def res(t, v, k=0):
+        m = re.fullmatch(r"var\(--([\w-]+)\)", v.strip())
+        return res(t, t[m.group(1)], k + 1) if m and k < 9 else v.strip()
+    return {n: {k: res(t, v) for k, v in t.items()} for n, t in (("dark", dark), ("light", light))}
+
+
+def contrast(a, b):
+    lum = lambda h: (lambda c: .2126 * c[0] + .7152 * c[1] + .0722 * c[2])([x / 12.92 if x <= .03928 else ((x + .055) / 1.055) ** 2.4 for x in (int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))])
+    x, y = sorted((lum(a), lum(b)))
+    return (y + .05) / (x + .05)
+
+
+def warm_ui():
+    """Warm UI: every colour of j2_ui.html is a theme token (no hex, rgb or hsl outside the two token sets, so none in map rendering);
+    text tokens keep 4.5:1 and line tokens 3:1 in both sets; the Style guide has no tab of its own. With Chrome (--browser), for every run:
+    the Tree, the Line, every artifact sun and every workflow sun render in dark and in light with no page error and no colour in the
+    markup, the maps' colours follow the theme at once (no reload); Appearance is Dark by default and the choice persists across a reload."""
+    import html as htmllib
+    import threading
+    import j2_server
+    here = os.path.dirname(os.path.abspath(__file__))
+    ui = open(os.path.join(here, "j2_ui.html"), encoding="utf-8").read()
+    head = ui.index("\n:root{color-scheme:dark;"), ui.index("}", ui.index(":root[data-theme=light]{")) + 1
+    rest = ui[:head[0]] + ui[head[1]:]
+    left = re.findall(r"#[0-9a-fA-F]{3,8}\b(?![\w-])|\b(?:rgba?|hsla?)\(", rest)
+    assert not left, ("hard-coded colours outside the theme tokens", left[:10])
+    T = theme_tokens(ui)
+    assert set(T["dark"]) == set(T["light"]) and all(re.fullmatch(r"#[0-9a-f]{6}", T[t][k]) for t in T for k in THEME_TEXT + ("bg", "panel", "panel2", "edge", "spoke", "mapbg", "sky0", "sky1")), "both sets name the same tokens"
+    low = []
+    for t, v in T.items():
+        for k in THEME_TEXT:      # words: 4.5:1 on the page's three surfaces
+            low += [(t, k, b, round(contrast(v[k], v[b]), 2)) for b in ("bg", "panel", "panel2") if contrast(v[k], v[b]) < 4.5]
+        for k, bs in (("suntext", ("sky0", "sky1")), ("sectext", ("sky0", "sky1")), ("eattext", ("sky0", "sky1", "eatfill")), ("ink", ("sky0", "sky1", "mapbg")), ("muted", ("sky0", "sky1", "mapbg")), ("on", ("accent",))):
+            low += [(t, k, b, round(contrast(v[k], v[b]), 2)) for b in bs if contrast(v[k], v[b]) < 4.5]
+        for k, bs in (("edge", ("mapbg",)), ("muted", ("panel",)), ("spoke", ("sky0", "sky1")), ("sec", ("sky0", "sky1")), ("fix", ("sky0", "sky1")), ("eat", ("sky0", "sky1")), ("doc", ("sky0", "sky1"))):      # lines: 3:1
+            low += [(t, k, b, round(contrast(v[k], v[b]), 2)) for b in bs if contrast(v[k], v[b]) < 3]
+    assert not low, ("below WCAG AA", low)
+    rail = ui[ui.index('<nav class="rail tabs"'):ui.index("</nav>", ui.index('<nav class="rail tabs"'))]
+    assert 'data-tab="style"' not in rail and 'data-themepick="system"' in ui, "no Style guide tab; Appearance in Run settings"
+    note = "Chrome checks skipped"
+    chrome = j2.j2_check.find_chrome()
+    repo = os.path.join(here, "runs")
+    names = sorted(n for n in os.listdir(repo) if os.path.isfile(os.path.join(repo, n, "workflows.json"))) if os.path.isdir(repo) else []
+    if chrome and BROWSER and names:
+        js = ("const errs = []; addEventListener('error', e => errs.push(String(e.message))); const hexy = /(?:fill|stroke|color|background)[=:]\\s*\"?(?:#[0-9a-f]{3}|rgb)/i;"
+              " const tok = k => { const d = document.createElement('i'); d.style.color = `var(--${k})`; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };"
+              " const views = {dark: 0, light: 0}, bad = [], bgs = {}; showTab('map'); r.first = [document.documentElement.dataset.theme, document.querySelector('[data-themepick=\"dark\"]').getAttribute('aria-pressed')];"
+              " const look = (th, what, sel, bgk) => { const s = document.querySelector(sel); if (!s){ bad.push([th, what, 'missing']); return; } views[th]++; if (hexy.test(s.outerHTML)) bad.push([th, what, 'colour in markup']);"
+              "   const cs = getComputedStyle(s), t = s.querySelector('text'); if (bgk && cs.backgroundColor !== tok(bgk) && !cs.backgroundImage.includes(tok(bgk).slice(0, 12))) bad.push([th, what, 'background', cs.backgroundColor, cs.backgroundImage.slice(0, 80), tok(bgk)]);"
+              "   if (t && !getComputedStyle(t).fill) bad.push([th, what, 'no text fill']); (bgs[what.split(' ')[0]] = bgs[what.split(' ')[0]] || {})[th] = cs.backgroundColor + cs.backgroundImage.slice(0, 40); };"
+              " for (const run of RUNS){ const m = await (await fetch('/api/map?run=' + encodeURIComponent(run), {cache: 'no-store'})).json(); for (const k of Object.keys(MAP)) delete MAP[k]; Object.assign(MAP, m);"
+              "   for (const th of ['light', 'dark']){ document.querySelector(`[data-themepick=\"${th}\"]`).click(); if (document.documentElement.dataset.theme !== th) bad.push([th, run, 'theme not set']);"
+              "     consBack(); MAPVIEW = 'tree'; paintMap(); look(th, 'tree ' + run, '.treesvg', 'mapbg'); MAPVIEW = 'line'; paintMap(); look(th, 'line ' + run, '.mapsvg:not(.consvg)', 'panel'); MAPVIEW = 'tree';"
+              "     for (const a of Object.keys(m.constellations || {})){ consOpen(a); look(th, 'sun ' + run + ' ' + a, '.consvg', 'sky1'); }"
+              "     for (const w of Object.keys(consIndex(MAP).wf)){ consGo([{id: w, kind: 'wf'}]); look(th, 'wfsun ' + run + ' ' + w, '.consvg', 'sky1'); } consBack(); } }"
+              " r.views = views; r.kinds = Object.keys(bgs); r.bad = bad.slice(0, 20); r.nbad = bad.length; r.errs = errs; r.flip = Object.entries(bgs).map(([k, v]) => [k, v.dark !== v.light]);"
+              " document.querySelector('[data-themepick=\"light\"]').click();"
+              " const f = document.createElement('iframe'); f.style.cssText = 'width:900px;height:600px'; document.body.appendChild(f); const loaded = () => new Promise(ok => f.onload = ok);"
+              " f.src = location.href; await loaded(); await wait(800); r.reload1 = [f.contentDocument.documentElement.dataset.theme, f.contentDocument.querySelector('[data-themepick=\"light\"]').getAttribute('aria-pressed')];"
+              " f.contentDocument.querySelector('[data-themepick=\"system\"]').click(); f.contentWindow.location.reload(); await loaded(); await wait(800);"
+              " r.reload2 = [f.contentDocument.documentElement.dataset.theme, f.contentDocument.querySelector('[data-themepick=\"system\"]').getAttribute('aria-pressed'), f.contentWindow.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'];"
+              " f.contentDocument.querySelector('[data-themepick=\"dark\"]').click(); r.stored = localStorage.getItem('j2theme');")
+        import shutil
+        tmp = tempfile.mkdtemp(prefix="j2-warm-")
+        os.symlink(os.path.join(here, "vendor"), os.path.join(tmp, "vendor"))
+        page = ui.replace("</body>", "<script>if (window === top) setTimeout(async () => { const r = {}, wait = ms => new Promise(f => setTimeout(f, ms)), RUNS = " + json.dumps(names)
+                          + "; try { " + js + " } catch (e) { r.error = String(e.stack || e); } document.body.setAttribute('data-r', JSON.stringify(r)); }, 2500)</script></body>")
+        open(os.path.join(tmp, "j2_ui.html"), "w", encoding="utf-8").write(page)
+        keep_here, keep_runs = j2_server.HERE, j2.RUNS_DIR
+        j2_server.HERE, j2.RUNS_DIR = tmp, repo
+        srv = j2_server.http.server.ThreadingHTTPServer(("127.0.0.1", 0), j2_server.Handler)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        prof = tempfile.mkdtemp(prefix="j2-warmprof-")
+        try:
+            dom = chrome_dom([chrome, "--headless=new", "--disable-gpu", f"--user-data-dir={prof}", "--no-first-run", "--window-size=1440,900", "--virtual-time-budget=600000", "--dump-dom",
+                              f"http://127.0.0.1:{srv.server_address[1]}/?view=detail&run={names[0]}&mapview=tree"], capture_output=True, text=True, timeout=590).stdout
+        finally:
+            srv.shutdown()
+            j2_server.HERE, j2.RUNS_DIR = keep_here, keep_runs
+            shutil.rmtree(tmp, ignore_errors=True)
+            shutil.rmtree(prof, ignore_errors=True)
+        hit = re.search(r'data-r="([^"]*)"', dom)
+        assert hit, ("the page did not finish its steps", dom[-300:])
+        r = json.loads(htmllib.unescape(hit.group(1)))
+        assert "error" not in r and not r["errs"], r
+        assert r["first"] == ["dark", "true"], ("Dark by default", r["first"])
+        assert r["nbad"] == 0 and r["views"]["dark"] == r["views"]["light"] > 2 * len(names), ("every map view in both themes, colours from the tokens", r["bad"], r["views"])
+        assert all(x[1] for x in r["flip"]) and r["kinds"] == ["tree", "line", "sun", "wfsun"], ("each kind of map changes with the theme, no reload", r["flip"], r["kinds"])
+        assert r["reload1"] == ["light", "true"] and r["reload2"][0] == r["reload2"][2] and r["reload2"][1] == "true" and r["stored"] == "dark", ("the choice persists across a reload", r)
+        note = f"Chrome: {r['views']['dark']} map views per theme over {len(names)} runs (Tree, Line, every artifact and workflow sun), no page error, the choice kept across a reload"
+    print(f"warm UI: no hard-coded colour outside the two token sets, {len(THEME_TEXT)} text tokens 4.5:1 and the map lines 3:1 in dark and light, no Style guide tab; {note} ok")
+
+
 def map_every_workflow():
     """Map: every workflow in workflows.json is on the map (by stage, then section, then output refs) or listed by id under
     not recorded; a realization run's specs are deliverables with their stage's role and "given to" lines to the build
@@ -8585,7 +8706,7 @@ def map_tab():
     ui = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "j2_ui.html"), encoding="utf-8").read()
     assert "@media (max-width:600px){.mapsvgwrap{display:none}.mapcards{display:block}}" in ui and ".mapcards{display:none}" in ui
     assert ".mapsvg{width:100%;height:clamp(440px,64vh,760px)" in ui and "st-running{border-style:double" in ui and "st-left_open{border-style:dashed" in ui
-    assert ui.index('data-tab="map"') < ui.index('id="railsub"') < ui.index('data-tab="docs"') < ui.index('data-tab="artifacts"') < ui.index('data-tab="style"'), "Map is the first rail entry; every other tab sits in the sections below it"
+    assert ui.index('data-tab="map"') < ui.index('id="railsub"') < ui.index('data-tab="docs"') < ui.index('data-tab="artifacts"') < ui.index('data-tab="lessons"'), "Map is the first rail entry; every other tab sits in the sections below it"
     empty = render_node(snap, docs={"docs": {}, "map": {"nodes": [], "edges": []}})["map"]
     assert "Nothing to draw yet." in empty
     real = render_node(snap, docs={"docs": {}, "map": saved})["map"]
@@ -8720,13 +8841,13 @@ def map_tab():
     rail = ui[ui.index('<nav class="rail tabs"'):ui.index("</nav>", ui.index('<nav class="rail tabs"'))]
     top, inside = rail.split('id="railsub"')
     # the Board story is the first entry under Internals (shown only when the run has a board); the rest are the old order
-    old_tabs = ["story", "preview", "goal", "workflows", "conflicts", "priorities", "timeline", "audit", "charter", "docs", "artifacts", "board", "style", "lessons", "playbooks", "report", "rundetails", "runsettings"]
+    old_tabs = ["story", "preview", "goal", "workflows", "conflicts", "priorities", "timeline", "audit", "charter", "docs", "artifacts", "board", "lessons", "playbooks", "report", "rundetails", "runsettings"]      # the Style guide is under Artifacts > Specs
     assert re.findall(r'data-tab="(\w+)"', top) == ["map"] and 'id="gochat"' in top and 'id="internals"' not in top and "Internals" not in rail and re.findall(r"<span>([^<]+)</span>", top) == ["Map", "Chat"], "the rail has Map and Chat rows; no Internals folder"
     assert re.findall(r'data-tab="(\w+)"', inside) == old_tabs, "every other tab is under Internals, in the old order"
     assert "<svg" not in rail and ' hidden' not in rail.split('id="railsub"')[1].split(">")[0], "no icon rail; the sections are always shown"
     dvh = ui[ui.index('<div id="dview">'):ui.index('<dialog id="detail">')]
     panes = re.findall(r'<div class="pane[^"]*" id="pane-(\w+)"( hidden)?', dvh)
-    assert [n for n, h in panes if not h] == ["map"] and {n for n, _ in panes} == set(old_tabs) | {"map"}, "the home shows only the Map pane; every old pane still exists"
+    assert [n for n, h in panes if not h] == ["map"] and {n for n, _ in panes} == set(old_tabs) | {"map", "style"}, "the home shows only the Map pane; every old pane still exists"
     assert dvh.index('id="needs"') < dvh.index('<section class="work">') < dvh.index('<section class="chat">'), "Needs you, then the Map, then the Chat"
     assert "@media (max-width:900px){#dview .dcol{overflow:auto}#dview main{grid-template-columns:minmax(0,1fr)" in ui and "@media (max-width:600px){.mapsvgwrap{display:none}.mapcards{display:block}}" in ui, "stacked below 900px; map cards at 600px"
     # Needs you: every open question, a plain line each, a button into the Chat; nothing waiting says so
@@ -9359,6 +9480,7 @@ if __name__ == "__main__":
             left_bar()
             left_bar_toggle()
             graph_map()
+            warm_ui()
             map_readback()
             map_shapes()
             artifacts_tree()

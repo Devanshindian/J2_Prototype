@@ -6,19 +6,34 @@
 <title>J2 Department</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-:root{
+/* Theme: every colour of the page is a token here, a warm dark set (the default) and a warm light set (data-theme on <html>, set from
+   Run settings > Appearance). Text tokens keep 4.5:1 on --bg, --panel and --panel2; line tokens (--edge, --spoke, map strokes) 3:1. */
+:root{color-scheme:dark;
   --charter:var(--priority);--site:var(--accent);--other:var(--builder);--prd:var(--identity);--hld:var(--adaptation);--lld:var(--coordination);
-  --bg:#f1f3f2;--panel:#fff;--panel2:#eaeeec;--ink:#18201e;--muted:#5d6865;--line:#d6ddd9;--on:#fff;
-  --user:#18201e;--validator:#8a6d1d;--identity:#6b45b3;--adaptation:#3056b8;--priority:#b0680f;
-  --coordination:#1f7a55;--builder:#5d6865;--audit:#b4487e;--system:#8a6d1d;--bad:#b83a32;--ok:#2c7d4f;--accent:#0e6b61;
-  --wf0:#0f6e8c;--wf1:#8a4f12;--wf2:#5a7a12;--wf3:#9c3d5b;--wf4:#46549c;--wf5:#2f7d6d;
+  --warm1:#e0a458;--warm2:#d9785f;--warm3:#c9a96e;--purple:#a58be6;
+  --bg:#161513;--panel:#1c1b19;--panel2:#24221f;--node:#2a2622;--ink:#ece6dc;--muted:#9a9186;--line:#2e2b27;--on:#161513;--edge:#857a6c;
+  --user:#ece6dc;--validator:#e0b25c;--identity:var(--purple);--adaptation:var(--warm3);--priority:var(--warm1);
+  --coordination:#9fc08a;--builder:#9a9186;--audit:var(--warm2);--system:#e0b25c;--bad:#ef8f7a;--ok:#9fc08a;--accent:var(--purple);--vio:var(--purple);
+  --wf0:#e0a458;--wf1:#e08c72;--wf2:#9fc08a;--wf3:#c9a2e0;--wf4:#c9a96e;--wf5:#e6c36a;
+  --flowin:#e6c36a;--flowout:#c4a6ee;--team:var(--warm1);--art:var(--warm3);--deliv:var(--warm2);
+  --paper:#fff;--paperink:#111;--hit:#5a4520;--hitink:#ece6dc;--shadow:rgb(0 0 0 / .45);--scrim:rgb(0 0 0 / .45);--codebg:#11100e;--hlt:#e6c36a;--hls:#9fc08a;--hlc:#8a8174;
+  --mapbg:#191714;
+  --sky0:#24201b;--sky1:#100f0d;--skyink:#141310;--star:#f3e6c8;--orbit:#c9a96e;--spoke:#8a7a5c;--sun:#ffe3a8;--suntext:#ffe3a8;
+  --sec:#b49be8;--sectext:#d6ccf5;--bld:#9fc08a;--bldcore:#eef7e6;--fix:#d9785f;--fixcore:#f0b39f;
+  --doc:#c9a96e;--docfill:#2a2520;--eat:#f2b968;--eatfill:#3d2d16;--eattext:#ffd9a0;--badgefill:#2a2015;
   --display:"Bricolage Grotesque",Arial,sans-serif;--body:"IBM Plex Sans",Arial,sans-serif;--mono:"IBM Plex Mono",Menlo,monospace;
 }
-@media (prefers-color-scheme:dark){:root{color-scheme:dark;
-  --bg:#101413;--panel:#191f1d;--panel2:#212826;--ink:#e6ebe9;--muted:#9aa5a1;--line:#2d3633;--on:#0f1312;
-  --user:#e6ebe9;--validator:#d9b55a;--identity:#ab8cec;--adaptation:#7c9ef0;--priority:#e3a24b;
-  --coordination:#5cc596;--builder:#9aa5a1;--audit:#e58ab5;--system:#d9b55a;--bad:#f07a70;--ok:#5fc28c;--accent:#4fc2b2;
-  --wf0:#5cc3e0;--wf1:#e0a15c;--wf2:#a9cf5a;--wf3:#e58aa6;--wf4:#94a3f0;--wf5:#6fd1bd}}
+:root[data-theme=light]{color-scheme:light;
+  --warm1:#96571a;--warm2:#a8432c;--warm3:#7d6230;--purple:#6e52c4;
+  --bg:#f6f2ec;--panel:#fbf8f3;--panel2:#f2ece3;--node:#f1ebe2;--ink:#2b2620;--muted:#6b6155;--line:#e6dfd4;--on:#ffffff;--edge:#8a7f72;
+  --user:#2b2620;--validator:#80590f;--coordination:#456e33;--builder:#6b6155;--system:#80590f;--bad:#b0392c;--ok:#456e33;
+  --wf0:#96571a;--wf1:#a8432c;--wf2:#456e33;--wf3:#8a4a9c;--wf4:#7d6230;--wf5:#7a5d0c;
+  --flowin:#80590f;--flowout:#6e52c4;
+  --hit:#fbe3b0;--hitink:#2b2620;--shadow:rgb(60 40 20 / .18);--scrim:rgb(40 30 20 / .3);--codebg:#f2ece3;--hlt:#80590f;--hls:#456e33;--hlc:#6b6155;
+  --mapbg:#fbf8f3;
+  --sky0:#fdf9f2;--sky1:#efe6d8;--skyink:#f8f3ea;--star:#7d6230;--orbit:#7d6230;--spoke:#8a7b62;--sun:#d9922f;--suntext:#7a4a10;
+  --sec:#6e52c4;--sectext:#5a3fb0;--bld:#456e33;--bldcore:#456e33;--fix:#a8432c;--fixcore:#a8432c;
+  --doc:#7d6230;--docfill:#fbf3e4;--eat:#b86a12;--eatfill:#fbe3b0;--eattext:#7a4510;--badgefill:#fbf0dc}
 *{box-sizing:border-box}html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--body);display:flex;flex-direction:column}
 header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
@@ -34,13 +49,13 @@ button{font:500 13px var(--body);cursor:pointer}
 .code{font:500 11px var(--mono);color:var(--muted);white-space:nowrap}.st.on .code{color:var(--on);opacity:.75}
 .atom{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0;background:var(--panel)}
 .atom>summary{cursor:pointer}.atom h4{margin:8px 0 2px;font-size:12.5px}.atom p{margin:0 0 4px}
-.foldbody[hidden]{display:none}.otag{border:0;border-radius:10px;padding:1px 8px;margin:2px 4px 2px 0;color:var(--on);font:inherit;font-size:12px;cursor:pointer}.otag.on{outline:2px solid var(--ink)}.mapwrap{padding:4px 0}.maphead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}.maphead h3{margin:0 8px 0 0}.mappill{border-radius:12px;padding:2px 10px;border:1px solid var(--line);font-size:13px}.mappill.running,.mappill.waiting_on_you{border-color:var(--validator);color:var(--validator);font-weight:600}.mappill.checks{border-color:var(--ok);color:var(--ok)}.mappill.nochecks{color:var(--muted)}#dview .work.mapfit{align-self:start;max-height:100%}.mappill.checks.needsrev{border-color:var(--validator);color:var(--validator)}.mapsvg.mapvert{display:none}.legnarrow{display:none}.linecard{position:relative}.maplay{position:absolute;left:10px;bottom:10px;z-index:3;max-width:min(380px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:12px}.maplay>summary{cursor:pointer;padding:3px 10px}.maplaybody{max-height:min(300px,40vh);overflow:auto;padding:0 10px 8px}.maplaybody .maplegend{margin:4px 0 6px;font-size:12px}@media (max-width:900px){.mapsvgwrap:not([data-layout]) .mapsvg:not(.mapvert){display:none}.mapsvgwrap:not([data-layout]) .mapsvg.mapvert{display:block}}.mapsvgwrap[data-layout="v"] .mapsvg:not(.mapvert){display:none}.mapsvgwrap[data-layout="v"] .mapsvg.mapvert,.mapsvgwrap[data-layout="h"] .mapsvg:not(.mapvert){display:block}.mapsvgwrap[data-layout="h"] .mapsvg.mapvert{display:none}.mapsvg{width:100%;height:clamp(440px,64vh,760px);display:block;font:12px system-ui,sans-serif;cursor:grab;touch-action:none;user-select:none}.mapsvg:active{cursor:grabbing}.mapsvg text{fill:var(--ink)}.mapsvg .rowlab{fill:var(--muted);font-size:11px;letter-spacing:.12em}.mapsvg .sub{fill:var(--muted);font-size:11px}.mapsvg a{cursor:pointer}.mapsvg a:focus-visible rect,.mapsvg a:focus-visible circle{outline:2px solid var(--ink)}.maplegend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0;font-size:13px}.maplegend span{display:inline-flex;align-items:center;gap:6px}.mapnr{margin:8px 0;font-size:13px;color:var(--muted)}.mapcards{display:none}.mapcard{border:2px solid var(--line);border-radius:8px;padding:8px 12px;margin:0;background:var(--panel)}.mapcard.st-filed{border-style:solid}.mapcard.st-left_open{border-style:dashed}.mapcard.st-running{border-style:double;border-width:5px}.mapcard.st-fault{border-color:var(--bad);border-width:4px}.mapcard.st-waiting{border-color:var(--validator);border-width:4px}.mapdd{margin:8px 0;font-size:13px;color:var(--muted)}.mapdd summary{cursor:pointer}.maptable{width:auto;border-collapse:collapse;margin:6px 0 0;font-size:13px;color:var(--ink)}.maptable th,.maptable td{border-bottom:1px solid var(--line);padding:2px 12px 2px 0;text-align:left}.mapcard.st-waiting_on_you{border-color:var(--validator);border-width:4px}.mapcard.st-done_unchecked{border-color:var(--validator);border-width:4px;border-style:dotted}.mapcard.st-not_made{background:transparent;border-width:1px;color:var(--muted)}.mapstep{margin:4px 0 4px 16px;color:var(--muted);font-size:13px}.mapcard .sub{color:var(--muted);font-size:13px}@media (max-width:600px){.mapsvgwrap{display:none}.mapcards{display:block}}@media (max-width:600px){.legnarrow{display:block}}.artrules{margin:4px 0 0 16px;font-size:13px}.artrules div{margin:1px 0}.artrow{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0}.codebox{position:relative;margin:8px 0 0}.codecopy{position:absolute;top:6px;right:10px}pre.code{max-height:520px;overflow:auto;margin:0;padding:8px 0;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:8px;counter-reset:none;white-space:pre}pre.code .cl{display:block;padding-right:12px}pre.code .ln{display:inline-block;width:3.5em;padding-right:10px;text-align:right;color:var(--muted);user-select:none;border-right:1px solid var(--line);margin-right:10px}pre.code .hlt{color:#7fb0d6}pre.code .hls{color:#c3a86b}pre.code .hlc{color:#8a8f98;font-style:italic}pre.code.plain{white-space:pre-wrap}
-.agentdrawer{position:fixed;top:0;right:0;bottom:0;width:50vw;z-index:60;overflow:auto;background:var(--panel);border-left:1px solid var(--line);box-shadow:-10px 0 30px rgba(0,0,0,.35);padding:14px 18px;box-sizing:border-box}.agentdrawer[hidden]{display:none}body.agentopen #pane-map .mappanel{display:none}@media (max-width:700px){.agentdrawer{width:100vw}}
+.foldbody[hidden]{display:none}.otag{border:0;border-radius:10px;padding:1px 8px;margin:2px 4px 2px 0;color:var(--on);font:inherit;font-size:12px;cursor:pointer}.otag.on{outline:2px solid var(--ink)}.mapwrap{padding:4px 0}.maphead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}.maphead h3{margin:0 8px 0 0}.mappill{border-radius:12px;padding:2px 10px;border:1px solid var(--line);font-size:13px}.mappill.running,.mappill.waiting_on_you{border-color:var(--validator);color:var(--validator);font-weight:600}.mappill.checks{border-color:var(--ok);color:var(--ok)}.mappill.nochecks{color:var(--muted)}#dview .work.mapfit{align-self:start;max-height:100%}.mappill.checks.needsrev{border-color:var(--validator);color:var(--validator)}.mapsvg.mapvert{display:none}.legnarrow{display:none}.linecard{position:relative}.maplay{position:absolute;left:10px;bottom:10px;z-index:3;max-width:min(380px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:12px}.maplay>summary{cursor:pointer;padding:3px 10px}.maplaybody{max-height:min(300px,40vh);overflow:auto;padding:0 10px 8px}.maplaybody .maplegend{margin:4px 0 6px;font-size:12px}@media (max-width:900px){.mapsvgwrap:not([data-layout]) .mapsvg:not(.mapvert){display:none}.mapsvgwrap:not([data-layout]) .mapsvg.mapvert{display:block}}.mapsvgwrap[data-layout="v"] .mapsvg:not(.mapvert){display:none}.mapsvgwrap[data-layout="v"] .mapsvg.mapvert,.mapsvgwrap[data-layout="h"] .mapsvg:not(.mapvert){display:block}.mapsvgwrap[data-layout="h"] .mapsvg.mapvert{display:none}.mapsvg{width:100%;height:clamp(440px,64vh,760px);display:block;font:12px system-ui,sans-serif;cursor:grab;touch-action:none;user-select:none}.mapsvg:active{cursor:grabbing}.mapsvg text{fill:var(--ink)}.mapsvg .rowlab{fill:var(--muted);font-size:11px;letter-spacing:.12em}.mapsvg .sub{fill:var(--muted);font-size:11px}.mapsvg a{cursor:pointer}.mapsvg a:focus-visible rect,.mapsvg a:focus-visible circle{outline:2px solid var(--ink)}.maplegend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0;font-size:13px}.maplegend span{display:inline-flex;align-items:center;gap:6px}.mapnr{margin:8px 0;font-size:13px;color:var(--muted)}.mapcards{display:none}.mapcard{border:2px solid var(--line);border-radius:8px;padding:8px 12px;margin:0;background:var(--panel)}.mapcard.st-filed{border-style:solid}.mapcard.st-left_open{border-style:dashed}.mapcard.st-running{border-style:double;border-width:5px}.mapcard.st-fault{border-color:var(--bad);border-width:4px}.mapcard.st-waiting{border-color:var(--validator);border-width:4px}.mapdd{margin:8px 0;font-size:13px;color:var(--muted)}.mapdd summary{cursor:pointer}.maptable{width:auto;border-collapse:collapse;margin:6px 0 0;font-size:13px;color:var(--ink)}.maptable th,.maptable td{border-bottom:1px solid var(--line);padding:2px 12px 2px 0;text-align:left}.mapcard.st-waiting_on_you{border-color:var(--validator);border-width:4px}.mapcard.st-done_unchecked{border-color:var(--validator);border-width:4px;border-style:dotted}.mapcard.st-not_made{background:transparent;border-width:1px;color:var(--muted)}.mapstep{margin:4px 0 4px 16px;color:var(--muted);font-size:13px}.mapcard .sub{color:var(--muted);font-size:13px}@media (max-width:600px){.mapsvgwrap{display:none}.mapcards{display:block}}@media (max-width:600px){.legnarrow{display:block}}.artrules{margin:4px 0 0 16px;font-size:13px}.artrules div{margin:1px 0}.artrow{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0}.codebox{position:relative;margin:8px 0 0}.codecopy{position:absolute;top:6px;right:10px}pre.code{max-height:520px;overflow:auto;margin:0;padding:8px 0;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--codebg);border:1px solid var(--line);border-radius:8px;counter-reset:none;white-space:pre}pre.code .cl{display:block;padding-right:12px}pre.code .ln{display:inline-block;width:3.5em;padding-right:10px;text-align:right;color:var(--muted);user-select:none;border-right:1px solid var(--line);margin-right:10px}pre.code .hlt{color:var(--hlt)}pre.code .hls{color:var(--hls)}pre.code .hlc{color:var(--hlc);font-style:italic}pre.code.plain{white-space:pre-wrap}
+.agentdrawer{position:fixed;top:0;right:0;bottom:0;width:50vw;z-index:60;overflow:auto;background:var(--panel);border-left:1px solid var(--line);box-shadow:-10px 0 30px var(--shadow);padding:14px 18px;box-sizing:border-box}.agentdrawer[hidden]{display:none}body.agentopen #pane-map .mappanel{display:none}@media (max-width:700px){.agentdrawer{width:100vw}}
 .adhead{display:flex;align-items:center;justify-content:space-between;gap:10px}.adhead h3{margin:0}.adnote{color:var(--muted);font-size:13px;margin:6px 0 10px}.adsec{margin:12px 0}.adsec h4{margin:0 0 6px}.adsmall{color:var(--muted);font-size:12px;margin-top:2px}
 .adtalk,.adcall{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0}.adtalk>summary,.adcall>summary,.adtech>summary,.adlong>summary{cursor:pointer}.admsg{border-top:1px solid var(--line);padding:6px 0}.admsg p,.adrow p{margin:4px 0}.adwhen{color:var(--muted);font-size:12px}.adrow{margin:6px 0}.adfield{margin:2px 0 2px 10px}.adtech pre{max-height:260px}
-.whobtn{border:0;background:none;padding:0;font:inherit;font-weight:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted}.artgroup{margin:0 0 10px}.artgroup>summary{cursor:pointer;list-style:revert}.artgroup>summary h3{display:inline;margin:0}.artcount{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--line);font-size:12px;text-align:center;font-weight:600}.artkids>summary{cursor:pointer}.artsub{margin:6px 0 0 18px}.artst{border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:12px}.artst.st-filed,.artst.st-sent{border-color:var(--ok);color:var(--ok)}.artst.st-failed{border-color:var(--bad);color:var(--bad)}.artst.st-skipped,.artst.st-checks,.artst.st-open{border-color:var(--validator);color:var(--validator)}.arttext{white-space:pre-wrap;max-height:420px;overflow:auto;margin:8px 0 0;font-size:13px}.artimg{max-width:100%;margin-top:8px}.artframe{width:100%;height:420px;border:1px solid var(--line);margin-top:8px;background:#fff}.runsum{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 10px}.runsum div{margin:2px 0}.ogroups{margin:6px 0 10px}.ogroups div{margin:2px 0}.dochead .code{color:var(--on);background:rgba(0,0,0,.3);border-radius:4px;padding:0 6px;font-size:12px}.docmeta{margin-left:8px}.chnote,.brief{margin:0 0 10px}.brief{border:1px solid var(--line);border-radius:8px;padding:8px 12px;white-space:pre-wrap}.chitems{padding-left:26px}.chitems li{margin:6px 0}.chsrc,.chused{color:var(--muted);font-size:13px}.cgroup{margin:4px 0}.clist{margin:2px 0 4px;padding-left:20px}.dl.hit{background:var(--hit,#fff3b0);color:#111;border-radius:4px;padding:2px 4px}.doc{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}.dochead{color:var(--on);padding:8px 12px}.docbody{padding:4px 12px 10px}.docbody h4{margin:10px 0 2px}.docjump{position:sticky;top:-16px;z-index:1;margin:-16px -16px 10px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}.docjump a{margin-right:10px}.docdiv{display:flex;gap:16px;justify-content:space-between;margin:12px 0;padding:6px 0;border-top:2px dashed var(--line);border-bottom:2px dashed var(--line);color:var(--muted);font-size:13px}.ablock{margin:4px 0}.agroup{margin:10px 0 2px;color:var(--muted)}.long>summary{cursor:pointer;color:var(--muted);display:inline}
-.apreview{display:block;width:100%;min-height:48px;max-height:260px;border:1px solid var(--line);border-radius:6px;margin:6px 0;padding:6px;background:#fff;color:#111}
-iframe.apreview{height:220px;padding:0}.linkbtn{border:0;background:none;color:var(--accent,#2a6);text-decoration:underline;cursor:pointer;padding:0;font:inherit}
+.whobtn{border:0;background:none;padding:0;font:inherit;font-weight:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted}.artgroup{margin:0 0 10px}.artgroup>summary{cursor:pointer;list-style:revert}.artgroup>summary h3{display:inline;margin:0}.artcount{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--line);font-size:12px;text-align:center;font-weight:600}.artkids>summary{cursor:pointer}.artsub{margin:6px 0 0 18px}.artst{border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:12px}.artst.st-filed,.artst.st-sent{border-color:var(--ok);color:var(--ok)}.artst.st-failed{border-color:var(--bad);color:var(--bad)}.artst.st-skipped,.artst.st-checks,.artst.st-open{border-color:var(--validator);color:var(--validator)}.arttext{white-space:pre-wrap;max-height:420px;overflow:auto;margin:8px 0 0;font-size:13px}.artimg{max-width:100%;margin-top:8px}.artframe{width:100%;height:420px;border:1px solid var(--line);margin-top:8px;background:var(--paper)}.runsum{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 10px}.runsum div{margin:2px 0}.ogroups{margin:6px 0 10px}.ogroups div{margin:2px 0}.dochead .code{color:var(--on);background:var(--scrim);border-radius:4px;padding:0 6px;font-size:12px}.docmeta{margin-left:8px}.chnote,.brief{margin:0 0 10px}.brief{border:1px solid var(--line);border-radius:8px;padding:8px 12px;white-space:pre-wrap}.chitems{padding-left:26px}.chitems li{margin:6px 0}.chsrc,.chused{color:var(--muted);font-size:13px}.cgroup{margin:4px 0}.clist{margin:2px 0 4px;padding-left:20px}.dl.hit{background:var(--hit);color:var(--hitink);border-radius:4px;padding:2px 4px}.doc{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}.dochead{color:var(--on);padding:8px 12px}.docbody{padding:4px 12px 10px}.docbody h4{margin:10px 0 2px}.docjump{position:sticky;top:-16px;z-index:1;margin:-16px -16px 10px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}.docjump a{margin-right:10px}.docdiv{display:flex;gap:16px;justify-content:space-between;margin:12px 0;padding:6px 0;border-top:2px dashed var(--line);border-bottom:2px dashed var(--line);color:var(--muted);font-size:13px}.ablock{margin:4px 0}.agroup{margin:10px 0 2px;color:var(--muted)}.long>summary{cursor:pointer;color:var(--muted);display:inline}
+.apreview{display:block;width:100%;min-height:48px;max-height:260px;border:1px solid var(--line);border-radius:6px;margin:6px 0;padding:6px;background:var(--paper);color:var(--paperink)}
+iframe.apreview{height:220px;padding:0}.linkbtn{border:0;background:none;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;font:inherit}
 .st.on{background:var(--accent);color:var(--on)}
 .st.past{color:var(--ink)}
 main{flex:1;display:grid;grid-template-columns:minmax(320px,1fr) 250px minmax(0,1.3fr);min-height:0}
@@ -75,7 +90,7 @@ textarea{flex:1;resize:none;height:56px;border:1px solid var(--line);border-radi
 .tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--accent);font-weight:600}
 .tabs select{margin:0 0 6px auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 6px;font:inherit}
 .pane{flex:1;min-height:0;overflow:auto;padding:16px}
-.pane.preview{padding:0;background:#fff}
+.pane.preview{padding:0;background:var(--paper)}
 .doclinks{display:flex;gap:8px;align-items:center;height:38px;padding:0 10px;border-bottom:1px solid var(--line);background:var(--panel);font-size:13.5px}
 .doclinks a{color:var(--ink)}.pane.preview.has-links iframe{height:calc(100% - 39px)}
 .outsel{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 6px;font:inherit}
@@ -105,7 +120,7 @@ dt{font:500 12px var(--mono);color:var(--muted);padding-top:2px}dd{margin:0}
 .mark{flex:0 0 auto;align-self:center;font:500 11px var(--mono);color:var(--muted);background:var(--panel2);border-radius:5px;padding:3px 6px}
 .msg:not(.user) .bubble{cursor:pointer}.msg:not(.user) .bubble:hover{border-color:var(--c)}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);width:min(760px,calc(100vw - 32px));max-height:86vh;padding:0}
-dialog::backdrop{background:rgb(0 0 0 / .35)}
+dialog::backdrop{background:var(--scrim)}
 .dhead{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
 .dbody{padding:12px 16px;overflow:auto}
 .dbody h3{margin-top:14px}
@@ -149,7 +164,7 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .ready .acts{display:flex;gap:8px;flex-wrap:wrap}
 .ready a,.ready button{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:8px;padding:7px 11px;font-size:13.5px;text-decoration:none}
 .oops{border:2px solid var(--bad);border-radius:12px;padding:12px;background:var(--panel)}
-.sprev{min-height:0;background:#fff}
+.sprev{min-height:0;background:var(--paper)}
 @media (max-width:900px){
   /* phone: one pane at a time; the preview only once a site exists, via the Chat | Preview toggle */
   .smain{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
@@ -159,44 +174,43 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
   .stoggle button[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
   body.sp-preview .schat{display:none}body.sp-preview .sprev{display:block}}
 /* Map: calm graph look, details in a click panel */
-:root{--flowin:#6fa8dc;--flowout:#c49bd9}      /* the two calm colours of a flow: lines into a node (reads), lines out of it (read by) */
 .mapviews{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-left:auto}.mapviews button{border:0;background:transparent;color:var(--ink);padding:2px 12px;font:inherit;font-size:13px;cursor:pointer}.mapviews button[aria-pressed="true"]{background:var(--line);font-weight:600}
 .mapsvgwrap[data-view="tree"] .mapsvg{display:none!important}.mapsvgwrap[data-view="line"] .treebox{display:none}
 .treebox{position:relative;margin:0 0 8px}.treebar{display:flex;gap:10px;align-items:center;margin:0 0 6px}.treebar .sub{color:var(--muted);font-size:12px}.treebar .linkbtn{color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:2px 10px;text-decoration:none}.treebar [hidden]{display:none}
-.treebox{container-type:inline-size}.treepanel{position:absolute;top:44px;right:10px;width:300px;max-height:calc(100% - 56px);overflow:auto;box-sizing:border-box;margin:0;z-index:5;box-shadow:0 8px 28px rgba(0,0,0,.4)}      /* inside the map card, over its right side */
+.treebox{container-type:inline-size}.treepanel{position:absolute;top:44px;right:10px;width:300px;max-height:calc(100% - 56px);overflow:auto;box-sizing:border-box;margin:0;z-index:5;box-shadow:0 8px 28px var(--shadow)}      /* inside the map card, over its right side */
 @container (max-width:640px){.treepanel{position:static;width:auto;max-height:none;margin-top:8px;box-shadow:none}}
 .treesvg .thide .tlab,.treesvg .thide .tsub{display:none}
-.treesvg{display:block;width:100%;height:clamp(440px,64vh,760px);background:#16181d;border:1px solid #2a2e35;border-radius:12px;cursor:grab;touch-action:none;font:12px system-ui,sans-serif;user-select:none}.treesvg:active{cursor:grabbing}
-.treesvg .tedge{fill:none;stroke:#8a8f98;stroke-width:1.2;opacity:.32;transition:opacity .3s}.treesvg .tedge.back{stroke-dasharray:3 3}.treesvg .tedge.hot{opacity:.95;stroke:#c9ccd1;stroke-width:1.8}
-.treesvg .tnode{cursor:pointer;transition:opacity .3s}.treesvg .tdim{opacity:.2}.treesvg .tlab{fill:#dcddde;font-size:13px;paint-order:stroke;stroke:#16181d;stroke-width:6px;stroke-linejoin:round}.treesvg .tsub{fill:#8a8f98;font-size:11px;paint-order:stroke;stroke:#16181d;stroke-width:6px;stroke-linejoin:round}.treesvg .tglyph{fill:#8a8f98}.treesvg .tglyphl{fill:none;stroke:#8a8f98;stroke-width:1.2}
-.treesvg .tnode:hover .tdot,.treesvg .tnode:focus-visible .tdot,.treesvg .tnode.sel .tdot{filter:drop-shadow(0 0 5px rgba(200,205,215,.6))}.treesvg .tnode:focus{outline:none}
+.treesvg{display:block;width:100%;height:clamp(440px,64vh,760px);background:var(--mapbg);border:1px solid var(--line);border-radius:12px;cursor:grab;touch-action:none;font:12px system-ui,sans-serif;user-select:none}.treesvg:active{cursor:grabbing}
+.treesvg .tedge{fill:none;stroke:var(--edge);stroke-width:1.2;transition:opacity .3s}.treesvg .tedge.back{stroke-dasharray:3 3}.treesvg .tedge.hot{opacity:.95;stroke:var(--ink);stroke-width:1.8}
+.treesvg .tnode{cursor:pointer;transition:opacity .3s}.treesvg .tdim{opacity:.2}.treesvg .tlab{fill:var(--ink);font-size:13px;paint-order:stroke;stroke:var(--mapbg);stroke-width:6px;stroke-linejoin:round}.treesvg .tsub{fill:var(--muted);font-size:11px;paint-order:stroke;stroke:var(--mapbg);stroke-width:6px;stroke-linejoin:round}.treesvg .tglyph{fill:var(--muted)}.treesvg .tstage .tglyph,.treesvg .twf .tglyph{fill:var(--team)}.treesvg .tglyphl{fill:none;stroke:var(--muted);stroke-width:1.2}
+.treesvg .tnode:hover .tdot,.treesvg .tnode:focus-visible .tdot,.treesvg .tnode.sel .tdot{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--warm1) 60%,transparent))}.treesvg .tnode:focus{outline:none}
 .treesvg .tgone{display:none}
-/* solar system (the mock's look): a dark sky, faint orbits, a glowing sun; sections purple diamonds, builders green and fixes amber glowing dots, inputs blue
-   documents that glow while the focus consumes them; what the focus leaves out fades to 10% */
-.consbox{position:relative}.mapsvg.consvg{display:block;width:100%;height:clamp(440px,70vh,800px);background:radial-gradient(circle at 50% 50%,#17221e 0%,#0b0f0e 70%);border:1px solid #2c3532;border-radius:12px;cursor:grab;touch-action:none;user-select:none;font:12px system-ui,-apple-system,"Segoe UI",sans-serif}.consvg:active{cursor:grabbing}
-.consvg .csky circle{fill:#cfe;opacity:.16}.consvg .crings :is(circle,ellipse){fill:none;stroke:#9bd8b2;opacity:.06}
-.consvg .cline{fill:none;transition:opacity .35s}.consvg .cline.spoke{stroke:#fff7d6;stroke-width:1.2;opacity:.35;stroke-dasharray:3 7;animation:cflow 1.4s linear infinite}.consvg .cline.dashed{stroke-dasharray:2 4}
-.consvg .cline.makes{stroke:#b49be8;stroke-width:1.4;opacity:.7}.consvg .cline.makes.fix{stroke:#e6ad62}.consvg .cline.more{stroke:#e6ad62;stroke-dasharray:3 3}
-.consvg .cline.lit.reads,.consvg .cline.wfl.reads{stroke:#6fa8ff;stroke-width:1.5;opacity:.9;stroke-dasharray:4 5;animation:cflow .9s linear infinite}.consvg .cline.lit.makes,.consvg .cline.wfl.makes{opacity:.95;stroke-width:1.8}
-.consvg .carr.reads{fill:#6fa8ff}.consvg .carr.makes{fill:#b49be8}@keyframes cflow{to{stroke-dashoffset:-20}}
-.consvg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.consvg .clab{font-size:12px;fill:#e4e9e6}.consvg .csub{font-size:11px;fill:#8f9b96}.consvg .cname{font-size:15px;font-weight:700;fill:#fff7d6}
-.consvg .ctext text{paint-order:stroke;stroke:#0f1513;stroke-width:3px;stroke-linejoin:round}.consvg .k-section .clab{fill:#d6ccf5;font-weight:600}.consvg .k-input .clab,.consvg .k-group .clab{fill:#aab5b0}
-.consvg .cglow{fill:#fff7d6;opacity:.1}.consvg .ccore{fill:#fff7d6}.consvg .cglow.builder{fill:#9bd8b2;opacity:.15}.consvg .ccore.builder{fill:#e8fff2}.consvg .cglow.fix{fill:#e6ad62;opacity:.15}.consvg .ccore.fix{fill:#f3c98f}
-.consvg .cdia{fill:#b49be8}.consvg .k-empty .cdia{fill:none;stroke:#8f9b96;stroke-dasharray:3 2}.consvg .cwglow{fill:#9bd8b2;opacity:.13}.consvg .cwf{fill:#e8fff2}.consvg .cwglow.fix{fill:#e6ad62}.consvg .cwf.fix{fill:#f3c98f}
-.consvg .cbadge{fill:#1d1a12;stroke:#e6ad62;stroke-dasharray:3 2}.consvg .cdoc{fill:#16202b;stroke:#6fa8ff;stroke-width:1.6;stroke-linejoin:round}.consvg .chit{fill:transparent}
-.consvg .cnode{cursor:pointer;transition:opacity .35s}.consvg .cnode:focus{outline:none}.consvg .cnode:focus-visible .chit{stroke:#9bd8b2;stroke-width:1.5}
-.consvg .chalo{fill:none;stroke:#6fa8ff;stroke-width:2;opacity:0}.consvg .eat .chalo{opacity:1;animation:cpulse 1.6s ease-in-out infinite}.consvg .eat .cdoc{stroke:#9cc4ff;stroke-width:2.5;fill:#1c3352}.consvg .eat text{fill:#cfe2ff!important;font-weight:700}
+/* solar system: a sky, faint orbits, a glowing sun; sections purple diamonds, builders sage and fixes terracotta glowing dots, inputs sand documents
+   that glow amber while the focus consumes them; what the focus leaves out fades to 10%. Every colour is a theme token, so light and dark both work */
+.consbox{position:relative}.mapsvg.consvg{display:block;width:100%;height:clamp(440px,70vh,800px);background:radial-gradient(circle at 50% 50%,var(--sky0) 0%,var(--sky1) 70%);border:1px solid var(--line);border-radius:12px;cursor:grab;touch-action:none;user-select:none;font:12px system-ui,-apple-system,"Segoe UI",sans-serif}.consvg:active{cursor:grabbing}
+.consvg .csky circle{fill:var(--star);opacity:.16}.consvg .crings :is(circle,ellipse){fill:none;stroke:var(--orbit);opacity:.1}
+.consvg .cline{fill:none;transition:opacity .35s}.consvg .cline.spoke{stroke:var(--spoke);stroke-width:1.2;stroke-dasharray:3 7;animation:cflow 1.4s linear infinite}.consvg .cline.dashed{stroke-dasharray:2 4}
+.consvg .cline.makes{stroke:var(--sec);stroke-width:1.4}.consvg .cline.makes.fix{stroke:var(--fix)}.consvg .cline.more{stroke:var(--fix);stroke-dasharray:3 3}
+.consvg .cline.lit.reads,.consvg .cline.wfl.reads{stroke:var(--eat);stroke-width:1.5;stroke-dasharray:4 5;animation:cflow .9s linear infinite}.consvg .cline.lit.makes,.consvg .cline.wfl.makes{stroke-width:1.8}
+.consvg .carr.reads{fill:var(--eat)}.consvg .carr.makes{fill:var(--sec)}@keyframes cflow{to{stroke-dashoffset:-20}}
+.consvg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.consvg .clab{font-size:12px;fill:var(--ink)}.consvg .csub{font-size:11px;fill:var(--muted)}.consvg .cname{font-size:15px;font-weight:700;fill:var(--suntext)}
+.consvg .ctext text{paint-order:stroke;stroke:var(--skyink);stroke-width:3px;stroke-linejoin:round}.consvg .k-section .clab{fill:var(--sectext);font-weight:600}.consvg .k-input .clab,.consvg .k-group .clab{fill:var(--ink)}
+.consvg .cglow{fill:var(--sun);opacity:.14}.consvg .ccore{fill:var(--sun)}.consvg .cglow.builder{fill:var(--bld);opacity:.15}.consvg .ccore.builder{fill:var(--bldcore)}.consvg .cglow.fix{fill:var(--fix);opacity:.15}.consvg .ccore.fix{fill:var(--fixcore)}
+.consvg .cdia{fill:var(--sec)}.consvg .k-empty .cdia{fill:none;stroke:var(--muted);stroke-dasharray:3 2}.consvg .cwglow{fill:var(--bld);opacity:.13}.consvg .cwf{fill:var(--bldcore)}.consvg .cwglow.fix{fill:var(--fix)}.consvg .cwf.fix{fill:var(--fixcore)}
+.consvg .cbadge{fill:var(--badgefill);stroke:var(--fix);stroke-dasharray:3 2}.consvg .cdoc{fill:var(--docfill);stroke:var(--doc);stroke-width:1.6;stroke-linejoin:round}.consvg .chit{fill:transparent}
+.consvg .cnode{cursor:pointer;transition:opacity .35s}.consvg .cnode:focus{outline:none}.consvg .cnode:focus-visible .chit{stroke:var(--accent);stroke-width:1.5}
+.consvg .chalo{fill:none;stroke:var(--eat);stroke-width:2;opacity:0}.consvg .eat .chalo{opacity:1;animation:cpulse 1.6s ease-in-out infinite}.consvg .eat .cdoc{stroke:var(--eat);stroke-width:2.5;fill:var(--eatfill)}.consvg .eat text{fill:var(--eattext)!important;font-weight:700}
 @keyframes cpulse{50%{opacity:.35}}.consvg.focusing .far{opacity:.1}.consvg.focusing .cline:not(.lit){opacity:.06}.consvg.cmoving .clines{opacity:0}
 @media (prefers-reduced-motion:reduce){.consvg .cline,.consvg .eat .chalo{animation:none}}
 .consvg.quiet .ctext{opacity:0}.consvg.quiet .cnode:hover .ctext,.consvg.quiet .cnode:focus-visible .ctext,.consvg.quiet.focusing .lit .ctext{opacity:1}
-.conspanel{position:absolute;right:12px;top:12px;width:270px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;background:#121816ee;border:1px solid #2f3d38;border-radius:10px;padding:10px 12px;font-size:13px;color:#e4e9e6}
-.conspanel.left{right:auto;left:12px}.conspanel.bottom{top:auto;bottom:12px}.conspanel b{display:block;font-size:14px;margin-bottom:4px}.conspanel .k{color:#8f9b96;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:6px}.conspanel .linkbtn{margin-top:8px;color:#9bd8b2}
+.conspanel{position:absolute;right:12px;top:12px;width:270px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;background:color-mix(in srgb,var(--panel) 93%,transparent);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--ink)}
+.conspanel.left{right:auto;left:12px}.conspanel.bottom{top:auto;bottom:12px}.conspanel b{display:block;font-size:14px;margin-bottom:4px}.conspanel .k{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:6px}.conspanel .linkbtn{margin-top:8px;color:var(--accent)}
 .cpath{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;margin:0 0 6px;font-size:13px;color:var(--muted)}.cpath b{color:var(--ink)}.cpath .linkbtn{font-size:13px;padding:1px 4px}
-.clegend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:12.5px;margin-top:8px}.clegend .ck{margin-right:-10px}.clegend .sun{color:#c9b96a}.clegend .sec{color:#b49be8}.clegend .wf{color:#4fa57a}.clegend .fix{color:#c98a2b}.clegend .doc{color:#4f86d6}
+.clegend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:12.5px;margin-top:8px}.clegend .ck{margin-right:-10px}.clegend .sun{color:var(--warm1)}.clegend .sec{color:var(--sec)}.clegend .wf{color:var(--bld)}.clegend .fix{color:var(--fix)}.clegend .doc{color:var(--doc)}
 .treesvg .tedge.hot.fin{stroke:var(--flowin);opacity:.95}.treesvg .tedge.hot.fout{stroke:var(--flowout);opacity:.95}
 .treesvg .tflow{pointer-events:none}.treesvg .tflow.fin,.treesvg .tarr.fin{fill:var(--flowin)}.treesvg .tflow.fout,.treesvg .tarr.fout{fill:var(--flowout)}
-.treesvg .tpill .tdot{filter:drop-shadow(0 0 6px rgba(200,205,215,.45))}.treesvg .tedges{transition:opacity .25s}.treesvg.tmoving .tedges{opacity:0}
-.treesvg .fedge{opacity:.6;stroke-width:1.5}.treesvg .fedge.readby{stroke-dasharray:4 3}
+.treesvg .tpill .tdot{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--warm1) 45%,transparent))}.treesvg .tedges{transition:opacity .25s}.treesvg.tmoving .tedges{opacity:0}
+.treesvg .fedge{stroke-width:1.5}.treesvg .fedge.readby{stroke-dasharray:4 3}
 
 @media (prefers-reduced-motion: reduce){.treesvg .tnode,.treesvg .tedge{transition:none}}
 .mapsvg{background:var(--panel);border:1px solid var(--line);border-radius:12px}.mapsvg .rowlab{text-transform:uppercase}.mapsvg .mapnode:focus{outline:none}.mapsvg .mapnode:focus-visible circle:first-of-type{stroke-width:3}
@@ -207,7 +221,8 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .needbadge{font:600 11px var(--mono);border-radius:99px;padding:1px 8px;background:var(--panel2);color:var(--muted)}.needs.on .needbadge{background:var(--validator);color:var(--on)}
 .needs .none{color:var(--muted);font-size:13.5px}.needs .outcome{flex:1 1 100%;border-top:1px solid var(--line);padding-top:6px;color:var(--muted);font-size:13.5px}.wbar[hidden]{display:none}.pane .banner{margin:0 0 12px}.runset{display:flex;flex-direction:column;gap:12px;align-items:flex-start}.runset label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}.runact{display:flex;gap:14px;align-items:center}
 .needitem{display:flex;gap:10px;align-items:center;flex:1 1 100%;border-top:1px solid var(--line);padding-top:6px}.needitem span{flex:1}
-.needitem button,.mappanel .gobtn{border:1px solid var(--vio);background:color-mix(in srgb,var(--vio) 12%,transparent);color:var(--ink);border-radius:8px;padding:5px 11px}
+a{color:var(--accent)}
+.needitem button,.mappanel .gobtn,.treebar .gobtn{border:1px solid var(--vio);background:color-mix(in srgb,var(--vio) 12%,transparent);color:var(--ink);border-radius:8px;padding:5px 11px}
 .msg.flash .bubble{outline:2px solid var(--vio);outline-offset:2px}.msg:focus{outline:none}
 .railsub{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);margin-top:4px;padding-top:6px}.railsub[hidden]{display:none}
 .rail.tabs .railsub button{display:block;padding:5px 2px;border-radius:8px;font-size:11px}
@@ -224,9 +239,8 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .barbadge{position:absolute;top:-6px;right:-6px;min-width:16px;padding:0 4px;box-sizing:border-box;border-radius:99px;background:var(--validator);color:var(--on);font:600 11px/16px var(--mono);text-align:center}
 .barbadge[hidden],#dview:not(.railoff) .barbadge{display:none}
 #dview{position:relative}#dview.railoff{padding-left:56px}#dview.railoff>.rail.tabs{display:none}
-@media (max-width:1199px){.rail.tabs{position:fixed;top:0;bottom:0;left:0;z-index:20;flex:none;width:min(240px,86vw);box-sizing:border-box;background:var(--panel);box-shadow:0 8px 28px rgba(0,0,0,.4)}}
-#dview{--vio:#6b45b3;--serif:ui-serif,Georgia,"Times New Roman",serif;--gut:24px}
-@media (prefers-color-scheme:dark){#dview{--vio:#ab8cec}}
+@media (max-width:1199px){.rail.tabs{position:fixed;top:0;bottom:0;left:0;z-index:20;flex:none;width:min(240px,86vw);box-sizing:border-box;background:var(--panel);box-shadow:0 8px 28px var(--shadow)}}
+#dview{--serif:ui-serif,Georgia,"Times New Roman",serif;--gut:24px}
 body:not(.simple) #dview{display:flex;flex:1;min-height:0}
 #dview h1,#dview h2,#dview h3,#dview h4{font-family:var(--serif);font-weight:600}
 .rail.tabs{flex:0 0 240px;width:240px;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:4px;padding:54px 8px 10px;border-bottom:0;border-right:1px solid var(--line);overflow-y:auto}
@@ -273,7 +287,19 @@ body.simple .rail.tabs button[aria-selected="true"]{color:var(--muted);backgroun
 .scmp table{border-collapse:collapse;font-size:13px;margin:6px 0 0}.scmp td,.scmp th{border-bottom:1px solid var(--line);padding:2px 12px 2px 0;text-align:left}
 .sfoot{font-size:12.5px;margin:10px 0 0}
 @media (max-width:700px){.storyflow{display:block;overflow:visible}.sstep{margin:0 0 8px}.sstep+.sstep::before{content:"\2193";left:50%;top:-11px;transform:translateX(-50%)}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.seg button{background:none;border:0;color:var(--muted);padding:6px 14px;font:inherit}.seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--vio) 16%,transparent);color:var(--ink);font-weight:600}.seg button:focus-visible{outline:2px solid var(--vio);outline-offset:-2px}
+.artgroup{margin:0 0 16px}#dview .arthead,.arthead{font:600 11px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}.artcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.artcard .artrow{display:flex;align-items:center;gap:12px;padding:10px 14px;margin:0;border:0;border-bottom:1px solid var(--line);border-radius:0}.artcard>.artrow:last-child{border-bottom:0}.artdot{width:9px;height:9px;border-radius:2px;flex:none}
+.artwho{min-width:0;display:flex;flex-direction:column}.artby{color:var(--muted);font-size:13px}.artr{margin-left:auto;display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.arttag{border-radius:99px;padding:1px 8px;font-size:11.5px;border:1px solid var(--line)}.arttag.ok{color:var(--ok);border-color:var(--ok)}.arttag.warn{color:var(--validator);border-color:var(--validator)}.arttag.bad{color:var(--bad);border-color:var(--bad)}
+.artsub{margin:0 0 0 22px;border-left:1px solid var(--line)}.artsub .artrow{padding:7px 12px}.artfold>summary{cursor:pointer;color:var(--muted);font-size:13px;padding:8px 14px;border-bottom:1px solid var(--line)}
+.artopen,.artcard .arttext,.artcard .artimg,.artcard .artframe,.artcard .codebox{display:block;margin:0 14px 12px}.artnone{padding:10px 14px;margin:0}
+.artshots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:0 14px 14px}.artshot{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;color:var(--muted);background:var(--panel2);text-align:left}
+.artshot img{display:block;width:100%;height:80px;object-fit:cover;object-position:top;border-radius:5px;margin-bottom:6px;background:var(--node)}.artshot[aria-expanded="true"]{border-color:var(--accent)}
+.runset .appear{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
 </style>
+<script>/* the viewer's Appearance before the first paint (Run settings sets it): light, dark or system; dark by default */
+try { var tp = localStorage.getItem("j2theme"); document.documentElement.dataset.theme = tp === "light" ? "light" : tp === "system" && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; } catch (e) { document.documentElement.dataset.theme = "dark"; }</script>
 </head>
 <body class="simple">
 <div id="sview">
@@ -307,7 +333,6 @@ body.simple .rail.tabs button[aria-selected="true"]{color:var(--muted);backgroun
     <button role="tab" data-tab="docs" aria-selected="false">Documents</button>
     <button role="tab" data-tab="artifacts" aria-selected="false">Artifacts</button>
     <button role="tab" id="tab-board" data-tab="board" aria-selected="false" hidden>Board</button>
-    <button role="tab" data-tab="style" aria-selected="false">Style guide</button>
     <button role="tab" data-tab="lessons" aria-selected="false">Lessons</button>
     <button role="tab" data-tab="playbooks" aria-selected="false">Playbooks</button>
     <button role="tab" data-tab="report" aria-selected="false">Report</button>
@@ -339,6 +364,7 @@ body.simple .rail.tabs button[aria-selected="true"]{color:var(--muted);backgroun
     <div class="pane" id="pane-report" hidden><div class="banner" id="banner" hidden></div><div id="reportbody"></div></div>
     <div class="pane" id="pane-runsettings" hidden>
       <div class="runset">
+        <div class="appear" id="appear">Appearance <span class="seg" role="group" aria-label="Appearance"><button type="button" data-themepick="light" aria-pressed="false">Light</button><button type="button" data-themepick="dark" aria-pressed="true">Dark</button><button type="button" data-themepick="system" aria-pressed="false">System</button></span></div>
         <label>What to build <select id="outsel" class="outsel" aria-label="What to build"></select></label>
         <label>Saved runs <select id="runsel" class="ghost" aria-label="Open a saved run"><option value="">Live run</option></select></label>
         <div class="runact"><button class="ghost" id="reset">New run</button> <a href="?view=simple" class="slink" id="to-simple">Back to simple view</a></div>
@@ -1408,29 +1434,39 @@ function artRow(r){
     + `<span class="otag" style="background:var(${esc(r.color)})">${esc(r.tag)}</span> <span class="empty">${made} · ${dep}</span> `
     + `<button type="button" class="linkbtn" data-artopen="${esc(r.file)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button></div>${body}</div>`;
 }
-// the tree (artifacts-tree/1, /api/artifacts/tree): Plan, Specs, Deliverables, Proof, Records, each with a count and collapsible.
-// Makers, readers and statuses are the Map's (j2_map.build), so the two agree. Each row: name, made by, status, size, Open.
+// the tree (artifacts-tree/1, /api/artifacts/tree): Plan, Specs, Deliverable, Proof. One line per item: name, maker, one status tag, Open.
+// A group of children (a deliverable's sections, its versions, the run's other records) folds behind "N sections"; Verification proof shows
+// the screenshots as thumbnails. Makers, readers and statuses are the Map's (j2_map.build), so the two agree.
 const artItems = xs => (xs || []).flatMap(x => [x, ...artItems(x.children)]);
 const artFind = f => [...ARTS.deliverables, ...ARTS.records].find(x => x.file === f) || (ARTS.tree ? artItems(ARTS.tree.groups.flatMap(g => g.items)).find(x => x.file === f) : null);
-const artSize = n => n == null ? "" : n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`;
-const artMade = m => !m ? '<span class="empty">maker not recorded</span>' : m.function ? `made by ${esc(m.function)}` : `made by ${esc(m.persona)} (${esc(idRuns(m.workflows || []))})`;
-function artNode(x){
-  const kids = x.children || [], ck = x.code ? codeKey(x.code) : "", open = x.code ? ARTOPEN === "code:" + ck : x.file && ARTOPEN === x.file, big = (x.size || 0) > 2000000;
-  const body = !open ? "" : x.code ? codeView(ck, x.open === "codetext") : x.open === "image" ? `<img class="artimg" alt="${esc(x.name)}" src="${artUrl(x.file)}">`
-    : x.open === "preview" ? `<iframe class="artframe" sandbox="" title="${esc(x.name)}" src="${artUrl(x.file)}"></iframe>`
+const artMade = m => !m ? "maker not recorded" : m.function ? esc(m.function) : `${esc(m.persona)} (${esc(idRuns(m.workflows || []))})`;
+const ARTDOT = {plan: "--warm3", specs: "--warm1", deliverables: "--warm2", proof: "--warm3"};
+const artTag = w => `<span class="arttag ${/^(filed|sent|validated|audited, (all pass|0 findings))/.test(w) ? "ok" : /^(failed|fault)/.test(w) ? "bad" : "warn"}">${esc(w)}</span>`;
+function artBody(x, open, ck){
+  if (!open) return "";
+  if (x.code) return codeView(ck, x.open === "codetext");
+  if (x.file === "style.json") return `<div class="artopen">${renderStyle((typeof state !== "undefined" && state) || CTX || {})}</div>`;      // the style guide, drawn as its own swatches
+  return x.open === "image" ? `<img class="artimg" alt="${esc(x.name)}" src="${artUrl(x.file)}">` : x.open === "preview" ? `<iframe class="artframe" sandbox="" title="${esc(x.name)}" src="${artUrl(x.file)}"></iframe>`
     : `<pre class="arttext">${esc(ARTTEXT[x.file] === undefined ? "Loading..." : ARTTEXT[x.file])}</pre>`;
-  const facts = [x.output, x.version != null ? "v" + x.version : "", x.workflows ? `${x.workflows} workflow${x.workflows === 1 ? "" : "s"}` : "",
-    x.read_by != null ? `read by ${x.read_by} workflow${x.read_by === 1 ? "" : "s"}` : "", x.rewritten ? `rewritten by ${x.rewritten.by} · ${x.rewritten.name}` : "", x.note].filter(Boolean).map(esc).join(" · ");
-  const line = `<span class="artname"><b>${esc(x.name)}</b>${x.count != null ? ` <span class="artcount">${x.count}</span>` : ""}</span>`
-    + (x.count == null ? ` <span class="empty">${artMade(x.made_by)}</span> <span class="artst st-${esc(String(x.status || "").split(" ")[0])}">${esc(x.status || "")}</span>` : "")
-    + (x.count == null && auditWord(x, CTX) ? ` <span class="artaudit">${esc(auditWord(x, CTX))}</span>` : "") + (x.size != null ? ` <span class="empty">${artSize(x.size)}</span>` : "") + (facts ? ` <span class="empty">${facts}</span>` : "")
-    + (x.code ? ` <button type="button" class="linkbtn" data-artcode="${esc(ck)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`
-      : x.file ? (big ? ` <span class="empty">too large to open here</span>` : ` <button type="button" class="linkbtn" data-artopen="${esc(x.file)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`) : "");
-  if (!kids.length) return `<div class="artrow artleaf" data-art="${esc(x.file || x.name)}">${line}${body}</div>`;
-  return `<details class="artrow artkids" data-key="art-${esc(x.file || x.node || x.name)}"${x.collapsed ? "" : " open"}><summary>${line}</summary>${body}<div class="artsub">${kids.map(artNode).join("")}</div></details>`;
 }
-const renderArtTree = t => t.groups.map(g => `<details class="artgroup" data-key="artg-${esc(g.id)}"${g.collapsed ? "" : " open"}><summary><h3>${esc(g.label)} <span class="artcount">${g.count}</span></h3></summary>`
-  + (g.items.length ? g.items.map(artNode).join("") : `<p class="empty">${g.id === "specs" ? "No spec files in this run." : "Nothing recorded yet."}</p>`) + `</details>`).join("");
+function artNode(x, g){
+  const kids = x.children || [];
+  if (x.shots){ const on = kids.find(k => ARTOPEN === k.file);      // Verification proof: the screenshots as thumbnails, one opens below
+    return `<div class="artrow" data-art="${esc(x.name)}"><span class="artdot" style="background:var(${ARTDOT[g]})"></span><div class="artwho"><b>${esc(x.name)}</b><span class="artby">Screenshots taken while checking the result</span></div>`
+      + `<span class="artr">${plural(x.count, "screenshot")}</span></div><div class="artshots">${kids.map(k => `<button type="button" class="artshot" data-artopen="${esc(k.file)}" aria-expanded="${ARTOPEN === k.file}"><img loading="lazy" alt="" src="${artUrl(k.file)}"><span>${esc(k.name)}</span></button>`).join("")}</div>`
+      + (on ? `<div class="artopen"><img class="artimg" alt="${esc(on.name)}" src="${artUrl(on.file)}"></div>` : ""); }
+  if (x.count != null) return `<details class="artfold" data-key="art-${esc(x.name)}-${esc(g)}"${x.collapsed ? "" : " open"}><summary>${plural(x.count, x.name.toLowerCase().replace(/s$/, ""))}</summary>`
+    + `<div class="artsub">${kids.map(k => artNode(k, g)).join("")}</div></details>`;
+  const ck = x.code ? codeKey(x.code) : "", open = x.code ? ARTOPEN === "code:" + ck : !!x.file && ARTOPEN === x.file, big = (x.size || 0) > 2000000;
+  const by = [artMade(x.made_by), ...[x.output, x.version != null ? "v" + x.version : "", x.workflows ? plural(x.workflows, "workflow") : "", x.read_by != null ? `read by ${x.read_by}` : "",
+    x.rewritten ? `rewritten by ${x.rewritten.by} · ${x.rewritten.name}` : "", x.note].filter(Boolean).map(esc)].join(" · ");
+  const btn = x.code ? `<button type="button" class="linkbtn" data-artcode="${esc(ck)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`
+    : x.file ? (big ? `<span class="empty">too large to open here</span>` : `<button type="button" class="linkbtn" data-artopen="${esc(x.file)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`) : "";
+  return `<div class="artrow" data-art="${esc(x.file || x.name)}"><span class="artdot" style="background:var(${ARTDOT[g]})"></span><div class="artwho"><b>${esc(x.name)}</b><span class="artby">${by}</span></div>`
+    + `<span class="artr">${artTag(auditWord(x, CTX) || x.status || "")}${btn}</span></div>` + artBody(x, open, ck) + (kids.length ? `<div class="artsub">${kids.map(k => artNode(k, g)).join("")}</div>` : "");
+}
+const renderArtTree = t => t.groups.map(g => `<section class="artgroup" data-group="${esc(g.id)}"><h3 class="arthead">${esc(g.label)} <span class="artcount">${g.count}</span></h3><div class="artcard">`
+  + (g.items.length ? g.items.map(x => artNode(x, g.id)).join("") : `<p class="empty artnone">${g.id === "specs" ? "No spec files in this run." : "Nothing recorded yet."}</p>`) + `</div></section>`).join("");
 const renderArtifacts = () => {
   if (ARTS.tree && (ARTS.tree.groups || []).length) return renderArtTree(ARTS.tree);
   const part = (title, rows, none) => `<h3>${title}</h3>` + (rows.length ? rows.map(artRow).join("") : `<p class="empty">${none}</p>`);
@@ -1847,6 +1883,8 @@ function treeOvalOf(m, L, id, c){
 }
 const treeFocusAll = m => { const L = mapTree(m), o = {stages: {}, wfs: {}, ovals: {}};
   Object.keys(L.stages).forEach(id => { o.stages[id] = treeFocusOf(m, L, "stage", id, null); o.ovals[id] = treeOvalOf(m, L, id, null); }); (m.workflows || []).forEach(w => { o.wfs[w.id] = treeFocusOf(m, L, "wf", w.id, null); }); return o; };
+const treeFill = t => t.kind === "stage" ? "var(--node)" : t.kind === "charter" ? "color-mix(in srgb, var(--art) 45%, var(--node))"      // warm kinds: sand artifacts and Charter, the terracotta deliverable
+  : !t.n.tag || ["Spec", "Style", "Send"].includes(t.n.tag) ? "color-mix(in srgb, var(--art) 28%, var(--node))" : "color-mix(in srgb, var(--deliv) 50%, var(--node))";
 function treeHtml(m, other){      // other: the panel of a deliverable picked on the tree (only one panel shows at a time)
   const L = mapTree(m), by = mapById(m), open = L.at[TREE.open] && L.at[TREE.open].kind === "stage" ? TREE.open : "";
   const items = open ? treeWfItems(m, L.stages[open]) : [], pick = items.find(x => x.id === TREE.wf), fteam = !open && L.at[TREE.focus] && L.at[TREE.focus].kind === "stage" ? TREE.focus : "";
@@ -1859,14 +1897,15 @@ function treeHtml(m, other){      // other: the panel of a deliverable picked on
     if (sd === "up") return `<text class="tlab" y="${tRd(-(r + 20))}" text-anchor="middle">${t(n.label)}</text><text class="tsub" y="${tRd(-(r + 6))}" text-anchor="middle">${t(n.sub)}</text>`;
     if (sd === "left" || sd === "right"){ const x = tRd((sd === "left" ? -1 : 1) * (r + 8)), a = sd === "left" ? "end" : "start"; return `<text class="tlab" x="${x}" y="-2" text-anchor="${a}">${t(n.label)}</text><text class="tsub" x="${x}" y="11" text-anchor="${a}">${t(n.sub)}</text>`; }
     return null; };
-  const pillBody = (n, k) => `<rect class="tdot" x="${-n.pw / 2}" y="${-n.ph / 2}" width="${n.pw}" height="${n.ph}" rx="12" fill="#1d2026" stroke="${k.stroke}" stroke-width="${Math.max(2, k.width)}"${k.dash}/>`
+  const pillBody = (n, k) => `<rect class="tdot" x="${-n.pw / 2}" y="${-n.ph / 2}" width="${n.pw}" height="${n.ph}" rx="12" fill="var(--node)" stroke="${k.stroke}" stroke-width="${Math.max(2, k.width)}"${k.dash}/>`
     + `<text class="tlab" y="-3" text-anchor="middle">${mapWords(n.label)}</text><text class="tsub" y="13" text-anchor="middle">${mapWords(n.sub)}</text>`;
   const edge = l => `<path class="tedge ${l.kind}${F || TREE.focus ? " tgone" : ""}" data-from="${esc(l.from)}" data-to="${esc(l.to)}" d="${l.d}"><title>${mapWords(l.kind === "back" ? l.tip : l.kind === "reads" ? `${(by[l.to] || {}).label} reads ${(by[l.from] || {}).label}` : l.kind === "made" ? `${L.at[l.from].label} made ${(by[l.to] || {}).label}` : `the Charter to ${L.at[l.to].label}`)}</title></path>`;
   const dot = t => { const k = look(t.status), p = P(t.id), nf = byId[t.id], pill = nf && nf.role === "focus", aria = `${t.label}: ${t.sub}${t.kind === "stage" ? ", focus it" : ", details"}`;
     const r = nf && !pill ? nf.r : t.r;      // a shape in a focus may be drawn smaller than in the Tree
     const glyph = pill ? "" : t.kind === "stage" ? [0, 72, 144, 216, 288].map(a => { const q = a * Math.PI / 180 - Math.PI / 2; return `<circle cx="${tRd(r * .5 * Math.cos(q))}" cy="${tRd(r * .5 * Math.sin(q))}" r="${tRd(Math.max(1.6, r * .15))}" class="tglyph"/>`; }).join("")
       : t.kind === "charter" ? `<circle r="${tRd(Math.max(2.6, r * .26))}" class="tglyph"/>` : t.n.tag === "Send" ? `<path class="tglyphl" d="M${tRd(-r * 1.2)} ${tRd(-r * .75)} L0 ${tRd(r * .1)} L${tRd(r * 1.2)} ${tRd(-r * .75)}"/>` : "";
-    const fill = t.status === "filed" ? "color-mix(in srgb, var(--ok) 22%, #1d2026)" : "#1d2026", ln = `stroke="${k.stroke}" stroke-width="${Math.max(1.6, k.width)}"${k.dash}`;
+    const fill = treeFill(t), ring = t.kind === "stage" && !/^(fault|waiting|waiting_on_you|done_unchecked)$/.test(t.status) ? "var(--team)" : k.stroke;      // the kind is the fill (a team's is its amber ring); the status stays on the outline
+    const ln = `stroke="${ring}" stroke-width="${Math.max(1.6, k.width)}"${k.dash}`;
     const body = pill ? pillBody(nf, k) : t.kind === "stage" || t.kind === "charter" ? `<circle class="tdot" r="${r}" fill="${fill}" ${ln}/>`      // a team or the Charter: a circle
       : t.n.tag === "Send" ? `<rect class="tdot" x="${tRd(-r * 1.2)}" y="${tRd(-r * .8)}" width="${tRd(r * 2.4)}" height="${tRd(r * 1.6)}" rx="3" fill="${fill}" ${ln}/>`      // an action: an envelope
       : `<rect class="tdot" x="${-r}" y="${-r}" width="${2 * r}" height="${2 * r}" rx="${tRd(r * .3)}" fill="${fill}" ${ln}/>`;      // an artifact: a rounded square
@@ -1877,7 +1916,7 @@ function treeHtml(m, other){      // other: the panel of a deliverable picked on
   // the workflows (a team's circle, a focused workflow, its team-mates), and the faded ones on the border
   const wfEl = (n, faded) => { const it = items.find(x => x.id === n.id) || {st: n.status, w: {name: n.id}}, k = look(faded ? n.st || "idle" : n.status), pill = n.role === "focus", name = (it.w || {}).name || "";
     const p = F.pos[n.id], aria = `${n.id} ${name}: ${n.sub || ""}, ${pill ? "focused, press Enter to return" : "focus it"}`;
-    const body = pill ? pillBody(n, k) : `<circle class="tdot" r="7" fill="#1d2026" stroke="${k.stroke}" stroke-width="${Math.max(1.6, k.width)}"${k.dash}/>` + [0, 72, 144, 216, 288].map(a => { const q = a * Math.PI / 180 - Math.PI / 2; return `<circle cx="${tRd(3.1 * Math.cos(q))}" cy="${tRd(3.1 * Math.sin(q))}" r="1" class="tglyph"/>`; }).join("") + (faded ? "" : lab(n, 7));
+    const body = pill ? pillBody(n, k) : `<circle class="tdot" r="7" fill="var(--node)" stroke="${k.stroke}" stroke-width="${Math.max(1.6, k.width)}"${k.dash}/>` + [0, 72, 144, 216, 288].map(a => { const q = a * Math.PI / 180 - Math.PI / 2; return `<circle cx="${tRd(3.1 * Math.cos(q))}" cy="${tRd(3.1 * Math.sin(q))}" r="1" class="tglyph"/>`; }).join("") + (faded ? "" : lab(n, 7));
     return `<g class="tnode twf${TREE.wf === n.id ? " sel" : ""}${faded ? " tdim thide" : " tfit"}${pill ? " tpill" : ""}" data-wf="${esc(n.id)}" data-k="${esc(n.id)}" data-ax="${tRd(p.x)}" data-ay="${tRd(p.y)}" transform="translate(${tRd(p.x)},${tRd(p.y)})" tabindex="0" role="button" aria-label="${mapWords(aria)}">${body}</g>`; };
   const wfHtml = F ? `<g class="tring">` + F.nodes.filter(n => n.kind === "wf").map(n => wfEl(n, false)).join("") + F.others.filter(o => o.kind === "wf").map(o => wfEl(Object.assign({}, o, {st: (items.find(x => x.id === o.id) || {}).st}), true)).join("") + `</g>` : "";
   const fedges = F ? F.edges.map(e => `<path class="tedge fedge ${e.kind}" data-from="${esc(e.from)}" data-to="${esc(e.to)}"${e.wf ? ` data-wf="${esc(e.wf)}"` : ""} d="${e.d}"><title>${mapWords(e.tip)}</title></path>`).join("") : "";
@@ -2537,9 +2576,9 @@ function consBlock(x, y, a, lines, gap){      // a two-line label beyond (x, y) 
   return {x: X, anchor, y0, w, h, box: [x0 - 2, y0 - 1, x0 + w + 2, y0 + h + 1], lines};
 }
 // every artifact and section, and every workflow across the run's constellations: what it read, what it made (its section, or the artifact it made whole)
-function consIndex(m){
-  if (m.__cix) return m.__cix;
-  const ix = {art: {}, wf: {}}, team = {};
+function consIndex(m){      // cached per constellations object: a reloaded or updated map (MAP is refilled in place) gets a new one
+  if (m.__cix && m.__cix.of === m.constellations) return m.__cix;
+  const ix = {art: {}, wf: {}, of: m.constellations}, team = {};
   Object.values(m.constellations || {}).forEach(C => {
     ix.art[C.id] = {id: C.id, label: C.label, kind: "file"};
     C.slots.forEach(s => { if (s.section) ix.art[s.section] = {id: s.section, label: s.label, kind: "section", file: C.label}; });
@@ -2862,10 +2901,21 @@ $("pane-lessons").addEventListener("click", async e => {
 });
 $("box").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }});
 $("reset").onclick = async () => { await fetch("/api/reset", {method:"POST"}); location.search = ""; };
+// ---- Appearance (Run settings): Light, Dark or System, per viewer (localStorage, which may be missing); Dark by default. Every colour is a CSS
+// token, so setting data-theme on <html> repaints every view at once, maps included, with no reload.
+let THEME = null;
+const themePref = () => { if (THEME) return THEME; try { const p = localStorage.getItem("j2theme"); return ["light", "dark", "system"].includes(p) ? p : "dark"; } catch (e) { return "dark"; } };
+function themeApply(){ const p = themePref(), de = document.documentElement; if (!de) return;
+  de.dataset.theme = p === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : p;
+  document.querySelectorAll("[data-themepick]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themepick === p))); }
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-themepick]"); if (!b) return;
+  THEME = b.dataset.themepick; try { localStorage.setItem("j2theme", THEME); } catch (err) {} themeApply(); });
+try { matchMedia("(prefers-color-scheme: light)").addEventListener("change", themeApply); } catch (e) {}
+themeApply();
 // ---- Left bar: the Internals tabs in sections. A tab is placed by RAILSEC (the one declared table); a tab it does not name goes to the function whose Map node
 // carries it as its tab (FN_TAB in j2_map.py), else to Other. The function headers, the conflicts and the actions come from the run's records (state and Map).
 const RAILSEC = {conflicts: "conflicts", goal: "identity", charter: "identity", report: "identity", lessons: "adaptation", playbooks: "adaptation", workflows: "adaptation", priorities: "priority", timeline: "coordination",
-  board: "coordination", story: "coordination", audit: "audit", preview: "artifacts", docs: "artifacts", artifacts: "artifacts", style: "artifacts", runsettings: "settings", rundetails: "settings"};
+  board: "coordination", story: "coordination", audit: "audit", preview: "artifacts", docs: "artifacts", artifacts: "artifacts", runsettings: "settings", rundetails: "settings"};
 const RAILORDER = [["conflicts", "Conflicts"], ["identity", "Identity"], ["adaptation", "Adaptation"], ["priority", "Priority"], ["coordination", "Coordination"], ["audit", "Audit"],
   ["artifacts", "Artifacts"], ["actions", "Actions"], ["other", "Other"], ["settings", "Settings"]];
 let RAILOPEN = {}; try { RAILOPEN = JSON.parse(localStorage.getItem("j2railopen") || "{}") || {}; } catch (e) { RAILOPEN = {}; }      // per viewer: a section the viewer opened or closed
@@ -2882,7 +2932,7 @@ const RAILDIM = {goal: s => !s.goal && "no charter recorded", charter: s => !s.g
   workflows: s => !(s.workflows || []).length && "no workflows yet", priorities: s => !prioModel(s).has && "no ranking records", timeline: s => !(s.allChat || s.chat || []).length && "no messages recorded",
   audit: s => !(s.audits || []).length && "no audit yet", preview: s => !s.versions && "nothing built yet",
   docs: s => !(s.docset || []).length && !["prd", "hld", "lld"].some(k => DOCS[k] && DOCS[k].text) && "this run made no documents",
-  artifacts: s => !((ARTS.tree || {}).groups || []).some(g => g.count) && "no artifacts listed", style: s => !s.style && "no style guide recorded",
+  artifacts: s => !((ARTS.tree || {}).groups || []).some(g => g.count) && "no artifacts listed",
   lessons: s => !(s.memory || (s.lessons_used || []).length || (s.lessons_saved || []).length) && "memory is off", playbooks: s => !(s.memory || (s.playbooks_used || []).length || s.playbook_saved) && "memory is off"};
 // Priorities, from the run's records: Priority's decisions in chat.jsonl (who priority, decision, cycle, text), the workflows it priced (workflows.json: cycle, cost, charged, status, purpose)
 // and, where the bargain cut something, conflicts.json (adaptation_final against priority_final). Credits: report.json metrics.budget, else the state's budget and spent.
