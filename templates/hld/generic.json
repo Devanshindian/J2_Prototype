@@ -1,0 +1,401 @@
+{
+  "schema": "template-library/1",
+  "artifact": "hld",
+  "kind": "generic",
+  "version": 1,
+  "from": "j2_artifact_models.SECTION_MODELS and j2_rules.RULES (generated: python3 j2_template_lib.py)",
+  "templates": [
+    {
+      "name": "HLD/1 · Purpose and scope",
+      "artifact": "hld",
+      "section": "Purpose and scope",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic HLD/1 · Purpose and scope template: the fixed layout of every HLD Purpose and scope section, whatever the business",
+      "fields": [
+        {
+          "name": "purpose",
+          "type": "string",
+          "required": true,
+          "description": "what this design covers and what it leaves out",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [],
+      "rules": [
+        {
+          "rule": "not_empty",
+          "path": "purpose",
+          "name": "the purpose is given",
+          "from": "H1"
+        }
+      ],
+      "sha": "99e5f55298e84b0591faf81078e75a05b1f8d411463ec160fe92d72f9ae8c7a5",
+      "schema_sha": "3d7357a31aa67b0792d30d4bf6af63bb38fb3ad1cd49ce1b8e834a08c344cbb1"
+    },
+    {
+      "name": "HLD/1 · Pages",
+      "artifact": "hld",
+      "section": "Pages",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic HLD/1 · Pages template: the fixed layout of every HLD Pages section, whatever the business",
+      "fields": [
+        {
+          "name": "pages",
+          "type": "list[Page]",
+          "required": true,
+          "description": "the pages, P1, P2, ... in order",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "Page",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "description": "P1, P2, ... in order",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "description": "the page name",
+              "nullable": false
+            },
+            {
+              "name": "purpose",
+              "type": "string",
+              "required": true,
+              "description": "what the page is for",
+              "nullable": false
+            },
+            {
+              "name": "implements",
+              "type": "list[string]",
+              "required": false,
+              "description": "the PRD requirement ids this page carries",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "ids_sequential",
+          "path": "pages",
+          "prefix": "P",
+          "name": "ids P1, P2, ... unique and in order",
+          "from": "H1"
+        }
+      ],
+      "sha": "39855d66322e5e19e4ce751c6f38a13debaa85bad9405c20e2bad755a190a4d6",
+      "schema_sha": "4802ece4a212eb2aa9683d60fbfc161db1f8647d467df8bde670124ec2bd0cf9"
+    },
+    {
+      "name": "HLD/1 · Components",
+      "artifact": "hld",
+      "section": "Components",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic HLD/1 · Components template: the fixed layout of every HLD Components section, whatever the business",
+      "fields": [
+        {
+          "name": "components",
+          "type": "list[Component]",
+          "required": true,
+          "description": "the components, C1, C2, ... in order; each names the PRD requirement ids it covers",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "Component",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "description": "C1, C2, ... in order",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "description": "the component name",
+              "nullable": false
+            },
+            {
+              "name": "responsibility",
+              "type": "string",
+              "required": true,
+              "description": "its one responsibility, in one line",
+              "nullable": false
+            },
+            {
+              "name": "covers",
+              "type": "list[string]",
+              "required": false,
+              "description": "the PRD requirement ids it covers, e.g. [\"R1\"]",
+              "nullable": false
+            },
+            {
+              "name": "page",
+              "type": "string",
+              "required": false,
+              "description": "the page id it sits on, e.g. \"P1\"",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "ids_sequential",
+          "path": "components",
+          "prefix": "C",
+          "name": "ids C1, C2, ... unique and in order",
+          "from": "H3"
+        },
+        {
+          "rule": "not_empty",
+          "path": "components[].responsibility",
+          "name": "every component states its responsibility",
+          "from": "H3"
+        },
+        {
+          "rule": "ref_exists",
+          "path": "components[].page",
+          "target": "this.pages[].id",
+          "name": "page points at a page id of this document",
+          "from": "H1"
+        },
+        {
+          "rule": "ref_exists",
+          "path": "components[].covers",
+          "target": "prd.requirements[].id",
+          "required_target": true,
+          "fail_text": "{id} covers {bad}, which is not a requirement of the PRD",
+          "missing_text": "{id}: the PRD's requirement ids are not recorded, so Covers can't be checked",
+          "name": "covers points at a requirement id of the PRD",
+          "from": "H4"
+        }
+      ],
+      "sha": "f80f622bdaeb1b3d46de7a38ffb16bdbcc4528c18df737df019a28bc43c7be7a",
+      "schema_sha": "503eadea93ecff04d300957e19983cca6f2c3f4d0998dcfbb583c11d4998c91c"
+    },
+    {
+      "name": "HLD/1 · Data flow",
+      "artifact": "hld",
+      "section": "Data flow",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic HLD/1 · Data flow template: the fixed layout of every HLD Data flow section, whatever the business",
+      "fields": [
+        {
+          "name": "data_flows",
+          "type": "list[DataFlow]",
+          "required": true,
+          "description": "every flow the pages need, including each form",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "DataFlow",
+          "fields": [
+            {
+              "name": "from",
+              "type": "string",
+              "required": true,
+              "description": "where the data comes from",
+              "nullable": false
+            },
+            {
+              "name": "to",
+              "type": "string",
+              "required": true,
+              "description": "where it goes",
+              "nullable": false
+            },
+            {
+              "name": "data",
+              "type": "string",
+              "required": true,
+              "description": "what is sent",
+              "nullable": false
+            },
+            {
+              "name": "trigger",
+              "type": "string",
+              "required": true,
+              "description": "what starts it",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "not_empty",
+          "path": [
+            "data_flows[].from",
+            "data_flows[].to",
+            "data_flows[].data",
+            "data_flows[].trigger"
+          ],
+          "name": "every flow has from, to, data and trigger",
+          "from": "H1"
+        }
+      ],
+      "sha": "a36ab44f6a955025516dab503b3885bcd1e0aad97eeb33b049c8cc76b4ff7f6e",
+      "schema_sha": "04dc29449a9021aad105e2acc7327e9692292f81a5d611bd501d47885961a3b3"
+    },
+    {
+      "name": "HLD/1 · Hosting and deployment",
+      "artifact": "hld",
+      "section": "Hosting and deployment",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic HLD/1 · Hosting and deployment template: the fixed layout of every HLD Hosting and deployment section, whatever the business",
+      "fields": [
+        {
+          "name": "hosting",
+          "type": "Hosting",
+          "required": true,
+          "description": "",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "Hosting",
+          "fields": [
+            {
+              "name": "kind",
+              "type": "string",
+              "required": true,
+              "description": "how it is hosted, e.g. \"one static file on a static host\"",
+              "nullable": false
+            },
+            {
+              "name": "notes",
+              "type": "string",
+              "required": false,
+              "description": "how it is deployed and replaced",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "not_empty",
+          "path": "hosting.kind",
+          "name": "the hosting kind is given",
+          "from": "H1"
+        }
+      ],
+      "sha": "1ab1667a1a5dab20097420315c1f0ee221941b3c2cade6074215d72442df1fa1",
+      "schema_sha": "6316411253d5512d0c23707a2efe2719ad8a9662765dd6d8395f9c2e6efc0931"
+    },
+    {
+      "name": "HLD/1 · Risks",
+      "artifact": "hld",
+      "section": "Risks",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic HLD/1 · Risks template: the fixed layout of every HLD Risks section, whatever the business",
+      "fields": [
+        {
+          "name": "risks",
+          "type": "list[Risk]",
+          "required": true,
+          "description": "each risk with its mitigation",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "Risk",
+          "fields": [
+            {
+              "name": "risk",
+              "type": "string",
+              "required": true,
+              "description": "the risk, one line",
+              "nullable": false
+            },
+            {
+              "name": "mitigation",
+              "type": "string",
+              "required": true,
+              "description": "what is done about it",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "not_empty",
+          "path": [
+            "risks[].risk",
+            "risks[].mitigation"
+          ],
+          "name": "every risk has a mitigation",
+          "from": "H1"
+        }
+      ],
+      "sha": "2ad49cc69b9805e231a348b18d28d9dbfb58aa638238d9a4f331b730c3f90e3f",
+      "schema_sha": "6720ce6ef504f1f586697c0548c3873d2f200c20673187486d285471bd18813a"
+    }
+  ]
+}
