@@ -457,10 +457,11 @@ def transport_schema(model):
     return out
 
 
-def reply_schema(model, extra_fields):
+def reply_schema(model, extra_fields, section_schema=None):
     """The whole reply as one object: the fields a builder already returns (reason first), plus "section", its own
-    section model. extra_fields is {name: schema} for the optional board and spec fields, as today."""
-    sec = transport_schema(model)
+    section model. extra_fields is {name: schema} for the optional board and spec fields, as today. section_schema:
+    the section's transport schema when it comes from elsewhere (a library template's schema.json)."""
+    sec = copy.deepcopy(section_schema) if section_schema is not None else transport_schema(model)
     defs = sec.pop("definitions", None)
     sec.pop("$schema", None)
     props = {"reason": {"type": "string", "description": "one short sentence: why you decided this"},

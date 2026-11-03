@@ -1036,7 +1036,7 @@ def specialise(gen, need, base=None, name=None):
     own = [dict(r) for r in (base.rules if base else []) if r.get("from") != "facts"]
     fu = next((f for f in fields if f.name == "facts_used" and f.enum), None)
     if fu:
-        own.append({"rule": "enum", "path": "facts_used", "values": list(fu.enum), "from": "facts",
+        own.append({"rule": "enum", "path": "facts_used[]", "values": list(fu.enum), "from": "facts",
                     "name": f"facts_used are facts of {site}'s charter"})
     added = [f.name for f in fields if f.name not in gnames]
     label = name or (base.name if base else f"{site} {need.get('label') or need['section']}")
@@ -1097,6 +1097,9 @@ def route(need, ctx, ask=None):
                "version": t.version if t else AM.VERSION, "kind": "specialised" if t else "generic",
                "score": score, "reason": reason, **extra}
         if t:
+            _, hf, hd = coverage(need, {"facts": t.context.facts_used, "fields": [f.name for f in t.fields]})
+            rec["covers"] = f"covers {hf} of {len(need['facts'])} facts" + (
+                f" and {hd} of {len(need['fields'])} fields" if need["fields"] else "")
             mark_used(t, {**use, "action": action}, need["fingerprint"])
             rec["schema_sha"] = sha_of(transport(t))
         elif gen is not None:
