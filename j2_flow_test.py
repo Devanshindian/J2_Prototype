@@ -50,6 +50,8 @@ SESSION_MEMORY = tempfile.mkdtemp(prefix="j2-test-memory-")
 os.environ["J2_MEMORY_FILE"] = os.path.join(SESSION_MEMORY, "lessons.jsonl")
 os.environ["J2_PLAYBOOK_FILE"] = os.path.join(SESSION_MEMORY, "playbooks.jsonl")
 os.environ["J2_RUNS_DIR"] = os.path.join(SESSION_MEMORY, "runs")   # runs/ holds real runs only: report evidence
+# The template library too (J2_TEMPLATE_LIBRARY=1): the committed library/ is never written by a test.
+os.environ["J2_LIBRARY_DIR"] = os.path.join(SESSION_MEMORY, "library")
 REAL_MEMORY = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "memory", f) for f in ("lessons.jsonl", "playbooks.jsonl")]
 
 
@@ -9037,7 +9039,7 @@ def map_tab():
     rail = ui[ui.index('<nav class="rail tabs"'):ui.index("</nav>", ui.index('<nav class="rail tabs"'))]
     top, inside = rail.split('id="railsub"')
     # the Board story is the first entry under Internals (shown only when the run has a board); the rest are the old order
-    old_tabs = ["story", "preview", "goal", "workflows", "conflicts", "priorities", "timeline", "audit", "charter", "docs", "artifacts", "board", "lessons", "playbooks", "report", "rundetails", "runsettings"]      # the Style guide is under Artifacts > Specs
+    old_tabs = ["story", "preview", "goal", "workflows", "conflicts", "priorities", "timeline", "audit", "charter", "docs", "artifacts", "board", "library", "lessons", "playbooks", "report", "rundetails", "runsettings"]      # the Style guide is under Artifacts > Specs
     assert re.findall(r'data-tab="(\w+)"', top) == ["map"] and 'id="gochat"' in top and 'id="internals"' not in top and "Internals" not in rail and re.findall(r"<span>([^<]+)</span>", top) == ["Map", "Chat"], "the rail has Map and Chat rows; no Internals folder"
     assert re.findall(r'data-tab="(\w+)"', inside) == old_tabs, "every other tab is under Internals, in the old order"
     assert "<svg" not in rail and ' hidden' not in rail.split('id="railsub"')[1].split(">")[0], "no icon rail; the sections are always shown"
@@ -9595,7 +9597,455 @@ def docs_intake_and_compare():
           "the revised section (a removed field is a match) ok")
 
 
+def tree_sha(root):
+    """One sha over every file under root (path and bytes), so a test can prove a folder was not touched."""
+    h = hashlib.sha256()
+    for d, _, fs in sorted(os.walk(root)) if os.path.isdir(root) else []:
+        for f in sorted(fs):
+            p = os.path.join(d, f)
+            h.update(os.path.relpath(p, root).encode() + b"\0" + open(p, "rb").read())
+    return h.hexdigest()
+
+
+def lib_run(brief, budget=1400, patch=None):
+    """A mock run with J2_TEMPLATE_LIBRARY=1 only (it implies J2_ARTIFACT_SCHEMA=1), into the current J2_LIBRARY_DIR."""
+    keep = {k: os.environ.get(k) for k in ("J2_TEMPLATE_LIBRARY", "J2_ARTIFACT_SCHEMA")}
+    os.environ["J2_TEMPLATE_LIBRARY"] = "1"
+    os.environ.pop("J2_ARTIFACT_SCHEMA", None)
+    try:
+        run = docs_run(brief, budget, patch=patch)
+        finish(run)
+    finally:
+        for k, v in keep.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+    return run
+
+
+def tpl_decisions(run):
+    return json.load(open(os.path.join(run.dir, "templates.json"), encoding="utf-8"))["decisions"]
+
+
+def template_library(demo=False):
+    """Template library (template-library/1, J2_TEMPLATE_LIBRARY=1): every artifact section is a generic template
+    plus a specialised one the router reuses, extends or creates per workflow, or the generic one as a fallback.
+
+    (a) unset: nothing is written to the library and no record changes (plain_unchanged guards the prompts); (b) three
+    mock runs share one library: Thread & Loom creates, the same brief reuses (no new versions, used_by lists both
+    runs), Still Point Yoga creates its own (a class-schedule Requirements template) and reuses no boutique template;
+    (c) a need with an extra field extends to v2, v1 unchanged and still compiling; (d) a generator that returns an
+    invalid spec twice falls back to the generic and the run still ends Done; (e) unknown type, unknown rule type, a
+    bad rule path, a dunder field and a dropped required field are refused and never stored; (f) every model.py
+    matches its runtime class and generic.json matches the models and RULES; (g) every builder's --json-schema
+    section is its template's schema.json (shas in calls.jsonl); (h) the scores and decisions in templates.json follow
+    the routing rules; (i) the tests use a temp J2_LIBRARY_DIR and the committed library/ is unchanged."""
+    import copy as copy_
+    import importlib.util
+    import shutil
+    import j2_template_lib as L
+    here = os.path.dirname(os.path.abspath(__file__))
+    real_lib = os.path.join(here, "library")
+    real_before = tree_sha(real_lib)
+    # (i) the session's library is a temp folder, set before j2 was imported
+    assert SESSION_MEMORY in L.lib_dir() and os.path.abspath(L.lib_dir()) != real_lib, L.lib_dir()
+    keep_lib = os.environ.get("J2_LIBRARY_DIR")
+    lib = tempfile.mkdtemp(prefix="j2-lib-")
+    os.environ["J2_LIBRARY_DIR"] = lib
+    try:
+        # (f) the generic layer is the models and the rules, never retyped
+        assert L.generic_drift() == [], L.generic_drift()
+        for art, by in j2.j2_artifact_models.SECTION_MODELS.items():
+            for sec, model in by.items():
+                g = L.generic(art, sec)
+                assert [f.name for f in g.fields] == [(f.alias or n) for n, f in model.model_fields.items()], (art, sec)
+                assert g.rules == j2.j2_rules.rules_for(art, sec) and g.kind == "generic", (art, sec)
+        broken = json.load(open(os.path.join(L.GENERIC_DIR, "prd", "generic.json"), encoding="utf-8"))
+        broken["templates"][0]["fields"][0]["description"] = "retyped by hand"
+        keep_dir = L.GENERIC_DIR
+        tmpgen = tempfile.mkdtemp(prefix="j2-generic-")
+        L.write_generic(tmpgen)
+        json.dump(broken, open(os.path.join(tmpgen, "prd", "generic.json"), "w", encoding="utf-8"))
+        L.GENERIC_DIR = tmpgen
+        try:
+            drift = L.generic_drift()
+        finally:
+            L.GENERIC_DIR = keep_dir
+            shutil.rmtree(tmpgen, ignore_errors=True)
+        assert drift and "prd/Problem" in drift[0] and "fields" in drift[0], drift
+        # (a) flag unset: a schema run and a plain run write nothing to the library and record no template
+        os.environ.pop("J2_TEMPLATE_LIBRARY", None)
+        off = schema_run(BOUTIQUE_BRIEF)
+        plain = docs_run(BREW_LAB, 200)
+        assert not os.listdir(lib), os.listdir(lib)
+        for r in (off, plain):
+            assert not os.path.exists(os.path.join(r.dir, "templates.json")) and not r.tpl_lib and not r.tpl_decisions
+            assert not any((c.get("artifact_schema") or {}).get("library") for c in calls_file(r))
+            assert not any("template_route" in x for x in j2._jsonl(r.dir, "receipts.jsonl"))
+            assert not any("template" in str(m.get("text")) and m["who"] == "system" and "template:" in m["text"]
+                           for m in r.chat)
+        assert plain.schemas is False and not j2.artifact_schema_on()
+        # (b) three mock runs, one library
+        r1 = lib_run(BOUTIQUE_BRIEF)
+        assert r1.schemas is True, "J2_TEMPLATE_LIBRARY=1 implies J2_ARTIFACT_SCHEMA=1"
+        idx1 = copy_.deepcopy(L.index())
+        r2 = lib_run(BOUTIQUE_BRIEF)
+        idx2 = copy_.deepcopy(L.index())
+        r3 = lib_run(YOGA_BRIEF)
+        idx3 = copy_.deepcopy(L.index())
+        n1, n2, n3 = (os.path.basename(r.dir) for r in (r1, r2, r3))
+        for r in (r1, r2, r3):
+            assert r.outcome.startswith("Done"), r.outcome
+            assert not [x for x in art_recs(r) if not x["pass"]], [x["evidence"] for x in art_recs(r) if not x["pass"]][:3]
+        d1, d2, d3 = (tpl_decisions(r) for r in (r1, r2, r3))
+        empty = lambda d: not d["facts"] and not d["fields"]
+        w1 = [d for d in d1 if d["artifact"] == "website"]
+        needy1 = [d for d in w1 if not empty(d)]
+        assert needy1 and all(d["action"] == "created" and d["kind"] == "specialised" for d in needy1), [(d["workflow"], d["action"]) for d in w1]
+        assert [d["workflow"] for d in w1 if empty(d)] == ["W-5"], "the viewport fix covers no fact and needs no field"
+        assert all(d["action"] == "generic" and d["rule"] == "0" and d["reason"] == L.NOTHING_TO_SPECIALISE
+                   for d in w1 if empty(d)), [d for d in w1 if empty(d)]
+        assert [d for d in d1 if d["artifact"] == "design"][0]["action"] == "generic", "the style guide keeps the generic template"
+        made1 = {(d["template"], d["version"]) for d in needy1}
+        assert len(made1) == len(needy1) >= 4, made1
+        w2 = [d for d in d2 if d["artifact"] == "website"]
+        assert [(d["workflow"], d["template"], d["version"], d["action"]) for d in w2 if empty(d)] == \
+            [(d["workflow"], d["template"], d["version"], d["action"]) for d in w1 if empty(d)]
+        assert [(d["workflow"], d["template"], d["version"]) for d in w2] == [(d["workflow"], d["template"], d["version"]) for d in w1]
+        assert all(d["action"] == "reused" and d["rule"] == "a" for d in w2 if not empty(d)), [(d["workflow"], d["action"], d["rule"]) for d in w2]
+        vers = lambda idx: sorted((e["name"], v["version"], v["sha"]) for e in idx["templates"] for v in e["versions"])
+        assert vers(idx1) == vers(idx2), "run 2 made no new version"
+        for e in idx2["templates"]:
+            for v in e["versions"]:
+                runs_ = {u["run"] for u in v["used_by"]}
+                assert runs_ == {n1, n2}, (e["name"], v["version"], runs_)
+                meta = json.load(open(os.path.join(L.vdir(e["artifact"], e["section"], e["slug"], v["version"]),
+                                                   "meta.json"), encoding="utf-8"))
+                assert {u["run"] for u in meta["used_by"]} == {n1, n2}
+        thread = {e["name"] for e in idx1["templates"]}
+        assert all(not d["template"].startswith("Thread") for d in d3), [d["template"] for d in d3 if d["template"].startswith("Thread")]
+        assert vers(idx2) == [x for x in vers(idx3) if x[0] in thread], "run 3 changed no boutique template"
+        for d in d3:
+            for c in d.get("candidates") or []:
+                if c["name"] in thread:
+                    assert c["score"] < 0.5, (d["workflow"], c)
+        # run 3's page workflows: no reuse of a template that lacks their fields; the empty ones are generic
+        late = {d["workflow"]: d for d in d3 if d["artifact"] == "website" and d["workflow"] in ("W-21", "W-22", "W-23", "W-24")}
+        assert len(late) == 4 and late["W-24"]["action"] == "generic" and late["W-24"]["rule"] == "0", late.get("W-24")
+        for d in late.values():
+            if d["needed_fields"]:
+                assert d["action"] != "reused" or d["rule"] == "a", d
+        req = next(d for d in d3 if d["artifact"] == "prd" and d["section"] == "Requirements")
+        assert req["action"] == "created", req
+        rs = L.get(f"{req['template']}@{req['version']}", "prd", "Requirements")
+        fnames = [f.name for f in rs.fields]
+        assert "classes" in fnames and "booking_form_fields" in fnames and "facts_used" in fnames, fnames
+        cls = next(o for o in rs.objects if o.name == "ClassesItem")
+        assert [f.name for f in cls.fields] == ["day", "time", "price"], cls
+        bff = next(f for f in rs.fields if f.name == "booking_form_fields")
+        assert bff.enum == ["name", "email", "class", "preferred date"], bff.enum
+        charter_facts = set(json.load(open(os.path.join(r3.dir, "stage-prd.json"), encoding="utf-8"))["goal"]["facts"])
+        assert set(rs.context.facts_used) - set(json.load(open(os.path.join(r3.dir, "stage-prd.json"),
+                                                                encoding="utf-8"))["goal"]["done_when"]) <= charter_facts, \
+            "recorded facts only"
+        assert rs.made_by.run == n3 and rs.made_by.workflow == req["workflow"] and rs.extends == "prd/requirements@generic/1"
+        # the chat's one system line per workflow, and the documents keep their headings
+        lines = [m["text"] for m in r2.chat if m["who"] == "system" and " template: " in m["text"]]
+        assert len(lines) == len({d["workflow"] for d in d2}) and lines[0].startswith("W-1 template: reused Thread "), lines[:2]
+        assert re.search(r"\(covers \d+ of \d+ facts", lines[0]), lines[0]
+        prd = open(os.path.join(r3.dir, "prd.md"), encoding="utf-8").read()
+        assert re.findall(r"^## (.+)$", prd, re.M) == list(j2.PRD_SECTIONS), re.findall(r"^## (.+)$", prd, re.M)
+        # (g) every builder's --json-schema section is the chosen template's schema.json
+        for r, ds in ((r1, d1), (r2, d2), (r3, d3)):
+            by = {d["atom"]: d for d in ds if d["artifact"] != "design"}
+            sent = [c for c in calls_file(r) if c.get("artifact_schema")]
+            assert sent and all((c["artifact_schema"].get("library") or {}).get("sent_section_sha") for c in sent)
+            for c in sent:
+                lb, d = c["artifact_schema"]["library"], by[c["atom"]]
+                assert lb["sent_section_sha"] == lb["schema_sha"] == d["schema_sha"], (c["atom"], lb, d["schema_sha"])
+                if d["kind"] == "specialised":
+                    e = next(e for e in L.index()["templates"] if e["name"] == d["template"] and e["section"] == d["section"])
+                    path = os.path.join(L.vdir(d["artifact"], d["section"], e["slug"], d["version"]), "schema.json")
+                    assert L.sha_of(json.load(open(path, encoding="utf-8"))) == lb["sent_section_sha"], c["atom"]
+                    assert c["artifact_schema"]["template"] == f"{d['template']} v{d['version']}"
+        # (h) the decisions follow the routing rules, with the scores code computed
+        for ds in (d1, d2, d3):
+            for d in ds:
+                if d["artifact"] == "design":
+                    continue
+                top = max([c["score"] for c in d.get("candidates") or []] or [0.0])
+                if d["action"] == "created":
+                    assert d["rule"] == "d" and top < 0.5, d
+                elif d["action"] == "extended":
+                    assert d["rule"] == "c" and 0.5 <= d["score"] < 1.0, d
+                elif d["action"] == "reused":
+                    assert d["rule"] in ("a", "b") and (d["rule"] == "a" or d["score"] >= 1.0), d
+                    row = next(v for e in L.index()["templates"] for v in e["versions"]
+                               if e["name"] == d["template"] and e["section"] == d["section"] and v["version"] == d["version"])
+                    nd = {"fields": d["needed_fields"], "field_enums": d["needed_enums"]}
+                    assert all(L.has_field(nd, row, f) for f in d["needed_fields"]), ("a reuse has every needed field", d)
+                    if d["rule"] == "a":
+                        assert d["fingerprint"] in row["fingerprints"], d
+                elif d["action"] == "generic":
+                    assert d["rule"] in ("0", "e") and (d["rule"] == "e" or (empty(d) and d["reason"] == L.NOTHING_TO_SPECIALISE)), d
+                assert set(d) >= {"workflow", "atom", "artifact", "section", "action", "template", "version", "score",
+                                  "reason"}, d
+        # (c) extend: the same need plus a fact naming one more field makes v2; v1 is unchanged and still compiles
+        need0 = L.make_need("prd", "Requirements", rs.context.business_type, rs.context.facts_used, "Still Point Yoga")
+        assert need0["fingerprint"] == rs.context.fingerprint
+        v1_dir = L.vdir("prd", "Requirements", L.slug(rs.name), 1)
+        v1_before = tree_sha(v1_dir)
+        need = L.make_need("prd", "Requirements", rs.context.business_type,
+                           list(rs.context.facts_used) + ["The page has a newsletter form with the fields email"],
+                           "Still Point Yoga", workflow="W-4", atom="W-4.a1")
+        cand = L.candidates(need)[0]
+        want = (len(need["facts"]) - 1 + len(need["fields"]) - 1) / (len(need["facts"]) + len(need["fields"]))
+        assert cand["name"] == rs.name and abs(cand["score"] - round(want, 4)) < 1e-9 and 0.5 <= cand["score"] < 1
+        t2, rec = L.route(need, {"run": "extend-test", "workflow": "W-4", "atom": "W-4.a1", "agent": "mock"})
+        assert rec["action"] == "extended" and rec["rule"] == "c" and t2.version == 2 and t2.name == rs.name, rec
+        assert "newsletter_form_fields" in [f.name for f in t2.fields] and "classes" in [f.name for f in t2.fields]
+        assert tree_sha(v1_dir) != v1_before or True      # meta.json may gain a use; the spec and code may not
+        v1 = json.load(open(os.path.join(v1_dir, "spec.json"), encoding="utf-8"))
+        assert L.SpecialisedTemplate.model_validate(v1).compute_sha() == rs.sha == v1["sha"], "v1 is unchanged"
+        assert L.transport(v1) == json.load(open(os.path.join(v1_dir, "schema.json"), encoding="utf-8")), "v1 compiles"
+        again, rec2 = L.route(need, {"run": "extend-test-2", "workflow": "W-4", "atom": "W-4.a1"})
+        assert rec2["action"] == "reused" and again.version == 2, rec2
+        # fix 1: the fingerprint includes the sorted needed field names
+        fa = L.fingerprint("website", "Section", "boutique", ["f1"], ["form_fields", "elements"])
+        assert fa == L.fingerprint("website", "Section", "boutique", ["f1"], ["elements", "form_fields"]), "sorted"
+        assert fa != L.fingerprint("website", "Section", "boutique", ["f1"], ["elements"]) != \
+            L.fingerprint("website", "Section", "boutique", ["f1"]), "a different field list is a different need"
+        el = lambda vals: (L.FieldSpec(name="elements", type="list[string]", required=False, enum=vals,
+                                       description="the elements"), [])
+        nA = L.make_need("website", "Section", "studio", ["Fact A"], "Site", [el(["#a"])])
+        nB = L.make_need("website", "Section", "studio", ["Fact A"], "Site")
+        assert nA["fields"] == ["elements"] and nA["fingerprint"] != nB["fingerprint"], (nA["fields"], nB["fields"])
+        # fix 2: same fingerprint, but the template lacks a needed value -> scoring, not reuse by rule (a)
+        lib3 = tempfile.mkdtemp(prefix="j2-lib-")
+        os.environ["J2_LIBRARY_DIR"] = lib3
+        tA, rA = L.route(nA, {"run": "fix2", "workflow": "W-1", "atom": "W-1.a1"})
+        assert rA["action"] == "created" and rA["rule"] == "d", rA
+        nC = L.make_need("website", "Section", "studio", ["Fact A"], "Site", [el(["#b"])])
+        assert nC["fingerprint"] == nA["fingerprint"], "same facts, same field names: same fingerprint"
+        cC = L.candidates(nC)[0]
+        assert cC["fingerprint_match"] and not cC["has_fields"] and cC["score"] == 0.5, cC
+        tC, rC = L.route(nC, {"run": "fix2", "workflow": "W-2", "atom": "W-2.a1"})
+        assert rC["action"] == "extended" and rC["rule"] == "c" and tC.version == 2, rC
+        assert set(next(f.enum for f in tC.fields if f.name == "elements")) == {"#a", "#b"}
+        tA2, rA2 = L.route(nA, {"run": "fix2", "workflow": "W-1", "atom": "W-1.a1"})
+        assert rA2["action"] == "reused" and rA2["rule"] == "a", rA2
+        # fix 3: no facts and no extra fields -> generic, never a specialised template, nothing written
+        before3 = tree_sha(lib3)
+        tE, rE = L.route(L.make_need("website", "Section", "studio", [], "Site"), {"run": "fix3", "workflow": "W-5",
+                                                                                 "atom": "W-5.a1"})
+        assert tE is None and rE["action"] == "generic" and rE["kind"] == "generic" and rE["rule"] == "0" \
+            and rE["reason"] == "no facts or extra fields to specialise", rE
+        assert tree_sha(lib3) == before3, "a generic decision writes nothing to the library"
+        os.environ["J2_LIBRARY_DIR"] = lib
+        # (e) safety: each bad spec is refused with its reason, and never stored
+        base = json.load(open(os.path.join(v1_dir, "spec.json"), encoding="utf-8"))
+
+        def mutated(fn):
+            x = copy_.deepcopy(base)
+            fn(x)
+            return x
+        bad = {
+            "unknown type": (mutated(lambda x: x["fields"].append({"name": "extra", "type": "dict", "required": False,
+                                                                     "description": ""})), "is not allowed"),
+            "unknown rule type": (mutated(lambda x: x["rules"].append({"rule": "eval_python", "name": "n",
+                                                                        "path": "requirements"})), "unknown rule type"),
+            "bad rule path": (mutated(lambda x: x["rules"].append({"rule": "not_empty", "name": "n",
+                                                                    "path": "requirements[].nowhere"})),
+                              "is not a field"),
+            "dunder field": (mutated(lambda x: x["fields"].append({"name": "__class__", "type": "string",
+                                                                    "required": False, "description": ""})),
+                             "not an identifier"),
+            "dropped required field": (mutated(lambda x: x.__setitem__(
+                "fields", [f for f in x["fields"] if f["name"] != "requirements"])), "required field 'requirements'"),
+            "too many fields": (mutated(lambda x: x["fields"].extend(
+                {"name": f"f{i}", "type": "string", "required": False, "description": ""} for i in range(30))),
+                "at most 25"),
+        }
+        for label, (spec, words) in bad.items():
+            why = L.refusal(spec)
+            assert why and any(words in w for w in why), (label, why)
+        lib_before = tree_sha(lib)
+        for label, (spec, words) in bad.items():
+            reply = {"action": "create", "template": None, "reason": label,
+                     "spec": {k: spec[k] for k in ("description", "fields", "objects", "rules")} | {"name": f"Bad {label}"}}
+            t, rec = L.route(L.make_need("prd", "Requirements", "x", [f"a fact for {label}"], "Nowhere"),
+                             {"run": "safety", "workflow": "W-1", "atom": "W-1.a1"},
+                             ask=lambda s, u, m, sch, reply=reply: reply)
+            assert t is None and rec["action"] == "generic" and rec["rule"] == "e" and rec["attempts"] == 2, (label, rec)
+            assert any(words in str(x) for x in rec["refused"]), (label, rec["refused"])
+        assert tree_sha(lib) == lib_before, "a refused spec is never stored"
+        try:
+            L.store(bad["dunder field"][0])
+            raise AssertionError("store accepted a refused spec")
+        except ValueError:
+            pass
+        # (d) fallback: a generator that returns an invalid spec twice; the run still ends Done on the generic templates
+        lib2 = tempfile.mkdtemp(prefix="j2-lib-")
+        os.environ["J2_LIBRARY_DIR"] = lib2
+        asked = []
+
+        def bad_gen(run, orig):
+            def ask(system, user, mock, schema):
+                asked.append(run.tpl_cur.get("wid"))
+                return {"action": "create", "template": None, "reason": "bad",
+                        "spec": {"name": "Broken", "description": "", "objects": [], "rules": [],
+                                 "fields": [{"name": "x", "type": "dict", "required": True, "description": "",
+                                             "enum": None, "nullable": False}]}}
+            run._template_ask = ask
+            return orig
+        r4 = lib_run(BOUTIQUE_BRIEF, patch=bad_gen)
+        d4 = tpl_decisions(r4)
+        assert r4.outcome.startswith("Done"), r4.outcome
+        assert all(d["action"] == "generic" and d["kind"] == "generic" for d in d4), [(d["workflow"], d["action"]) for d in d4]
+        wfs4 = [d["workflow"] for d in d4 if d["artifact"] == "website" and not empty(d)]
+        assert wfs4 and all(asked.count(w) == 2 for w in wfs4) and all(
+            d["rule"] == "e" for d in d4 if d["artifact"] == "website" and not empty(d))
+        assert all(d["rule"] == "0" and d["workflow"] not in asked for d in d4 if d["artifact"] == "website" and empty(d))
+        assert not L.index()["templates"] and not [x for x in art_recs(r4) if not x["pass"]]
+        for c in calls_file(r4):
+            if c.get("artifact_schema"):
+                lb = c["artifact_schema"]["library"]
+                gen_sha = L.sha_of(j2.j2_artifact_models.transport_schema(j2.j2_artifact_models.WebsiteSection))
+                assert lb["kind"] == "generic" and lb["sent_section_sha"] == gen_sha == lb["schema_sha"], lb
+        os.environ["J2_LIBRARY_DIR"] = lib
+        # (f) every model.py matches its runtime class; schema.json is the runtime transport; model.py is never imported
+        n = 0
+        for e in L.index()["templates"]:
+            for v in e["versions"]:
+                d = L.vdir(e["artifact"], e["section"], e["slug"], v["version"])
+                spec = json.load(open(os.path.join(d, "spec.json"), encoding="utf-8"))
+                src = open(os.path.join(d, "model.py"), encoding="utf-8").read()
+                assert src.startswith("# GENERATED by j2_template_lib.codegen()") and src == L.codegen(spec)
+                mspec = importlib.util.spec_from_file_location(f"tplmodel_{n}", os.path.join(d, "model.py"))
+                mod = importlib.util.module_from_spec(mspec)
+                mspec.loader.exec_module(mod)
+                assert mod.TEMPLATE.model_json_schema() == L.build_model(spec).model_json_schema(), d
+                assert json.load(open(os.path.join(d, "schema.json"), encoding="utf-8")) == L.transport(spec), d
+                n += 1
+        assert n >= 10, n
+        lib_src = open(os.path.join(here, "j2_template_lib.py"), encoding="utf-8").read()
+        assert "exec(" not in lib_src.replace("exec_module", "") and "import_module" not in lib_src \
+            and "spec_from_file_location" not in lib_src, "model.py is never imported or exec'd at runtime"
+        # the API and the page
+        import j2_server
+        assert "/api/library" in open(os.path.join(here, "j2_server.py"), encoding="utf-8").read()
+        lv = L.library_view()
+        assert set(lv["groups"]) == set(L.ARTIFACTS) and lv["groups"]["website"]["Section"]["templates"]
+        tv = L.template_view("prd", "requirements", L.slug(rs.name), 1)
+        assert set(tv["files"]) == {"spec.json", "model.py", "schema.json", "meta.json"} and all(
+            f["sha"] for f in tv["files"].values())
+        assert any(r["own"] for r in tv["readable"]["rules"]) and any(f["enum"] for f in tv["readable"]["fields"])
+        gv = L.template_view("website", "section", "generic", 1)
+        assert "generic.json" in gv["files"] and gv["files"]["generic.json"]["text"]
+        ex = L.run_example(r3.dir, tv["template"], L.slug(rs.name))
+        assert ex and ex["workflow"] == req["workflow"] and "requirements" in ex["data"], ex
+        ui = open(os.path.join(here, "j2_ui.html"), encoding="utf-8").read()
+        for s_ in ('data-tab="library"', 'id="pane-library"', 'data-tplmode="template"', 'data-tplmode="readable"',
+                   'data-tplcopy=', 'data-link="tplview"', "/api/run-templates", '$("tab-library").hidden = !s.has_templates;'):
+            assert s_ in ui, s_
+        if BROWSER and j2.j2_check.find_chrome():
+            library_page(r2, lib)
+        else:
+            print("template library page: browser steps skipped (Chrome not found, or --fast without --browser)")
+    finally:
+        if keep_lib is None:
+            os.environ.pop("J2_LIBRARY_DIR", None)
+        else:
+            os.environ["J2_LIBRARY_DIR"] = keep_lib
+        os.environ.pop("J2_TEMPLATE_LIBRARY", None)
+    assert tree_sha(real_lib) == real_before, "the committed library/ is unchanged by tests"
+    print(f"template library: generic.json matches the models and RULES (a hand edit is caught); unset writes nothing; "
+          f"Thread & Loom created {len(made1)} templates, run 2 reused all of them (rule a, no new version, used_by both "
+          f"runs); Still Point Yoga created its own ({req['template']} with classes day/time/price) and reused no "
+          f"boutique template; the fingerprint holds the needed fields, rule (a) reuses only a template with every needed field, a "
+          f"need with no facts and no fields is generic; an extra field extends to v2 with v1 unchanged; six bad specs refused and never stored; "
+          f"an invalid generator falls back to generic twice and the run ends Done; {n} model.py files match their "
+          "runtime classes; every builder's schema sha is its template's schema.json; the committed library/ is "
+          "unchanged ok")
+
+
+def library_page(run, lib):
+    """--browser: the Library tab on a saved run, in headless Chrome: the routing table, a template opened in both
+    modes (Readable with enum chips and rule sentences; As template with four files, Copy buttons and shas), and the
+    atom card's template line."""
+    import html as htmllib
+    import shutil
+    import socket
+    import threading
+    import j2_server
+    here = os.path.dirname(os.path.abspath(__file__))
+    ui = open(os.path.join(here, "j2_ui.html"), encoding="utf-8").read()
+    chrome = j2.j2_check.find_chrome()
+    steps = ("(async () => { const wait = ms => new Promise(r => setTimeout(r, ms)), q = s => [...document.querySelectorAll(s)], r = {}; await wait(2500);"
+             " r.tab = !document.getElementById('tab-library').hidden; document.getElementById('tab-library').click(); await wait(1500);"
+             " r.rows = q('[data-tplrow]').length; r.reasons = q('[data-tplrow] td:last-child').map(x => x.textContent).slice(0, 3);"
+             " q('[data-tpltable] [data-tplopen]')[0].click(); await wait(1500);"
+             " r.readable = !!document.querySelector('[data-tplreadable]'); r.chips = q('#tplviewer .mappill').length; r.rules = q('#tplviewer li').length;"
+             " r.example = (document.querySelector('#tplviewer pre') || {}).textContent || '';"
+             " document.querySelector('[data-tplmode=template]').click(); await wait(300);"
+             " r.files = q('[data-tplfile]').map(x => x.dataset.tplfile); r.copies = q('[data-tplcopy]').length; r.shas = q('[data-tplfile] .empty').map(x => x.textContent);"
+             " r.groups = q('[data-libart]').map(x => x.dataset.libart); r.card = typeof renderWorkflows === 'function' && renderWorkflows(state).includes('data-link=\"tplview\"');"
+             " r.sw = [document.documentElement.scrollWidth, innerWidth];"
+             " document.body.setAttribute('data-r', JSON.stringify(r)); })();")
+    port = socket.socket(); port.bind(("127.0.0.1", 0)); p_ = port.getsockname()[1]; port.close()
+    tmp = tempfile.mkdtemp(prefix="j2-library-page-")
+    os.symlink(os.path.join(here, "vendor"), os.path.join(tmp, "vendor"))
+    open(os.path.join(tmp, "j2_ui.html"), "w", encoding="utf-8").write(ui.replace("</body>", f"<script>setTimeout(() => {{ {steps} }}, 500)</script></body>"))
+    keep_here, runs_ = j2_server.HERE, j2.RUNS_DIR
+    j2_server.HERE, j2.RUNS_DIR = tmp, os.path.dirname(run.dir)
+    srv = j2_server.http.server.ThreadingHTTPServer(("127.0.0.1", p_), j2_server.Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    prof = tempfile.mkdtemp(prefix="j2-libprof-")
+    try:
+        dom = chrome_dom([chrome, "--headless=new", "--disable-gpu", f"--user-data-dir={prof}", "--no-first-run", "--window-size=1440,900",
+                          "--virtual-time-budget=30000", "--dump-dom", f"http://127.0.0.1:{p_}/?view=detail&run={os.path.basename(run.dir)}"],
+                         capture_output=True, text=True, timeout=120).stdout
+    finally:
+        srv.shutdown()
+        j2_server.HERE, j2.RUNS_DIR = keep_here, runs_
+        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(prof, ignore_errors=True)
+    hit = re.search(r'data-r="([^"]*)"', dom)
+    assert hit, ("the page did not finish its steps", dom[-300:])
+    r = json.loads(htmllib.unescape(hit.group(1)))
+    assert r["tab"] and r["rows"] >= 5 and all(r["reasons"]), r
+    assert r["readable"] and r["chips"] >= 1 and r["rules"] >= 1 and '"html"' in r["example"], r
+    assert r["files"] == ["spec.json", "model.py", "schema.json", "meta.json"] and r["copies"] == 4 and all(s.startswith("sha ") for s in r["shas"]), r
+    assert set(r["groups"]) == {"prd", "hld", "lld", "design", "website"} and r["card"], r
+    assert r["sw"][0] <= r["sw"][1], ("no horizontal scroll", r["sw"])
+    print(f"template library page: Library tab shown for a run with decisions, {r['rows']} routing rows with reasons, a template opened Readable "
+          f"({r['chips']} enum chips, {r['rules']} rules, an example from the run) and As template (4 files, Copy and sha each), the atom card links it ok")
+
+
 if __name__ == "__main__":
+    if "--template-demo" in sys.argv:
+        # python3 j2_flow_test.py --fast --template-demo: the three template-library demo runs (template_library's
+        # (b)), saved to runs/ with their templates in the committed library/ instead of the temp folders. Mock mode.
+        here_ = os.path.dirname(os.path.abspath(__file__))
+        j2.RUNS_DIR = os.path.join(here_, "runs")
+        os.environ["J2_LIBRARY_DIR"] = os.path.join(here_, "library")
+        for label, brief in (("Thread & Loom, run 1", BOUTIQUE_BRIEF), ("Thread & Loom, run 2", BOUTIQUE_BRIEF),
+                             ("Still Point Yoga, run 3", YOGA_BRIEF)):
+            demo = lib_run(brief)
+            ds = tpl_decisions(demo)
+            print(f"{label}: {os.path.basename(demo.dir)} ({demo.outcome[:5]}) "
+                  + ", ".join(f"{a} {sum(1 for d in ds if d['action'] == a)}" for a in ("created", "extended", "reused",
+                                                                                        "generic")))
+            for d in ds[:2]:
+                print(f"  {d['workflow']} {d['artifact']}/{d['section']}: {d['action']} {d['template']} v{d['version']} "
+                      f"(score {d['score']}; {d.get('covers') or d['reason']})")
+            print(f"  http://127.0.0.1:8773/?run={os.path.basename(demo.dir)}&view=detail&tab=library")
+        sys.exit(0)
+    if "--template-library" in sys.argv:      # python3 j2_flow_test.py --fast [--browser] --template-library: this part only
+        template_library()
+        plain_unchanged()
+        sys.exit(0)
     if "--schema-demo" in sys.argv or "--schema-fail-demo" in sys.argv:
         # python3 j2_flow_test.py --fast --schema-demo [--schema-fail-demo]: the artifact-template demo runs
         # (artifact_schemas' own run), saved to runs/ as evidence instead of the temp folder. Mock mode.
@@ -9693,6 +10143,7 @@ if __name__ == "__main__":
             artifact_schemas()
             artifact_schema_failures()
             rules_split()
+            template_library()
         board_disabled()
         board_functions_off()
         os.environ["J2_BOARD"] = "1"

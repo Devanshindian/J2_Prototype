@@ -1,0 +1,95 @@
+{
+  "name": "Thread Products",
+  "artifact": "website",
+  "section": "Section",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true,
+      "description": "the section id of this workflow, as the task gives it (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "anchor",
+      "type": "string",
+      "required": false,
+      "description": "the id attribute of the section element, with the #; \"\" when this workflow writes page-head tags only (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "implements",
+      "type": "list[string]",
+      "required": false,
+      "description": "the LLD section ids this builds; empty when the run has no LLD (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "html",
+      "type": "string",
+      "required": false,
+      "description": "the section's HTML only: no <html>, <head> or <body> tags; \"\" when this workflow writes page-head tags only (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "head",
+      "type": "string",
+      "required": false,
+      "description": "page-head tags this section needs (meta, link, style or script only); \"\" when it needs none (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "selectors_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the ids and classes you used (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section uses, copied exactly from Thread's charter",
+      "enum": [
+        "Every product shows its id and price"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Every product shows its id and price"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Thread's charter"
+    }
+  ],
+  "sha": "4e8ad22147f1ecfec9f23471aa2c94647f3c6283bdb77582c1470a76d4d9fc76",
+  "extends": "website/section@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111",
+    "workflow": "W-2",
+    "atom": "W-2.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "boutique",
+    "facts_used": [
+      "Every product shows its id and price"
+    ],
+    "fingerprint": "91aabf96c74f1119ac6338db2874bff19e35bed78bd3d9766c47d040ef88d695"
+  }
+}

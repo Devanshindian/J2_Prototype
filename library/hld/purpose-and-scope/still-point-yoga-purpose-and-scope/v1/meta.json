@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Purpose and scope",
+  "version": 1,
+  "sha": "99d914f5ead4964755f10d4faa656c2e96556221f562600aae4d6c9635133096",
+  "schema_sha": "9fa6bb91938dbc4fd31a17571a88dc2ddc09094285ec6eca59a4d421b35e4493",
+  "model_sha": "da8780e244dfd190758b8e8090b008e3a5027ced1e7fc7d99d729ff13a1da51a",
+  "class": "StillPointYogaPurposeAndScopeV1",
+  "created": "2026-11-03T16:11:11",
+  "fingerprints": [
+    "6f3772eec4f6407973eda97cffb66fac6577c054bb6dd4533ad2ff720e84c263"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-161111-3",
+      "workflow": "W-7",
+      "atom": "W-7.a1",
+      "action": "created"
+    }
+  ]
+}

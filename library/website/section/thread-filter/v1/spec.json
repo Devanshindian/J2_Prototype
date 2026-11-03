@@ -1,0 +1,95 @@
+{
+  "name": "Thread Filter",
+  "artifact": "website",
+  "section": "Section",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true,
+      "description": "the section id of this workflow, as the task gives it (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "anchor",
+      "type": "string",
+      "required": false,
+      "description": "the id attribute of the section element, with the #; \"\" when this workflow writes page-head tags only (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "implements",
+      "type": "list[string]",
+      "required": false,
+      "description": "the LLD section ids this builds; empty when the run has no LLD (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "html",
+      "type": "string",
+      "required": false,
+      "description": "the section's HTML only: no <html>, <head> or <body> tags; \"\" when this workflow writes page-head tags only (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "head",
+      "type": "string",
+      "required": false,
+      "description": "page-head tags this section needs (meta, link, style or script only); \"\" when it needs none (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "selectors_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the ids and classes you used (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section uses, copied exactly from Thread's charter",
+      "enum": [
+        "Visitors can filter products by size and price"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Visitors can filter products by size and price"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Thread's charter"
+    }
+  ],
+  "sha": "5383aec9d139fdc4a16baae8bd8ac25a2afbf695ac8011aab4160c1cf7b8b022",
+  "extends": "website/section@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111",
+    "workflow": "W-4",
+    "atom": "W-4.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "boutique",
+    "facts_used": [
+      "Visitors can filter products by size and price"
+    ],
+    "fingerprint": "c8fe4c6476f9b71f0c6578a858fd6463244686e8e518cd4d44764e8d5a55a5f9"
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "form_fields": {
+      "description": "every form field, F1, F2, ... in order (for Still Point Yoga, a lld)",
+      "items": {
+        "$ref": "#/definitions/FormField"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Form fields",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Form fields section is written for Still Point Yoga"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "form_fields"
+  ],
+  "type": "object",
+  "definitions": {
+    "FormField": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "F1, F2, ... in order",
+          "type": "string"
+        },
+        "form": {
+          "description": "the form's selector, e.g. \"#booking\"",
+          "type": "string"
+        },
+        "name": {
+          "description": "the field name attribute",
+          "type": "string"
+        },
+        "type": {
+          "description": "one of text, email, tel, url, number, date, time, select, textarea, checkbox, radio, password, file",
+          "enum": [
+            "text",
+            "email",
+            "tel",
+            "url",
+            "number",
+            "date",
+            "time",
+            "select",
+            "textarea",
+            "checkbox",
+            "radio",
+            "password",
+            "file"
+          ],
+          "type": "string"
+        },
+        "required": {
+          "description": "true when the visitor must fill it in",
+          "type": "boolean"
+        },
+        "section": {
+          "description": "the section id the form sits in, e.g. \"S1\"",
+          "type": "string"
+        },
+        "validation": {
+          "description": "the validation rule in one line",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "form",
+        "name",
+        "type",
+        "required",
+        "section"
+      ],
+      "type": "object"
+    }
+  }
+}

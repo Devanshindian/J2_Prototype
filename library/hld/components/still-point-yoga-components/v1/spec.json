@@ -1,0 +1,112 @@
+{
+  "name": "Still Point Yoga Components",
+  "artifact": "hld",
+  "section": "Components",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Components for Still Point Yoga (hld): the generic HLD/1 · Components fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "components",
+      "type": "list[Component]",
+      "required": true,
+      "description": "the components, C1, C2, ... in order; each names the PRD requirement ids it covers (for Still Point Yoga, a hld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Components",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Components section is written for Still Point Yoga, and names every requirement (R1, R2, R3, R4, R5) it covers"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "Component",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "C1, C2, ... in order",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "the component name",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "responsibility",
+          "type": "string",
+          "required": true,
+          "description": "its one responsibility, in one line",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "covers",
+          "type": "list[string]",
+          "required": false,
+          "description": "the PRD requirement ids it covers, e.g. [\"R1\"]",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "page",
+          "type": "string",
+          "required": false,
+          "description": "the page id it sits on, e.g. \"P1\"",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Components section is written for Still Point Yoga, and names every requirement (R1, R2, R3, R4, R5) it covers"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "a3c1fb98275a9eda93810db1378d3ecbf0144c514c8bfeebb7076773b5a5403f",
+  "extends": "hld/components@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-9",
+    "atom": "W-9.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "hld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Components section is written for Still Point Yoga, and names every requirement (R1, R2, R3, R4, R5) it covers"
+    ],
+    "fingerprint": "44f26e4f50cd5ac8275a21d71615334c6aec3c50c14322560ac43a8d56ca85c4"
+  }
+}

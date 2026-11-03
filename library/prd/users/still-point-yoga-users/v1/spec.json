@@ -1,0 +1,111 @@
+{
+  "name": "Still Point Yoga Users",
+  "artifact": "prd",
+  "section": "Users",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Users for Still Point Yoga (prd): the generic PRD/1 · Users fields plus facts_used, from 7 charter fact(s)",
+  "fields": [
+    {
+      "name": "users",
+      "type": "list[UserGroup]",
+      "required": true,
+      "description": "every user group the charter names (for Still Point Yoga, a prd)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Users",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Users section says who the users are",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "UserGroup",
+      "fields": [
+        {
+          "name": "group",
+          "type": "string",
+          "required": true,
+          "description": "the name of this user group, as the charter names it",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "needs",
+          "type": "string",
+          "required": false,
+          "description": "what this group needs from the product",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "actions",
+          "type": "list[string]",
+          "required": false,
+          "description": "what this group does on the page; empty when this group has no actions in this version",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Users section says who the users are",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "3fea6276279a82562e62c8f0e4a7c02cd6ed258885d5adb9d72cfca49d9bb681",
+  "extends": "prd/users@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-2",
+    "atom": "W-2.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "prd",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Users section says who the users are",
+      "The form sends the booking to bookings@stillpoint.example",
+      "The page has a class booking form with the fields name, email, class and preferred date",
+      "The page must work on phones",
+      "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+      "The weekly class list has five classes, each with day, time and price in rupees"
+    ],
+    "fingerprint": "c6860eebaba05b5bbccde683596239c9cc11cfb6a0c06be829b9c64bb7973e1b"
+  }
+}

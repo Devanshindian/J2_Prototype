@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "goals": {
+      "description": "the goals, G1, G2, ... in order (for Still Point Yoga, a prd)",
+      "items": {
+        "$ref": "#/definitions/Goal"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Goals",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Goals section lists the goals as G1, G2, ...",
+          "The form sends the booking to bookings@stillpoint.example",
+          "The page has a class booking form with the fields name, email, class and preferred date",
+          "The page must work on phones",
+          "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+          "The weekly class list has five classes, each with day, time and price in rupees"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "goals",
+    "assumptions",
+    "facts_used"
+  ],
+  "type": "object",
+  "definitions": {
+    "Goal": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "G1, G2, ... in order",
+          "type": "string"
+        },
+        "statement": {
+          "description": "the goal in one line",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "statement"
+      ],
+      "type": "object"
+    }
+  }
+}

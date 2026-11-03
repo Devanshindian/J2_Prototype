@@ -1,0 +1,435 @@
+{
+  "schema": "template-library/1",
+  "artifact": "lld",
+  "kind": "generic",
+  "version": 1,
+  "from": "j2_artifact_models.SECTION_MODELS and j2_rules.RULES (generated: python3 j2_template_lib.py)",
+  "templates": [
+    {
+      "name": "LLD/1 · Pages and sections",
+      "artifact": "lld",
+      "section": "Pages and sections",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic LLD/1 · Pages and sections template: the fixed layout of every LLD Pages and sections section, whatever the business",
+      "fields": [
+        {
+          "name": "sections",
+          "type": "list[LLDSection]",
+          "required": true,
+          "description": "the page sections, S1, S2, ... in order, each with its anchor and the HLD components it implements",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "LLDSection",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "description": "S1, S2, ... in order",
+              "nullable": false
+            },
+            {
+              "name": "anchor",
+              "type": "string",
+              "required": true,
+              "description": "the id attribute on the page, with the #, e.g. \"#classes\"",
+              "nullable": false
+            },
+            {
+              "name": "page",
+              "type": "string",
+              "required": false,
+              "description": "the page id, e.g. \"P1\"",
+              "nullable": false
+            },
+            {
+              "name": "implements",
+              "type": "list[string]",
+              "required": false,
+              "description": "the HLD component ids this section implements",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "ids_sequential",
+          "path": "sections",
+          "prefix": "S",
+          "name": "ids S1, S2, ... unique and in order",
+          "from": "L2"
+        },
+        {
+          "rule": "anchor_selector",
+          "path": "sections[].anchor",
+          "name": "every section has an anchor",
+          "from": "L2"
+        },
+        {
+          "rule": "ref_exists",
+          "path": "sections[].implements",
+          "target": "hld.components[].id",
+          "required_target": true,
+          "fail_text": "{id} implements {bad}, which is not a component of the HLD",
+          "missing_text": "{id}: the HLD's component ids are not recorded, so Implements can't be checked",
+          "name": "implements points at a component id of the HLD",
+          "from": "L5"
+        }
+      ],
+      "sha": "e01ea3e4ddedf57ff8fbf4ddbda50a44d20491ae7d37fcbbf2139f52c3e89fcb",
+      "schema_sha": "232a764f1cfaaa889afe220af384bf7f39264f6ec77b854285cb85363ff47d7b"
+    },
+    {
+      "name": "LLD/1 · Interactive elements",
+      "artifact": "lld",
+      "section": "Interactive elements",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic LLD/1 · Interactive elements template: the fixed layout of every LLD Interactive elements section, whatever the business",
+      "fields": [
+        {
+          "name": "elements",
+          "type": "list[Element]",
+          "required": true,
+          "description": "every interactive element, E1, E2, ... in order",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "Element",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "description": "E1, E2, ... in order",
+              "nullable": false
+            },
+            {
+              "name": "section",
+              "type": "string",
+              "required": true,
+              "description": "the section id it sits in, e.g. \"S1\"",
+              "nullable": false
+            },
+            {
+              "name": "selector",
+              "type": "string",
+              "required": true,
+              "description": "its selector, e.g. \"#book-now\"",
+              "nullable": false
+            },
+            {
+              "name": "trigger",
+              "type": "string",
+              "required": true,
+              "description": "what the visitor does, e.g. \"click\"",
+              "nullable": false
+            },
+            {
+              "name": "behaviour",
+              "type": "string",
+              "required": true,
+              "description": "what happens then",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "ids_sequential",
+          "path": "elements",
+          "prefix": "E",
+          "name": "ids E1, E2, ... unique and in order",
+          "from": "L2"
+        },
+        {
+          "rule": "not_empty",
+          "path": [
+            "elements[].selector",
+            "elements[].trigger",
+            "elements[].behaviour"
+          ],
+          "name": "every element has a selector, a trigger and a behaviour",
+          "from": "L3"
+        },
+        {
+          "rule": "ref_exists",
+          "path": "elements[].section",
+          "target": "this.sections[].id",
+          "name": "section points at a section id of this document",
+          "from": "L2"
+        }
+      ],
+      "sha": "ff3f7683b66a105a0569775b295bcaa70914d66293ae0ff4d13d9ec93792e319",
+      "schema_sha": "f15bc527a52e362163fce3cf0563719c8659d723a52b6873ce4b46f64ecee357"
+    },
+    {
+      "name": "LLD/1 · Form fields",
+      "artifact": "lld",
+      "section": "Form fields",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic LLD/1 · Form fields template: the fixed layout of every LLD Form fields section, whatever the business",
+      "fields": [
+        {
+          "name": "form_fields",
+          "type": "list[FormField]",
+          "required": true,
+          "description": "every form field, F1, F2, ... in order",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "FormField",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "description": "F1, F2, ... in order",
+              "nullable": false
+            },
+            {
+              "name": "form",
+              "type": "string",
+              "required": true,
+              "description": "the form's selector, e.g. \"#booking\"",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "description": "the field name attribute",
+              "nullable": false
+            },
+            {
+              "name": "type",
+              "type": "string",
+              "required": true,
+              "description": "one of text, email, tel, url, number, date, time, select, textarea, checkbox, radio, password, file",
+              "enum": [
+                "text",
+                "email",
+                "tel",
+                "url",
+                "number",
+                "date",
+                "time",
+                "select",
+                "textarea",
+                "checkbox",
+                "radio",
+                "password",
+                "file"
+              ],
+              "nullable": false
+            },
+            {
+              "name": "required",
+              "type": "boolean",
+              "required": true,
+              "description": "true when the visitor must fill it in",
+              "nullable": false
+            },
+            {
+              "name": "section",
+              "type": "string",
+              "required": false,
+              "description": "the section id the form sits in, e.g. \"S1\"",
+              "nullable": false
+            },
+            {
+              "name": "validation",
+              "type": "string",
+              "required": false,
+              "description": "the validation rule in one line",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "ids_sequential",
+          "path": "form_fields",
+          "prefix": "F",
+          "name": "ids F1, F2, ... unique and in order",
+          "from": "L2"
+        },
+        {
+          "rule": "not_empty",
+          "path": [
+            "form_fields[].name",
+            "form_fields[].type"
+          ],
+          "name": "every field has a name, a type and a required flag",
+          "from": "L4"
+        },
+        {
+          "rule": "enum",
+          "path": "form_fields[].type",
+          "values": [
+            "text",
+            "email",
+            "tel",
+            "url",
+            "number",
+            "date",
+            "time",
+            "select",
+            "textarea",
+            "checkbox",
+            "radio",
+            "password",
+            "file"
+          ],
+          "name": "type is one of text, email, tel, url, ...",
+          "from": "L4"
+        },
+        {
+          "rule": "ref_exists",
+          "path": "form_fields[].section",
+          "target": "this.sections[].id",
+          "name": "section points at a section id of this document",
+          "from": "L2"
+        }
+      ],
+      "sha": "a6b14d0c53675939dddca88b1221814a6a1aa391ab627ca186800c13aa10befe",
+      "schema_sha": "8deb5be1d4805bf198cce529a963231dd126d0e451f2ed515c97057ff316c72a"
+    },
+    {
+      "name": "LLD/1 · File structure",
+      "artifact": "lld",
+      "section": "File structure",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic LLD/1 · File structure template: the fixed layout of every LLD File structure section, whatever the business",
+      "fields": [
+        {
+          "name": "files",
+          "type": "list[FileEntry]",
+          "required": true,
+          "description": "every file of the build",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [
+        {
+          "name": "FileEntry",
+          "fields": [
+            {
+              "name": "path",
+              "type": "string",
+              "required": true,
+              "description": "the file path, e.g. \"index.html\"",
+              "nullable": false
+            },
+            {
+              "name": "purpose",
+              "type": "string",
+              "required": true,
+              "description": "what it holds",
+              "nullable": false
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "rule": "not_empty",
+          "path": [
+            "files[].path",
+            "files[].purpose"
+          ],
+          "name": "every file has a path and a purpose",
+          "from": "L1"
+        }
+      ],
+      "sha": "6e2b9104c414919cbdc206264ce2203cbb23d6e7cba233c8d7110c0528455657",
+      "schema_sha": "3e1d195cc70ecb5a2ab2e737c7c3f85c49cf83e7d47c4035a992c93b6857a1fd"
+    },
+    {
+      "name": "LLD/1 · Responsive and accessibility rules",
+      "artifact": "lld",
+      "section": "Responsive and accessibility rules",
+      "version": 1,
+      "kind": "generic",
+      "description": "The generic LLD/1 · Responsive and accessibility rules template: the fixed layout of every LLD Responsive and accessibility rules section, whatever the business",
+      "fields": [
+        {
+          "name": "responsive_rules",
+          "type": "list[string]",
+          "required": false,
+          "description": "one rule per line",
+          "nullable": false
+        },
+        {
+          "name": "accessibility_rules",
+          "type": "list[string]",
+          "required": false,
+          "description": "one rule per line",
+          "nullable": false
+        },
+        {
+          "name": "assumptions",
+          "type": "list[string]",
+          "required": false,
+          "description": "",
+          "nullable": false
+        }
+      ],
+      "objects": [],
+      "rules": [
+        {
+          "rule": "one_of_present",
+          "path": [
+            "responsive_rules",
+            "accessibility_rules"
+          ],
+          "name": "the rules are given",
+          "from": "L1"
+        }
+      ],
+      "sha": "3241d268e4ffbc1824c123f56e694fbadc87b07069412092131b3be85cd6b874",
+      "schema_sha": "f448d1f126274afb39dbdeb908c65d0d21c70f78f28c12090d6b8030a17789d4"
+    }
+  ]
+}

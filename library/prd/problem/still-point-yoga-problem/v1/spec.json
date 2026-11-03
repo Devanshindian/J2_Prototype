@@ -1,0 +1,81 @@
+{
+  "name": "Still Point Yoga Problem",
+  "artifact": "prd",
+  "section": "Problem",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Problem for Still Point Yoga (prd): the generic PRD/1 · Problem fields plus facts_used, from 7 charter fact(s)",
+  "fields": [
+    {
+      "name": "statement",
+      "type": "string",
+      "required": true,
+      "description": "the problem the product solves, in the charter's own words (for Still Point Yoga, a prd)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "facts you had to assume, each one line (for Still Point Yoga, a prd)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Problem section states the problem Still Point Yoga solves",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Problem section states the problem Still Point Yoga solves",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "0889e3654f52af5628622cb314e43232928d2602fcb0d16526b8f0cf809c1290",
+  "extends": "prd/problem@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-1",
+    "atom": "W-1.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "prd",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Problem section states the problem Still Point Yoga solves",
+      "The form sends the booking to bookings@stillpoint.example",
+      "The page has a class booking form with the fields name, email, class and preferred date",
+      "The page must work on phones",
+      "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+      "The weekly class list has five classes, each with day, time and price in rupees"
+    ],
+    "fingerprint": "7722cb9f4489654aa64c81e8e368884ea1b9535bb10355075b9c8e749c4591fc"
+  }
+}

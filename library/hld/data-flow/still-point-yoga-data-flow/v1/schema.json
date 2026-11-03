@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "data_flows": {
+      "description": "every flow the pages need, including each form (for Still Point Yoga, a hld)",
+      "items": {
+        "$ref": "#/definitions/DataFlow"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Data flow",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Data flow section is written for Still Point Yoga"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "data_flows",
+    "assumptions",
+    "facts_used"
+  ],
+  "type": "object",
+  "definitions": {
+    "DataFlow": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "description": "where the data comes from",
+          "type": "string"
+        },
+        "to": {
+          "description": "where it goes",
+          "type": "string"
+        },
+        "data": {
+          "description": "what is sent",
+          "type": "string"
+        },
+        "trigger": {
+          "description": "what starts it",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "data",
+        "trigger"
+      ],
+      "type": "object"
+    }
+  }
+}

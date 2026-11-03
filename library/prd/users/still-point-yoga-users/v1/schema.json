@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "users": {
+      "description": "every user group the charter names (for Still Point Yoga, a prd)",
+      "items": {
+        "$ref": "#/definitions/UserGroup"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Users",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Users section says who the users are",
+          "The form sends the booking to bookings@stillpoint.example",
+          "The page has a class booking form with the fields name, email, class and preferred date",
+          "The page must work on phones",
+          "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+          "The weekly class list has five classes, each with day, time and price in rupees"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "users"
+  ],
+  "type": "object",
+  "definitions": {
+    "UserGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "group": {
+          "description": "the name of this user group, as the charter names it",
+          "type": "string"
+        },
+        "needs": {
+          "description": "what this group needs from the product",
+          "type": "string"
+        },
+        "actions": {
+          "description": "what this group does on the page; empty when this group has no actions in this version",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "group"
+      ],
+      "type": "object"
+    }
+  }
+}

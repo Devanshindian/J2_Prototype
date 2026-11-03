@@ -1,0 +1,81 @@
+{
+  "name": "Still Point Yoga Out of scope",
+  "artifact": "prd",
+  "section": "Out of scope",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Out of scope for Still Point Yoga (prd): the generic PRD/1 · Out of scope fields plus facts_used, from 7 charter fact(s)",
+  "fields": [
+    {
+      "name": "out_of_scope",
+      "type": "list[string]",
+      "required": true,
+      "description": "what the product will not do, one line each (for Still Point Yoga, a prd)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Out of scope",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Out of scope section says what the product won't do",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Out of scope section says what the product won't do",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "888ae92d6052b2c07308e25a6bc36372b00f4c7c35f03d99adc4cb025bedfa5b",
+  "extends": "prd/out-of-scope@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-6",
+    "atom": "W-6.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "prd",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Out of scope section says what the product won't do",
+      "The form sends the booking to bookings@stillpoint.example",
+      "The page has a class booking form with the fields name, email, class and preferred date",
+      "The page must work on phones",
+      "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+      "The weekly class list has five classes, each with day, time and price in rupees"
+    ],
+    "fingerprint": "7b1f8c3bc6d38b43844f99f91beaeac840500066346497ae106964a7bfa4502b"
+  }
+}

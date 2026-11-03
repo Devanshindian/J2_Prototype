@@ -1,0 +1,104 @@
+{
+  "name": "Still Point Yoga Data flow",
+  "artifact": "hld",
+  "section": "Data flow",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Data flow for Still Point Yoga (hld): the generic HLD/1 · Data flow fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "data_flows",
+      "type": "list[DataFlow]",
+      "required": true,
+      "description": "every flow the pages need, including each form (for Still Point Yoga, a hld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Data flow",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Data flow section is written for Still Point Yoga"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "DataFlow",
+      "fields": [
+        {
+          "name": "from",
+          "type": "string",
+          "required": true,
+          "description": "where the data comes from",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "to",
+          "type": "string",
+          "required": true,
+          "description": "where it goes",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true,
+          "description": "what is sent",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "trigger",
+          "type": "string",
+          "required": true,
+          "description": "what starts it",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Data flow section is written for Still Point Yoga"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "bf59be0b295106ce06efc0b55c01982fcbbd20a8610ba0cd9e52dc399eeba3eb",
+  "extends": "hld/data-flow@generic/1",
+  "made_by": {
+    "run": "j2-20261103-161111-3",
+    "workflow": "W-10",
+    "atom": "W-10.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "hld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Data flow section is written for Still Point Yoga"
+    ],
+    "fingerprint": "a755637e3f215ab901b4d87ce19ff5761edcaf1446fc91a779ca0e0325ccb7d0"
+  }
+}

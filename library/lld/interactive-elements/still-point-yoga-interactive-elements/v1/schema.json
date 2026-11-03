@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "elements": {
+      "description": "every interactive element, E1, E2, ... in order (for Still Point Yoga, a lld)",
+      "items": {
+        "$ref": "#/definitions/Element"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Interactive elements",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Interactive elements section is written for Still Point Yoga"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "elements"
+  ],
+  "type": "object",
+  "definitions": {
+    "Element": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "E1, E2, ... in order",
+          "type": "string"
+        },
+        "section": {
+          "description": "the section id it sits in, e.g. \"S1\"",
+          "type": "string"
+        },
+        "selector": {
+          "description": "its selector, e.g. \"#book-now\"",
+          "type": "string"
+        },
+        "trigger": {
+          "description": "what the visitor does, e.g. \"click\"",
+          "type": "string"
+        },
+        "behaviour": {
+          "description": "what happens then",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "section",
+        "selector",
+        "trigger",
+        "behaviour"
+      ],
+      "type": "object"
+    }
+  }
+}
