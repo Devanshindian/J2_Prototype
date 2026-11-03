@@ -17,7 +17,7 @@
   --wf0:#e0a458;--wf1:#e08c72;--wf2:#9fc08a;--wf3:#c9a2e0;--wf4:#c9a96e;--wf5:#e6c36a;
   --flowin:#e6c36a;--flowout:#c4a6ee;--team:var(--warm1);--art:var(--warm3);--deliv:var(--warm2);
   --paper:#fff;--paperink:#111;--hit:#5a4520;--hitink:#ece6dc;--shadow:rgb(0 0 0 / .45);--scrim:rgb(0 0 0 / .45);--codebg:#11100e;--hlt:#e6c36a;--hls:#9fc08a;--hlc:#8a8174;
-  --mapbg:#191714;
+  --mapbg:#191714;--e-reads:#8fa8c8;--e-makes:var(--warm1);--e-fix:var(--warm2);
   --sky0:#24201b;--sky1:#100f0d;--skyink:#141310;--star:#f3e6c8;--orbit:#c9a96e;--spoke:#8a7a5c;--sun:#ffe3a8;--suntext:#ffe3a8;
   --sec:#b49be8;--sectext:#d6ccf5;--bld:#9fc08a;--bldcore:#eef7e6;--fix:#d9785f;--fixcore:#f0b39f;
   --doc:#c9a96e;--docfill:#2a2520;--eat:#f2b968;--eatfill:#3d2d16;--eattext:#ffd9a0;--badgefill:#2a2015;
@@ -30,7 +30,7 @@
   --wf0:#96571a;--wf1:#a8432c;--wf2:#456e33;--wf3:#8a4a9c;--wf4:#7d6230;--wf5:#7a5d0c;
   --flowin:#80590f;--flowout:#6e52c4;
   --hit:#fbe3b0;--hitink:#2b2620;--shadow:rgb(60 40 20 / .18);--scrim:rgb(40 30 20 / .3);--codebg:#f2ece3;--hlt:#80590f;--hls:#456e33;--hlc:#6b6155;
-  --mapbg:#fbf8f3;
+  --mapbg:#fbf8f3;--e-reads:#4d6a8f;
   --sky0:#fdf9f2;--sky1:#efe6d8;--skyink:#f8f3ea;--star:#7d6230;--orbit:#7d6230;--spoke:#8a7b62;--sun:#d9922f;--suntext:#7a4a10;
   --sec:#6e52c4;--sectext:#5a3fb0;--bld:#456e33;--bldcore:#456e33;--fix:#a8432c;--fixcore:#a8432c;
   --doc:#7d6230;--docfill:#fbf3e4;--eat:#b86a12;--eatfill:#fbe3b0;--eattext:#7a4510;--badgefill:#fbf0dc}
@@ -180,9 +180,9 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .treebox{container-type:inline-size}.treepanel{position:absolute;top:44px;right:10px;width:300px;max-height:calc(100% - 56px);overflow:auto;box-sizing:border-box;margin:0;z-index:5;box-shadow:0 8px 28px var(--shadow)}      /* inside the map card, over its right side */
 @container (max-width:640px){.treepanel{position:static;width:auto;max-height:none;margin-top:8px;box-shadow:none}}
 .treesvg .thide .tlab,.treesvg .thide .tsub{display:none}
-.treesvg{display:block;width:100%;height:clamp(440px,64vh,760px);background:var(--mapbg);border:1px solid var(--line);border-radius:12px;cursor:grab;touch-action:none;font:12px system-ui,sans-serif;user-select:none}.treesvg:active{cursor:grabbing}
+.treesvg{display:block;width:100%;height:clamp(440px,64vh,760px);background:var(--mapdots),radial-gradient(circle at 50% 45%,var(--sky0) 0%,var(--sky1) 75%);border:1px solid var(--line);border-radius:12px;cursor:grab;touch-action:none;font:12px system-ui,sans-serif;user-select:none}.treesvg:active{cursor:grabbing}
 .treesvg .tedge{fill:none;stroke:var(--edge);stroke-width:1.4;transition:opacity .3s}.treesvg .tedge.back{stroke-dasharray:3 3}.treesvg .tedge.hot{opacity:.95;stroke:var(--ink);stroke-width:1.8}
-.treesvg .tnode{cursor:pointer;transition:opacity .3s}.treesvg .tdim{opacity:.2}.treesvg .tlab{fill:var(--ink);font-size:13px;paint-order:stroke;stroke:var(--mapbg);stroke-width:6px;stroke-linejoin:round}.treesvg .tsub{fill:var(--muted);font-size:11px;paint-order:stroke;stroke:var(--mapbg);stroke-width:6px;stroke-linejoin:round}.treesvg .tglyph{fill:var(--muted)}.treesvg .tstage .tglyph,.treesvg .twf .tglyph{fill:var(--team)}.treesvg .tglyphl{fill:none;stroke:var(--muted);stroke-width:1.2}
+.treesvg .tnode{cursor:pointer;transition:opacity .3s}.treesvg .tdim{opacity:.2}.treesvg .tlab{fill:var(--ink);font-size:13px;paint-order:stroke;stroke:var(--skyink);stroke-width:6px;stroke-linejoin:round}.treesvg .tsub{fill:var(--muted);font-size:11px;paint-order:stroke;stroke:var(--skyink);stroke-width:6px;stroke-linejoin:round}.treesvg .tglyph{fill:var(--muted)}.treesvg .tstage .tglyph,.treesvg .twf .tglyph{fill:var(--team)}.treesvg .tglyphl{fill:none;stroke:var(--muted);stroke-width:1.2}
 .treesvg .tnode:hover .tdot,.treesvg .tnode:focus-visible .tdot,.treesvg .tnode.sel .tdot{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--warm1) 60%,transparent))}.treesvg .tnode:focus{outline:none}
 .treesvg .tgone{display:none}
 /* solar system: a sky, faint orbits, a glowing sun; sections purple diamonds, builders sage and fixes terracotta glowing dots, inputs sand documents
@@ -200,7 +200,7 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .consvg .cbadge{fill:var(--badgefill);stroke:var(--fix);stroke-dasharray:3 2}.consvg .cdoc{fill:var(--docfill);stroke:var(--doc);stroke-width:1.6;stroke-linejoin:round}.consvg .chit{fill:transparent}
 .consvg .cnode{cursor:pointer;transition:opacity .35s}.consvg .cnode:focus{outline:none}.consvg .cnode:focus-visible .chit{stroke:var(--accent);stroke-width:1.5}
 .consvg .chalo{fill:none;stroke:var(--eat);stroke-width:2;opacity:0}.consvg .eat .chalo{opacity:1;animation:cpulse 1.6s ease-in-out infinite}.consvg .eat .cdoc{stroke:var(--eat);stroke-width:2.5;fill:var(--eatfill)}.consvg .eat text{fill:var(--eattext)!important;font-weight:700}
-@keyframes cpulse{50%{opacity:.35}}.consvg.focusing .far{opacity:.1}.consvg.focusing .cline:not(.lit){opacity:.06}
+@keyframes cpulse{50%{opacity:.35}}.consvg.focusing .far{opacity:.1}.consvg.focusing .cline:not(.lit){opacity:.25}
 @media (prefers-reduced-motion:reduce){.consvg .cline,.consvg .eat .chalo{animation:none}}
 .consvg.quiet .ctext{opacity:0}.consvg.quiet .cnode:hover .ctext,.consvg.quiet .cnode:focus-visible .ctext,.consvg.quiet.focusing .lit .ctext{opacity:1}
 .conspanel{position:absolute;right:12px;top:12px;width:270px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;background:color-mix(in srgb,var(--panel) 93%,transparent);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--ink)}
@@ -213,7 +213,7 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .treesvg .fedge{stroke-width:1.4}.treesvg .fedge.readby{stroke-dasharray:4 3}
 
 @media (prefers-reduced-motion: reduce){.treesvg .tnode,.treesvg .tedge{transition:none}}
-.mapsvg{background:var(--panel);border:1px solid var(--line);border-radius:12px}.mapsvg .rowlab{text-transform:uppercase}.mapsvg .mapnode:focus{outline:none}.mapsvg .mapnode:focus-visible circle:first-of-type{stroke-width:3}
+.mapsvg{background:var(--mapdots),radial-gradient(circle at 50% 45%,var(--sky0) 0%,var(--sky1) 75%);border:1px solid var(--line);border-radius:12px}.mapsvg .rowlab{text-transform:uppercase}.mapsvg .mapnode:focus{outline:none}.mapsvg .mapnode:focus-visible circle:first-of-type{stroke-width:3}
 .mappanel{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0;background:var(--panel)}.mappanelhead{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:4px}.mappanel .sub{color:var(--muted);font-size:13px;margin:2px 0}
 /* ---- Home: Needs you strip, Map, Chat docked right. The rail has Map, Chat and one Internals folder. */
 .needs{margin:var(--gut) var(--gut) 12px;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
@@ -288,6 +288,10 @@ body.simple .rail.tabs button[aria-selected="true"]{color:var(--muted);backgroun
 .sfoot{font-size:12.5px;margin:10px 0 0}
 @media (max-width:700px){.storyflow{display:block;overflow:visible}.sstep{margin:0 0 8px}.sstep+.sstep::before{content:"\2193";left:50%;top:-11px;transform:translateX(-50%)}}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.seg button{background:none;border:0;color:var(--muted);padding:6px 14px;font:inherit}.seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--vio) 16%,transparent);color:var(--ink);font-weight:600}.seg button:focus-visible{outline:2px solid var(--vio);outline-offset:-2px}
+.treesvg .tnode,.consvg .cnode,.mapsvg .mapnode{-webkit-tap-highlight-color:transparent}
+.mapreset{display:block;margin:8px auto 0;padding:3px 14px;border:1px solid var(--line);border-radius:99px;background:var(--panel);color:var(--muted);font-size:12px}
+.mapreset:not(:disabled):hover,.mapreset:focus-visible{color:var(--ink);border-color:var(--accent)}.mapreset:disabled{opacity:.55;cursor:default}
+.dlhit,.dlhit>td{background:color-mix(in srgb,var(--accent) 14%,transparent)!important}.dlhit{outline:2px solid var(--accent);outline-offset:-2px}
 .artgroup{margin:0 0 16px}#dview .arthead,.arthead{font:600 11px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}.artcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .artcard .artrow{display:flex;align-items:center;gap:12px;padding:10px 14px;margin:0;border:0;border-bottom:1px solid var(--line);border-radius:0}.artcard>.artrow:last-child{border-bottom:0}.artdot{width:9px;height:9px;border-radius:2px;flex:none}
 .artwho{min-width:0;display:flex;flex-direction:column}.artby{color:var(--muted);font-size:13px}.artr{margin-left:auto;display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--muted);white-space:nowrap}
@@ -297,6 +301,15 @@ body.simple .rail.tabs button[aria-selected="true"]{color:var(--muted);backgroun
 .artshots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:0 14px 14px}.artshot{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;color:var(--muted);background:var(--panel2);text-align:left}
 .artshot img{display:block;width:100%;height:80px;object-fit:cover;object-position:top;border-radius:5px;margin-bottom:6px;background:var(--node)}.artshot[aria-expanded="true"]{border-color:var(--accent)}
 .runset .appear{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+/* the maps' sky (every view, as the sun's): a warm radial gradient and faint scattered dots, from the theme's tokens */
+:root{--mapdots:radial-gradient(circle at 13px 17px,color-mix(in srgb,var(--star) 22%,transparent) .8px,transparent 1.3px) 0 0/53px 47px,radial-gradient(circle at 31px 7px,color-mix(in srgb,var(--star) 16%,transparent) .6px,transparent 1.1px) 0 0/71px 61px}
+/* edges, every map view: one style (edgeMount draws them): a soft 1.4px curve with a gradient from source to target and a rounded arrowhead at the target;
+   reads blue, makes amber, fixes terracotta, a read-back loop dashed; 2.4px at full strength on hover or focus while the others fade to a quarter */
+svg path[data-edge]{fill:none;stroke-width:1.4px!important;stroke-linecap:round;stroke-dasharray:none!important;animation:none!important;transition:opacity .25s,stroke-width .25s}
+svg path[data-edge].loop{stroke-dasharray:4 4!important}
+svg.ehot path[data-edge]:not(.hot),svg path[data-edge].dim{opacity:.25!important}
+svg path[data-edge].hot,svg.focusing path[data-edge].lit{opacity:1!important;stroke-width:2.4px!important}
+.earr{stroke-width:1;stroke-linejoin:round}.earr.e-reads{fill:var(--e-reads);stroke:var(--e-reads)}.earr.e-makes{fill:var(--e-makes);stroke:var(--e-makes)}.earr.e-fix{fill:var(--e-fix);stroke:var(--e-fix)}
 /* idle drift (Motion): a pixel or so, each node on its own phase; the spring keeps the slot */
 @keyframes mdrift{0%,100%{translate:0 0}33%{translate:1px -.6px}66%{translate:-.7px .8px}}
 .treesvg .tnodes>.tnode,.consvg .cnodes>.cnode,.mapsvg .mapnode{animation:mdrift 9s ease-in-out infinite}.treesvg .tnodes>.tnode:nth-child(3n+1),.consvg .cnodes>.cnode:nth-child(3n+1),.mapsvg .mapnode:nth-child(3n+1){animation-delay:-3s}
@@ -868,7 +881,7 @@ function renderWorkflows(s){ return renderPlanView(s) + renderWorkflowsTable(s);
 function renderWorkflowsTable(s){
   const pct = Math.min(100, s.spent / s.budget * 100);
   const tags = Object.fromEntries(s.workflows.map(w => [w.id, outTags(s, w)])), shown = s.workflows.filter(w => (!OTAG || tags[w.id].some(t => t.type === OTAG)) && (!WFSTEP.length || WFSTEP.includes(w.id)));
-  const rows = shown.map(w => `<tr><td>${w.id}</td><td style="color:${col(w.id)}"><b>${esc(w.agent || who(w.id)[0])}</b><br><span class="empty">section ${esc(w.section || "")}${w.revises ? " (rewrites " + esc(w.revises) + "'s)" : ""}</span><br>${tagsHTML(tags[w.id])}</td>
+  const rows = shown.map(w => `<tr data-wfrow="${esc(w.id)}"><td>${w.id}</td><td style="color:${col(w.id)}"><b>${esc(w.agent || who(w.id)[0])}</b><br><span class="empty">section ${esc(w.section || "")}${w.revises ? " (rewrites " + esc(w.revises) + "'s)" : ""}</span><br>${tagsHTML(tags[w.id])}</td>
     <td>${w.cost}${w.charged === false ? '<br><span class="empty">released</span>' : ""}</td>
     <td>${envCell(w)}</td><td>${w.cycle}</td><td><span class="pill ${w.status}">${w.status}${w.send_error ? ` (${esc(w.send_error)})` : ""}</span></td></tr>
     <tr><td colspan="7"><details data-key="wf-${esc(w.id)}"><summary>Open ${esc(w.id)}: ${(w.atoms || []).length} work atom(s)</summary><div class="wtags">Made: ${tagsHTML(tags[w.id])}</div>${atomCards(s, w)}</details></td></tr>`).join("");
@@ -1468,7 +1481,7 @@ function artNode(x, g){
     x.rewritten ? `rewritten by ${x.rewritten.by} · ${x.rewritten.name}` : "", x.note].filter(Boolean).map(esc)].join(" · ");
   const btn = x.code ? `<button type="button" class="linkbtn" data-artcode="${esc(ck)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`
     : x.file ? (big ? `<span class="empty">too large to open here</span>` : `<button type="button" class="linkbtn" data-artopen="${esc(x.file)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`) : "";
-  return `<div class="artrow" data-art="${esc(x.file || x.name)}"><span class="artdot" style="background:var(${ARTDOT[g]})"></span><div class="artwho"><b>${esc(x.name)}</b><span class="artby">${by}</span></div>`
+  return `<div class="artrow" data-art="${esc(x.file || x.name)}"${x.node ? ` data-node="${esc(x.node)}"` : ""}${x.code && x.code.section ? ` data-sec="${esc(x.code.deck)}|${esc(x.code.section)}"` : ""}><span class="artdot" style="background:var(${ARTDOT[g]})"></span><div class="artwho"><b>${esc(x.name)}</b><span class="artby">${by}</span></div>`
     + `<span class="artr">${artTag(auditWord(x, CTX) || x.status || "")}${btn}</span></div>` + artBody(x, open, ck) + (kids.length ? `<div class="artsub">${kids.map(k => artNode(k, g)).join("")}</div>` : "");
 }
 const renderArtTree = t => t.groups.map(g => `<section class="artgroup" data-group="${esc(g.id)}"><h3 class="arthead">${esc(g.label)} <span class="artcount">${g.count}</span></h3><div class="artcard">`
@@ -1896,10 +1909,70 @@ function treeHtml(m, other){      // other: the panel of a deliverable picked on
 }
 // Tree view at run time: pan and zoom (d3-zoom), the 300 ms move of a stage to the middle and back, and the clicks. renderMap draws
 // the state in TREE; these only animate between two drawn states and then repaint.
-// ---- Motion, every map view (Tree, Line, a team, a sun). Each node is held to its computed slot by a spring: d3-force with a strong forceX / forceY to the slot and a
-// light collision, never a free layout. A drag stretches a node and its lines and a release springs it back; hover pulls its neighbours in a little and eases the rest
-// away; a new view or focus springs each node in from where it stood, with a small overshoot; at rest the nodes drift by about a pixel (CSS). When the spring settles
-// every node is put exactly on its slot, so the resting picture is the static layout. Reduced motion: no drift, no overshoot, every node lands at once.
+// ---- Edges, every map view (Tree, Line, a team, a sun): one style, worked out on the drawn page so every view is the same. Each edge is one smooth bend, a cubic
+// from border to border: its bow grows with its length (a short edge is nearly straight) and turns to whichever side clears every node and every label; the edges
+// into one node come in at even angles; a rounded arrowhead (about 6px) sits at the target's border; reads blue, makes amber, fixes terracotta, with a light
+// gradient from source to target; an edge with one running back the other way (a read-back loop) is dashed.
+const EDGEV = [["treesvg", ".tnodes > .tnode", ".tedge"], ["consvg", ".cnodes > .cnode", ".cline"], ["mapsvg", ".mapnode", ".mapedge, .mapln"]];
+let EDGEUID = 0;
+function edgeKind(svg, e){
+  const c = e.classList;
+  if (c.contains("fix") || c.contains("more")) return "fix";
+  if (c.contains("made") || c.contains("makes") || c.contains("spoke") || c.contains("given")) return "makes";
+  if (c.contains("mapedge") || c.contains("mapln")){ const by = mapById(MAP), a = by[e.dataset.from], b = by[e.dataset.to]; if (a && a.kind === "engine" && b && b.kind !== "engine") return "makes"; }
+  return "reads";
+}
+function edgeMount(svg){      // once a drawing: the arrowheads, then the routes (edgeRoute again after a node is dropped somewhere new)
+  if (!svg || svg.__edged || !svg.getClientRects().length || !svg.getBBox) return; const v = EDGEV.find(x => svg.classList.contains(x[0])); if (!v) return; svg.__edged = ++EDGEUID;
+  let defs = svg.querySelector(":scope > defs"); if (!defs){ defs = document.createElementNS("http://www.w3.org/2000/svg", "defs"); svg.insertBefore(defs, svg.firstChild); }
+  defs.insertAdjacentHTML("beforeend", ["reads", "makes", "fix"].map(k => `<marker id="ea-${k}-${svg.__edged}" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto"><path class="earr e-${k}" d="M1.4 1.4 L7.2 4 L1.4 6.6 Q2.4 4 1.4 1.4 Z"/></marker>`).join(""));
+  edgeRoute(svg);
+}
+function edgeRoute(svg){
+  const v = EDGEV.find(x => svg.classList.contains(x[0])), uid = svg.__edged, quiet = svg.classList.contains("quiet"), shown = el => el.getClientRects().length > 0;
+  const off = el => { const m = /translate\(([-\d.e]+)[ ,]+([-\d.e]+)\)/.exec(el.getAttribute("transform") || ""); return m ? [+m[1], +m[2]] : [0, 0]; };
+  const bb = (el, o) => { const b = el.getBBox(); return [b.x + o[0], b.y + o[1], b.x + b.width + o[0], b.y + b.height + o[1]]; };
+  const nodes = {};
+  svg.querySelectorAll(v[1]).forEach(g => { const o = off(g), sh = [...g.querySelectorAll(".tdot, .ccore, .cdia, .cwf, .cdoc, .cbadge, .shape")].filter(shown).map(x => bb(x, o)); if (!sh.length) return;
+    const b = [Math.min(...sh.map(q => q[0])), Math.min(...sh.map(q => q[1])), Math.max(...sh.map(q => q[2])), Math.max(...sh.map(q => q[3]))];
+    const texts = quiet ? [] : [...g.querySelectorAll("text")].filter(t => shown(t) && t.textContent.trim()).map(t => bb(t, o));
+    const u = texts.reduce((q, t) => [Math.min(q[0], t[0]), Math.min(q[1], t[1]), Math.max(q[2], t[2]), Math.max(q[3], t[3])], b);      // the node with its words
+    nodes[g.dataset.cid || g.dataset.id] = {b, u, c: [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], hw: (b[2] - b[0]) / 2, hh: (b[3] - b[1]) / 2, round: !!g.querySelector("circle.tdot, .ccore, .cwf, circle.shape, .cbadge"), texts}; });
+  const obst = Object.entries(nodes).flatMap(([id, n]) => [[id, n.b], ...n.texts.map(t => [id, t])]);
+  const leave = (n, th, gap) => { const c = Math.cos(th), s = Math.sin(th), t = Math.min(c > 0 ? (n.u[2] - n.c[0]) / c : c < 0 ? (n.u[0] - n.c[0]) / c : 1e9, s > 0 ? (n.u[3] - n.c[1]) / s : s < 0 ? (n.u[1] - n.c[1]) / s : 1e9) + gap; return [n.c[0] + c * t, n.c[1] + s * t]; };      // out past its own words
+  const edge = (n, th, gap) => { const r = n.round ? Math.max(n.hw, n.hh) : null, o = r ? {x: r * Math.cos(th), y: r * Math.sin(th)} : rayRect(n.hw, n.hh, th); return [n.c[0] + o.x + gap * Math.cos(th), n.c[1] + o.y + gap * Math.sin(th)]; };
+  const es = [...svg.querySelectorAll(v[2])].filter(shown).map(e => ({e, from: e.dataset.from, to: e.dataset.to, a: nodes[e.dataset.from], b: nodes[e.dataset.to]})).filter(x => x.a && x.b && x.a !== x.b);
+  const pairs = new Set(es.map(x => x.from + "\u0001" + x.to));
+  // fan-in: the edges into one node come in at least 16° apart, round the way they would come by themselves
+  const into = {}; es.forEach(x => { x.th = Math.atan2(x.a.c[1] - x.b.c[1], x.a.c[0] - x.b.c[0]); (into[x.to] = into[x.to] || []).push(x); });
+  Object.values(into).forEach(list => { if (list.length < 2) return; list.sort((p, q) => p.th - q.th); const D = Math.min(16 * Math.PI / 180, 2 * Math.PI / list.length), want = list.map(x => x.th);
+    for (let i = 1; i < list.length; i++) list[i].th = Math.max(list[i].th, list[i - 1].th + D); const shift = (list[list.length - 1].th - want[want.length - 1] + list[0].th - want[0]) / 2; list.forEach(x => { x.th -= shift; }); });
+  const cubic = (P, c1, c2, Q, k) => [...Array(k + 1)].map((_, i) => { const u = i / k, w = 1 - u; return [w * w * w * P[0] + 3 * w * w * u * c1[0] + 3 * w * u * u * c2[0] + u * u * u * Q[0], w * w * w * P[1] + 3 * w * w * u * c1[1] + 3 * w * u * u * c2[1] + u * u * u * Q[1]]; });
+  const hits = pts => pts.slice(2, -2).reduce((s, [x, y]) => s + obst.filter(([, b]) => x > b[0] - 1.5 && x < b[2] + 1.5 && y > b[1] - 1.5 && y < b[3] + 1.5).length, 0);      // with a little room round every box
+  const defs = svg.querySelector(":scope > defs"); let html = "";
+  es.forEach((x, i) => {
+    const A = x.a.c, B = x.b.c, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, side = x.from < x.to ? 1 : -1;
+    let best = null;
+    // the plainest first: the bow alone, then a turned arrival, then a turned departure (round a label under the node it leaves)
+    const tries = []; [0, 1].forEach(w => [0, 0.6, -0.6, 1.2, -1.2, 1.7, -1.7].forEach((ds, i) => [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1, 1.6, -1.6, 2.1, -2.1, 2.6, -2.6].forEach((dt, j) => [0.1, -0.1, 0.2, -0.2, 0.32, -0.32, 0.04, -0.04, 0.5, -0.5, 0.75, -0.75].forEach((f, k) => [1 / 3, 0.6, 0.9, 1.3].forEach((g, l) => tries.push([w * 100 + i + j + k / 4 + l * 2, w, ds, dt, f, g]))))));
+    tries.sort((p, q) => p[0] - q[0]);      // leaving past its own words only when nothing from its border is clear; round a label at the far end by a wider arrival
+    for (const [, w, ds, dt, f, g] of tries){
+      const h = f * side * L, th = x.th + dt, Q = edge(x.b, th, 2), c2 = [Q[0] + Math.cos(th) * L * g, Q[1] + Math.sin(th) * L * g];
+      const ts = Math.atan2(dy + ny * h * 3, dx + nx * h * 3) + ds, P = w ? leave(x.a, ts, 3) : edge(x.a, ts, 1.5), c1 = [P[0] + Math.cos(ts) * L * g, P[1] + Math.sin(ts) * L * g], pts = cubic(P, c1, c2, Q, Math.min(400, Math.max(24, Math.ceil((Math.hypot(c1[0] - P[0], c1[1] - P[1]) + Math.hypot(c2[0] - c1[0], c2[1] - c1[1]) + Math.hypot(Q[0] - c2[0], Q[1] - c2[1])) / 3)))), n = hits(pts);      // a point every 3px or so
+      if (!best || n < best.n) best = {n, P, c1, c2, Q}; if (!n) break; }
+    const r = q => q.map(tRd), {P, c1, c2, Q} = best, kind = edgeKind(svg, x.e), id = x.e.dataset.grad || `eg-${uid}-${i}`, gr = x.e.dataset.grad && defs.querySelector(`#${id}`);
+    x.e.setAttribute("d", `M${r(P).join(" ")} C${r(c1).join(" ")} ${r(c2).join(" ")} ${r(Q).join(" ")}`); x.e.dataset.grad = id;
+    if (gr) [["x1", P[0]], ["y1", P[1]], ["x2", Q[0]], ["y2", Q[1]]].forEach(([k, val]) => gr.setAttribute(k, tRd(val)));      // a route again: its gradient follows
+    else html += `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${tRd(P[0])}" y1="${tRd(P[1])}" x2="${tRd(Q[0])}" y2="${tRd(Q[1])}"><stop offset="0" style="stop-color:var(--e-${kind});stop-opacity:.82"/><stop offset="1" style="stop-color:var(--e-${kind})"/></linearGradient>`;
+    x.e.style.stroke = `url(#${id})`; x.e.setAttribute("marker-end", `url(#ea-${kind}-${uid})`); x.e.dataset.edge = kind; x.e.classList.add("e-" + kind);
+    x.e.classList.toggle("loop", x.e.classList.contains("back") || pairs.has(x.to + "\u0001" + x.from)); x.e.dataset.clear = best.n ? "0" : "1"; });
+  if (html) defs.insertAdjacentHTML("beforeend", html);
+}
+// ---- Motion, every map view (Tree, Line, a team, a sun). Each node is held to its place by a spring (d3-force: a strong forceX / forceY to it), never a free
+// layout: its place is its computed slot, or where the viewer dropped it. A drag moves only that node, its lines and words following live; let go, it stays there
+// (pinned, kept per viewer, run and view) and the lines route again round the new picture; "Reset layout" glides every node home and forgets the pins. Hover pulls
+// its neighbours in a little and eases the rest away (not while dragging); a new view or focus springs each node in from where it stood, with a small overshoot;
+// at rest the nodes drift by about a pixel (CSS). Settled, every node sits exactly on its place. Reduced motion: no drift, no overshoot, no glide, all at once.
 const MOTION = {k: 0.18, decay: 0.4, near: 6, away: 3, frames: []},      // spring and friction: about 5% overshoot, settled in about 30 frames
   MVIEWS = [{svg: "treesvg", node: ".tnodes > .tnode", edge: ".tedge", abs: true, cls: "tmoving"}, {svg: "consvg", node: ".cnodes > .cnode", edge: ".cline", abs: true, cls: "cmoving"},
     {svg: "mapsvg", node: ".mapnode", edge: ".mapedge, .mapln", abs: false, cls: "mmoving"}];
@@ -1912,29 +1985,62 @@ function motionPath(d){      // a path's points (absolute commands), each as the
 const motionD = (P, a, b) => { const t = P.t.slice(), m = P.pts.length - 1;      // the path with its start moved by a, its end by b and every point between by its share
   P.pts.forEach(([i, j], q) => { const u = m > 0 ? q / m : 0; if (i >= 0) t[i] = tRd(+t[i] + a[0] + (b[0] - a[0]) * u); if (j >= 0) t[j] = tRd(+t[j] + a[1] + (b[1] - a[1]) * u); });
   return t.join(" ").replace(/ ?([A-Za-z]) ?/g, "$1"); };
+const motionKey = svg => { const v = svg.classList.contains("treesvg") ? "tree" + (TREE.focus ? ":" + TREE.focus : "") : svg.classList.contains("consvg") ? `c:${svg.dataset.kind}:${svg.dataset.cons}`
+  : "line:" + (svg.classList.contains("mapvert") ? "v" : "h"); return `j2pos:${(typeof viewRun !== "undefined" && viewRun) || "live"}:${v}`; };      // per viewer, run and view
+function motionPins(svg){ try { return JSON.parse(localStorage.getItem(motionKey(svg)) || "{}") || {}; } catch (e) { return {}; } }
+function motionSave(M){ const pins = Object.fromEntries(M.nodes.filter(n => n.px != null).map(n => [n.id, [tRd(n.px), tRd(n.py)]]));
+  try { if (Object.keys(pins).length) localStorage.setItem(motionKey(M.svg), JSON.stringify(pins)); else localStorage.removeItem(motionKey(M.svg)); } catch (e) {} motionButton(M); }
+const motionHome = n => [n.px != null ? n.px : n.hx, n.py != null ? n.py : n.hy];      // its place: where it was dropped, else its slot
 function motionOf(svg){
-  if (svg.__m) return svg.__m; const v = MVIEWS.find(x => svg.classList.contains(x.svg)); if (!v || typeof d3 === "undefined" || !d3.forceSimulation || !svg.getClientRects().length) return null;
+  if (svg.__m) return svg.__m; const v = MVIEWS.find(x => svg.classList.contains(x.svg)); if (!v || typeof d3 === "undefined" || !d3.forceSimulation || !svg.getClientRects().length) return null; edgeMount(svg);
   const nodes = [...svg.querySelectorAll(v.node)].map(el => { const s = v.svg === "treesvg" ? [+el.dataset.ax, +el.dataset.ay] : v.abs ? [+el.dataset.x, +el.dataset.y] : (b => [b.x + b.width / 2, b.y + b.height / 2])(el.getBBox());      // the slot (a Line node: its middle)
-    return {el, id: el.dataset.cid || el.dataset.id, sx: s[0], sy: s[1], x: s[0], y: s[1], tx: s[0], ty: s[1]}; });
+    return {el, id: el.dataset.cid || el.dataset.id, hx: s[0], hy: s[1], ex: s[0], ey: s[1], x: s[0], y: s[1], tx: s[0], ty: s[1]}; });      // ex, ey: where it stood when its lines were routed
   const by = Object.fromEntries(nodes.map(n => [n.id, n])), nb = {};
   const edges = [...svg.querySelectorAll(v.edge)].filter(e => by[e.dataset.from] || by[e.dataset.to]).map(e => { [[e.dataset.from, e.dataset.to], [e.dataset.to, e.dataset.from]].forEach(([a, b]) => { (nb[a] = nb[a] || new Set()).add(b); });
     return {el: e, d0: e.getAttribute("d"), P: motionPath(e.getAttribute("d")), a: by[e.dataset.from], b: by[e.dataset.to]}; });
-  const sim = d3.forceSimulation(nodes).alphaDecay(0).velocityDecay(MOTION.decay).force("x", d3.forceX(n => n.tx).strength(MOTION.k)).force("y", d3.forceY(n => n.ty).strength(MOTION.k))
-    .force("c", d3.forceCollide(6).strength(0.1)).stop();
+  const sim = d3.forceSimulation(nodes).alphaDecay(0).velocityDecay(MOTION.decay).force("x", d3.forceX(n => n.tx).strength(MOTION.k)).force("y", d3.forceY(n => n.ty).strength(MOTION.k)).stop();
   const M = svg.__m = {svg, v, nodes, by, nb, edges, sim, ticks: 0};
-  nodes.forEach(n => d3.select(n.el).call(d3.drag().clickDistance(4).subject(() => ({x: n.x, y: n.y}))      // a drag stretches the node and its lines; let go, it springs back
-    .on("start", () => { n.fx = n.x; n.fy = n.y; }).on("drag", e => { n.fx = e.x; n.fy = e.y; motionGo(M); }).on("end", () => { n.fx = n.fy = null; motionGo(M); })));
+  const pins = motionPins(svg); let any = false;
+  Object.entries(pins).forEach(([id, p]) => { const n = by[id]; if (n && Array.isArray(p)){ n.px = n.x = n.tx = +p[0]; n.py = n.y = n.ty = +p[1]; any = true; } });
+  if (any){ motionDraw(M); motionRoute(M); }
+  nodes.forEach(n => d3.select(n.el).call(d3.drag().clickDistance(4).touchable(() => true).subject(() => ({x: n.x, y: n.y}))      // a move of more than 4px is a drag: no click, no focus; a finger too
+    .on("start", e => { const se = e.sourceEvent; if (se && se.type === "mousedown") se.preventDefault(); M.drag = {n, x: n.x, y: n.y, moved: false};
+      M.loop = false; M.nodes.forEach(m => { [m.tx, m.ty] = motionHome(m); if (m !== n){ m.x = m.tx; m.y = m.ty; m.vx = m.vy = 0; } }); motionDraw(M); })      // the others stand still on their places
+    .on("drag", e => { const d = M.drag; if (!d) return; if (!d.moved && Math.hypot(e.x - d.x, e.y - d.y) <= 4) return; d.moved = true; M.loop = false; n.x = n.tx = e.x; n.y = n.ty = e.y; motionDraw(M); })
+    .on("end", () => { const d = M.drag; M.drag = null; if (!d || !d.moved) return; n.px = n.tx = n.x; n.py = n.ty = n.y; n.vx = n.vy = 0; motionDraw(M); motionRoute(M); motionSave(M); })));
+  nodes.forEach(n => n.el.style.removeProperty("-webkit-tap-highlight-color"));      // (d3 writes it inline; the stylesheet has it)
+  motionButton(M);
   return M;
 }
+function motionRoute(M){      // the lines routed again round the nodes where they now stand
+  edgeRoute(M.svg); M.edges.forEach(e => { e.d0 = e.el.getAttribute("d"); e.P = motionPath(e.d0); }); M.nodes.forEach(n => { n.ex = n.x; n.ey = n.y; });
+}
+function motionButton(M){ const b = M.svg.closest(".mapsvgwrap, .consbox") && motionResetBtn(M.svg); if (b) b.disabled = !M.nodes.some(n => n.px != null); }
+function motionResetBtn(svg){      // "Reset layout", under the drawing, middle; one for the view on show
+  const box = svg.closest(".consbox") || svg.closest(".mapsvgwrap"); if (!box) return null; let b = box.parentElement.querySelector(":scope > .mapreset");
+  if (!b){ b = document.createElement("button"); b.type = "button"; b.className = "mapreset"; b.dataset.mapreset = ""; b.textContent = "Reset layout"; b.title = "Put every node back where the map placed it"; box.insertAdjacentElement("afterend", b); }
+  return b;
+}
+function motionReset(svg){      // every node home in 300 ms (at once with reduced motion), the saved places forgotten
+  const M = svg && motionOf(svg); if (!M) return; M.loop = false; const from = M.nodes.map(n => [n.x, n.y]);
+  M.nodes.forEach(n => { delete n.px; delete n.py; n.tx = n.hx; n.ty = n.hy; n.vx = n.vy = 0; }); motionSave(M);
+  const done = () => { M.nodes.forEach(n => { n.x = n.hx; n.y = n.hy; }); motionDraw(M); motionRoute(M); M.svg.dataset.settled = "1"; M.svg.classList.remove(M.v.cls); };
+  if (treeReduce()) return done();
+  const id = M.glide = (M.glide || 0) + 1, t0 = performance.now(); M.svg.dataset.settled = "0"; M.svg.classList.add(M.v.cls);
+  const step = () => { if (M.glide !== id || !M.svg.isConnected) return; const u = Math.min(1, (performance.now() - t0) / 300), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    M.nodes.forEach((n, i) => { n.x = from[i][0] + (n.hx - from[i][0]) * e; n.y = from[i][1] + (n.hy - from[i][1]) * e; }); motionDraw(M); if (u < 1) motionNext(step); else done(); };
+  motionNext(step);
+}
+const motionNext = f => { let ran = false; const go = () => { if (!ran){ ran = true; f(); } }; requestAnimationFrame(go); setTimeout(go, 20); };      // the next frame, or 20 ms where a tab draws none
 function motionDraw(M){
   M.nodes.forEach(n => { const x = tRd(n.x), y = tRd(n.y);
-    if (M.v.abs) n.el.setAttribute("transform", `translate(${x},${y})`); else if (x === tRd(n.sx) && y === tRd(n.sy)) n.el.removeAttribute("transform"); else n.el.setAttribute("transform", `translate(${tRd(n.x - n.sx)},${tRd(n.y - n.sy)})`); });
-  M.edges.forEach(e => { const o = q => q ? [q.x - q.sx, q.y - q.sy] : [0, 0], a = o(e.a), b = o(e.b); e.el.setAttribute("d", Math.max(...a.map(Math.abs), ...b.map(Math.abs)) < 0.05 ? e.d0 : motionD(e.P, a, b)); });
+    if (M.v.abs) n.el.setAttribute("transform", `translate(${x},${y})`); else if (x === tRd(n.hx) && y === tRd(n.hy)) n.el.removeAttribute("transform"); else n.el.setAttribute("transform", `translate(${tRd(n.x - n.hx)},${tRd(n.y - n.hy)})`); });
+  M.edges.forEach(e => { const o = q => q ? [q.x - q.ex, q.y - q.ey] : [0, 0], a = o(e.a), b = o(e.b); e.el.setAttribute("d", Math.max(...a.map(Math.abs), ...b.map(Math.abs)) < 0.05 ? e.d0 : motionD(e.P, a, b)); });
 }
 function motionTick(M){      // one frame: the spring steps, the nodes and their lines are drawn; the frame's own time is kept (MOTION.frames)
   const t0 = performance.now(); M.ticks++; M.sim.tick(); motionDraw(M);
   M.nodes.forEach(n => { n.still = Math.hypot(n.vx, n.vy) < 0.05 ? (n.still || 0) + 1 : 0; });      // still for five frames (not the top of a swing): then exactly on the slots
-  if (M.nodes.every(n => n.fx == null && (Math.hypot(n.x - n.tx, n.y - n.ty) < 0.5 && n.still > 0 || n.still >= 5)) || M.ticks > 400) motionRest(M);
+  if (M.nodes.every(n => (Math.hypot(n.x - n.tx, n.y - n.ty) < 0.5 && n.still > 0 || n.still >= 5)) || M.ticks > 400) motionRest(M);
   MOTION.frames.push(performance.now() - t0); if (MOTION.frames.length > 600) MOTION.frames.shift();
 }
 function motionLoop(M){      // the frames: on the display's own beat, or every 20 ms where a tab draws none
@@ -1944,7 +2050,7 @@ function motionLoop(M){      // the frames: on the display's own beat, or every 
   next();
 }
 function motionRest(M){      // settled: every node exactly on its target (its slot, unless a hover holds it), the drawing as laid out
-  M.loop = false; M.nodes.forEach(n => { n.x = n.fx != null ? n.fx : n.tx; n.y = n.fy != null ? n.fy : n.ty; n.vx = n.vy = 0; }); motionDraw(M);
+  M.loop = false; M.nodes.forEach(n => { n.x = n.tx; n.y = n.ty; n.vx = n.vy = 0; }); motionDraw(M);
   M.svg.classList.remove(M.v.cls); M.svg.dataset.settled = "1"; if (M.v.svg === "treesvg") TREE.moving = false;
 }
 function motionGo(M){
@@ -1954,14 +2060,15 @@ function motionGo(M){
 }
 function motionFrom(svg, prev, from){      // a new view or focus: each node springs in from where it stood, a new one from the node clicked (or out from the middle)
   const M = svg && motionOf(svg); if (!M) return; prev = prev || {};
-  const o = prev[from] || null, mx = M.nodes.reduce((s, n) => s + n.sx, 0) / Math.max(1, M.nodes.length), my = M.nodes.reduce((s, n) => s + n.sy, 0) / Math.max(1, M.nodes.length);
-  if (!treeReduce()) M.nodes.forEach(n => { const p = prev[n.id] || prev[String(n.id).replace(/^wf:/, "")] || o || [mx + (n.sx - mx) * 0.85, my + (n.sy - my) * 0.85]; n.x = p[0]; n.y = p[1]; });
+  const o = prev[from] || null, mx = M.nodes.reduce((s, n) => s + motionHome(n)[0], 0) / Math.max(1, M.nodes.length), my = M.nodes.reduce((s, n) => s + motionHome(n)[1], 0) / Math.max(1, M.nodes.length);
+  M.nodes.forEach(n => { [n.tx, n.ty] = motionHome(n); });
+  if (!treeReduce()) M.nodes.forEach(n => { const p = prev[n.id] || prev[String(n.id).replace(/^wf:/, "")] || o || [mx + (n.tx - mx) * 0.85, my + (n.ty - my) * 0.85]; n.x = p[0]; n.y = p[1]; });
   motionGo(M);
 }
 function motionHover(svg, id){      // its neighbours lean in, the rest ease away; "" lets them all go back
-  const M = svg && motionOf(svg); if (!M || treeReduce()) return; const h = M.by[id], near = (h && M.nb[id]) || new Set();
-  M.nodes.forEach(n => { n.tx = n.sx; n.ty = n.sy; if (!h || n === h) return; const dx = h.sx - n.sx, dy = h.sy - n.sy, d = Math.hypot(dx, dy) || 1, f = near.has(n.id) ? MOTION.near : -MOTION.away;
-    n.tx = n.sx + dx / d * f; n.ty = n.sy + dy / d * f; });
+  const M = svg && motionOf(svg); if (!M || treeReduce() || (id && M.drag)) return; const h = M.by[id], near = (h && M.nb[id]) || new Set(), H = h && motionHome(h);
+  M.nodes.forEach(n => { [n.tx, n.ty] = motionHome(n); if (!h || n === h) return; const dx = H[0] - n.tx, dy = H[1] - n.ty, d = Math.hypot(dx, dy) || 1, f = near.has(n.id) ? MOTION.near : -MOTION.away;
+    n.tx += dx / d * f; n.ty += dy / d * f; });
   motionGo(M);
 }
 function motionHoverEvt(e, on){ if (!/^mouse/.test(e.type)) return; const g = e.target.closest && e.target.closest(".tnodes > .tnode, .cnodes > .cnode, .mapnode"); if (!g) return;
@@ -2001,7 +2108,7 @@ function lineShow(svg, t){      // draw transform t; the readout is the zoom of 
   const z = document.querySelector("[data-linez]"); if (z) z.textContent = Math.round(t.k / svg.__fit.k * 100) + "%";
 }
 function lineMountOne(svg, refit){
-  const cw = svg.clientWidth, ch = svg.clientHeight; if (!cw || !ch || typeof d3 === "undefined" || !d3.zoom) return;
+  const cw = svg.clientWidth, ch = svg.clientHeight; if (!cw || !ch || typeof d3 === "undefined" || !d3.zoom) return; edgeMount(svg);
   const key = lineKey(svg), size = cw + "x" + ch; svg.setAttribute("viewBox", `0 0 ${cw} ${ch}`); svg.__size = size;
   const fit = svg.__fit = lineFitOf(svg); svg.dataset.fit = fit.all ? "all" : "pan"; svg.dataset.fontpx = Math.round(fit.k * fit.f * 100) / 100;
   if (!svg.__zoom_b){
@@ -2024,7 +2131,7 @@ function lineFit(){ lineSvgs().forEach(s => lineMountOne(s, true)); }
 const treeReduce = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const treeSvg = () => $("pane-map").querySelector && $("pane-map").querySelector(".treesvg");
 function treeMount(){
-  const svg = treeSvg(); if (!svg || svg.__zoom_on || typeof d3 === "undefined" || !d3.zoom) return; svg.__zoom_on = true;
+  const svg = treeSvg(); if (!svg || svg.__zoom_on || typeof d3 === "undefined" || !d3.zoom) return; svg.__zoom_on = true; edgeMount(svg);
   const view = svg.querySelector(".tview");
   const zoom = d3.zoom().scaleExtent([0.25, 4]).clickDistance(4).on("zoom", e => { view.setAttribute("transform", e.transform.toString()); if (svg === treeSvg()) TREE.zoom = {k: e.transform.k, x: e.transform.x, y: e.transform.y}; });
   svg.__zoom_b = zoom; motionInertia(zoom, svg); const s = d3.select(svg).call(zoom).on("dblclick.zoom", null);
@@ -2104,12 +2211,12 @@ function treeClick(e){
 // lines into it ("reads") and out of it ("read by") in two colours. Nothing moves at rest; with reduced motion, arrowheads instead.
 function treeFlow(svg, id){
   svg.querySelectorAll(".tflow").forEach(x => x.remove());
-  svg.querySelectorAll(".tedge.hot").forEach(x => { x.classList.remove("hot", "fin", "fout"); x.removeAttribute("marker-end"); });
+  svg.querySelectorAll(".tedge.hot").forEach(x => { x.classList.remove("hot", "fin", "fout"); }); svg.classList.toggle("ehot", !!id);
   if (!id) return;
   const es = [...svg.querySelectorAll(".tedge:not(.tgone)")].filter(x => x.dataset.from === id || x.dataset.to === id).map(x => [x, x.dataset.to === id ? "fin" : "fout"]);
   const layer = svg.querySelector(".tflows"), NS = "http://www.w3.org/2000/svg";
   es.forEach(([x, k]) => { x.classList.add("hot", k);
-    if (treeReduce() || !layer) return x.setAttribute("marker-end", `url(#tarr-${k})`);
+    if (treeReduce() || !layer) return;      // (every edge has its arrowhead)
     const c = document.createElementNS(NS, "circle"), a = document.createElementNS(NS, "animateMotion");
     c.setAttribute("class", "tflow " + k); c.setAttribute("r", "2.8"); c.dataset.from = x.dataset.from; c.dataset.to = x.dataset.to;
     a.setAttribute("dur", "1.5s"); a.setAttribute("repeatCount", "indefinite"); a.setAttribute("path", x.getAttribute("d"));
@@ -2490,7 +2597,7 @@ function renderMap(m){
     return r.filter(Boolean).map(x => `<div class="sub">${x}</div>`).join("");
   };
   const sn = by[sel], link = n => n.kind === "function" && n.tab ? `<a href="#" data-maptab="${esc(n.tab)}">Open the ${mapWords(mapFn(n))} view</a>` : n.file ? `<a href="#" data-mapopen="${esc(n.file)}">Open ${mapWords(n.label)}</a>` : "";
-  const panel = sn ? `<aside class="mappanel" data-panel="${esc(sn.id)}" aria-label="Details of ${esc(sn.kind === "function" ? mapFn(sn) : name(sn.id))}"><div class="mappanelhead"><b>${mapWords(sn.kind === "function" ? mapFn(sn) : name(sn.id))}</b><button type="button" class="linkbtn" data-mapclose>Close (Esc)</button></div>${panelRows(sn)}<div class="sub"><button type="button" class="gobtn" data-mapgo="${esc(sn.id)}">${mapGoLabel(sn)}</button> ${link(sn)}${sn.kind === "function" ? ` <button type="button" class="linkbtn" data-agent="${esc(sn.id.slice(3))}">See conversation and thinking</button>` : ""}</div></aside>` : "";
+  const panel = sn ? `<aside class="mappanel" data-panel="${esc(sn.id)}" aria-label="Details of ${esc(sn.kind === "function" ? mapFn(sn) : name(sn.id))}"><div class="mappanelhead"><b>${mapWords(sn.kind === "function" ? mapFn(sn) : name(sn.id))}</b><button type="button" class="linkbtn" data-mapclose>Close (Esc)</button></div>${panelRows(sn)}<div class="sub"><button type="button" class="gobtn" data-mapgo="${esc(sn.id)}">${mapGoLabel(sn)}</button> ${link(sn)}${sn.kind === "function" ? ` <button type="button" class="linkbtn" data-agent="${esc(sn.id.slice(3))}">See conversation and thinking</button>` : ""}${sn.kind === "work" ? ` <button type="button" class="linkbtn" data-openart="${esc(sn.id)}">Open in Artifacts</button>` : ""}</div></aside>` : "";
   // under the drawing: messages between functions when there are too many lines to draw, and who made each step
   const table = (cap, hd, rows, open) => `<details class="mapdd"${open ? " open" : ""}><summary>${mapWords(cap)}</summary><table class="maptable"><thead><tr>${hd.map(h => `<th>${mapWords(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${mapWords(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></details>`;
   const filt = by[MAPFILT] && by[MAPFILT].kind === "function" ? MAPFILT : "", ffs = filt ? ff.filter(e => e.from === filt || e.to === filt) : ff, cols = filt ? fns.filter(f => f.id === filt) : fns;
@@ -2851,16 +2958,19 @@ function consPanel(G){
   else if (n.kind === "badge"){ head = `${n.btext} on ${n.slot.label}`; rows = n.slot.fixes.map(w => row("fixed by", [who(w)]) + row("using", W[w].reads.map(art))).join(""); }
   else if (n.kind === "section" || n.kind === "empty"){ const s = n.slot; head = s.label || `${s.builder}: no recorded output`;
     rows = row("built by", [who(s.builder)]) + row("fixed by", s.fixes.map(who)) + row("using", [...new Set([s.builder, ...s.fixes].flatMap(w => W[w].reads))].map(art)); }
-  return `<aside class="conspanel" data-conspanel="${esc(n.id)}" aria-label="Details of ${esc(t(head))}"><b>${t(head)}</b>${rows}<button type="button" class="linkbtn" data-consclear>Close (Esc)</button></aside>`;
+  const deep = n.kind === "section" || n.kind === "input" ? `<button type="button" class="linkbtn" data-openart="${esc(n.id)}">Open in Artifacts</button> ` : n.kind === "empty" ? `<button type="button" class="linkbtn" data-openwf="${esc(n.slot.builder)}">Open in Workflows</button> ` : "";
+  return `<aside class="conspanel" data-conspanel="${esc(n.id)}" aria-label="Details of ${esc(t(head))}"><b>${t(head)}</b>${rows}${deep}<button type="button" class="linkbtn" data-consclear>Close (Esc)</button></aside>`;
 }
 function consTeamPanel(G){
   const n = G.at[G.focus]; if (!n) return ""; const t = x => mapWords(x), row = (k, v) => `<div class="k">${t(k)}</div><div>${v.length ? v.map(t).join(", ") : "nothing recorded"}</div>`, nm = a => G.lab(a);
   const rows = n.kind === "wf" ? row(n.role === "fix" ? "fixed" : "built", n.built.map(nm)) + row("read", n.reads.map(nm)) + `<div class="k">next</div><div>Click it again to open its sun.</div>`
     : row("from", [n.lines[n.lines.length - 1]]) + row("read by", G.wfs.filter(w => w.reads.includes(n.id)).map(w => w.full));
-  return `<aside class="conspanel" data-conspanel="${esc(n.id)}" aria-label="Details of ${esc(t(n.full))}"><b>${t(n.kind === "wf" ? n.full : nm(n.id))}</b>${rows}<button type="button" class="linkbtn" data-consclear>Close (Esc)</button></aside>`;
+  const deep = n.kind === "wf" ? `<button type="button" class="linkbtn" data-openwf="${esc(n.id)}">Open in Workflows</button> ` : `<button type="button" class="linkbtn" data-openart="${esc(n.id)}">Open in Artifacts</button> `;
+  return `<aside class="conspanel" data-conspanel="${esc(n.id)}" aria-label="Details of ${esc(t(n.full))}"><b>${t(n.kind === "wf" ? n.full : nm(n.id))}</b>${rows}${deep}<button type="button" class="linkbtn" data-consclear>Close (Esc)</button></aside>`;
 }
 function consView(m, G){
-  const by = mapById(m), ix = consIndex(m), a = G.kind === "art" ? by[G.id] || {} : {}, go = a.id ? `<button type="button" class="gobtn" data-mapgo="${esc(a.id)}">${mapWords(mapGoLabel(a))}</button>${a.file ? ` <a href="#" data-mapopen="${esc(a.file)}">Open ${mapWords(a.label)}</a>` : ""}` : "";
+  const by = mapById(m), ix = consIndex(m), a = G.kind === "art" ? by[G.id] || {} : {}, go = (a.id ? `<button type="button" class="gobtn" data-mapgo="${esc(a.id)}">${mapWords(mapGoLabel(a))}</button>${a.file ? ` <a href="#" data-mapopen="${esc(a.file)}">Open ${mapWords(a.label)}</a>` : ""}` : "")
+    + (G.kind === "art" ? ` <button type="button" class="linkbtn" data-openart="${esc(G.id)}">Open in Artifacts</button>` : G.kind === "wf" ? ` <button type="button" class="linkbtn" data-openwf="${esc(G.id)}">Open in Workflows</button>` : "");
   const help = G.focus ? (G.kind === "team" && G.at[G.focus] && G.at[G.focus].kind === "wf" ? "Click it again to open its sun; Esc or empty space clears the focus." : "Esc or empty space clears the focus.")
     : G.kind === "team" ? "Click a workflow to light what it read, again to open its sun; click a star to open its sun." : G.kind === "wf" ? "Left: what it read. Right: what it made. Click one to make it the sun; Esc steps back." : "Click a section or an input to see what fed it, a workflow to make it the sun.";
   const crumb = p => mapWords(p.kind === "wf" ? `${p.id} · ${(ix.wf[p.id] || {}).name || ""}` : p.kind === "team" ? `${(mapTree(m).stages[p.id] || {label: p.id}).label} (team)` : (ix.art[p.id] || {label: p.id}).label);
@@ -2909,6 +3019,21 @@ function consClick(e){
   if (e.target.closest(".consvg")){ if (CONS.focus){ CONS.focus = ""; paintMap(); } return true; }      // empty space
   return false;
 }
+// deep links from any map: a workflow to its row in Adaptation > Workflows, an artifact to its item in Artifacts (a section opens its parent's fold); the row is
+// scrolled into view and lit; "Back to map" returns to the same map view and focus (the map's state is left as it was)
+function mapDeepTarget(kind, id){      // the places to look, best first: a section's own row, else its document's
+  if (kind === "wf") return [`[data-wfrow="${CSS.escape(id)}"]`];
+  if (/^sec:/.test(id)) return [`[data-sec="${CSS.escape(consParent(id) + "|" + id.split(":").pop())}"]`, ...mapDeepTarget("art", consParent(id))];
+  const n = mapById(MAP)[id]; return [`[data-node="${CSS.escape(id)}"]`, n && n.file ? `[data-art="${CSS.escape(n.file)}"]` : "", id === "work:charter" ? '[data-art="goal.json"]' : ""].filter(Boolean);
+}
+async function mapOpenIn(kind, id){
+  document.querySelectorAll(".dlhit").forEach(x => x.classList.remove("dlhit"));
+  if (kind === "wf"){ OTAG = ""; WFSTEP.length = 0; showTab("workflows"); if (typeof state !== "undefined" && state) paint($("pane-workflows"), renderWorkflows(state)); }
+  else { showTab("artifacts"); if (!ARTS.tree) await loadArtifacts(); else paint($("pane-artifacts"), renderArtifacts()); }
+  const pane = $(kind === "wf" ? "pane-workflows" : "pane-artifacts"), el = mapDeepTarget(kind, id).map(q => pane.querySelector(q)).find(Boolean); if (!el) return null;
+  for (let d = el.parentElement.closest("details"); d; d = d.parentElement && d.parentElement.closest("details")) d.open = true;
+  el.classList.add("dlhit"); el.scrollIntoView({block: "center"}); return el;
+}
 function mapSelect(id){      // click or Enter: open this dot's panel (the same one again closes it); the pin keeps its lines lit
   MAPPIN = id; paintMap();
   const el = id && $("pane-map").querySelectorAll && [...$("pane-map").querySelectorAll(`.mapnode[data-id="${CSS.escape(id)}"]`)].find(x => x.getClientRects().length); if (el && el.focus) el.focus();
@@ -2925,6 +3050,9 @@ document.addEventListener("keydown", e => { if (e.key !== "Escape" || $("pane-ma
   if (CONS.id){ consStep(); return; }      // the solar system: its focus, then one step of the walk back, then the Map
   if (MAPPIN) mapSelect(""); else if (MAPVIEW === "tree" && TREE.focus) treeFocusTeam(""); });
 $("pane-map").addEventListener("click", async e => { const t = e.target.closest("[data-maptab]"); if (t){ e.preventDefault(); showTab(t.dataset.maptab); return; }
+  if (e.target.closest("[data-mapreset]")){ e.preventDefault(); const b = e.target.closest("[data-mapreset]"), box = b.previousElementSibling;
+    motionReset(box && [...box.querySelectorAll(".treesvg, .consvg, .mapsvg")].find(x => x.getClientRects().length)); return; }
+  const dl = e.target.closest("[data-openwf], [data-openart]"); if (dl){ e.preventDefault(); e.stopPropagation(); await mapOpenIn(dl.dataset.openwf ? "wf" : "art", dl.dataset.openwf || dl.dataset.openart); return; }
   if (consClick(e)){ e.preventDefault(); return; }
   if (!e.target.closest("[data-mapgo],[data-wfcard],[data-mapopen],[data-mapclose]") && treeClick(e)){ e.preventDefault(); return; }
   if (e.target.closest("[data-mapclose]")){ e.preventDefault(); mapSelect(""); return; }

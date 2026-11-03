@@ -3912,7 +3912,7 @@ def output_tags():
                                                   {"verb": "make", "name": "f", "form": "doc", "ref": "site/v3.md"}]
     views[w_none["atoms"][0]["id"]]["output"] = []
     out = render_node(snap, docs={"docs": {}})["workflows"]
-    row = lambda o, wid: o.split(f"<tr><td>{wid}</td>")[1].split("</tr>")[0]
+    row = lambda o, wid: o.split(f'<tr data-wfrow="{wid}"><td>{wid}</td>')[1].split("</tr>")[0]
     card = lambda o, wid: o.split(f'data-key="wf-{wid}"')[1].split("<summary>")[0] and o.split(f'data-key="wf-{wid}"')[1].split("</summary>")[1].split("<details")[0]
     for w in snap["workflows"]:
         want = expect(w, views)
@@ -6638,7 +6638,7 @@ def artifacts_tree():
         assert "Product Manager (W-1) · Product plan · read by 7" in html and "Web Developer (W-6)" in html and 'data-artopen="artifacts/hint-method.md"' in html
         assert "<summary>11 sections</summary>" in html and "<summary>14 versions</summary>" in html and html.count('class="artshot"') == 2
         assert html.index('data-group="specs"') < html.index('data-art="style.json"') < html.index('data-group="deliverables"'), "the Style guide under Specs"
-        tails = re.findall(r'<div class="artrow" data-art="([^"]*)">.*?<span class="artr">(.*?)</span></div>', html, re.S)
+        tails = re.findall(r'<div class="artrow" data-art="([^"]*)"[^>]*>.*?<span class="artr">(.*?)</span></div>', html, re.S)
         assert len(tails) == html.count('<div class="artrow"') and all(r.count('class="arttag') == (0 if a == "Verification proof" else 1) for a, r in tails), "one status tag per line"
     if "j2-20261027-130930" in names:
         t = A.tree(os.path.join(repo, "j2-20261027-130930"))
@@ -7278,10 +7278,14 @@ def map_tree():
 
 
 def arc_points(d, n=40):
-    """The points of an edge path, which must be exactly one straight line (M x y L x y) or one circular arc (M x y A r r 0 f s x y): any other command fails."""
+    """The points of an edge path, which must be exactly one straight line (M x y L x y), one circular arc (M x y A r r 0 f s x y) or one cubic bend
+    (M x y C x y x y x y, as the page draws every edge): any other command fails."""
     import math
-    assert re.fullmatch(r"M-?[\d.]+ -?[\d.]+ (L-?[\d.]+ -?[\d.]+|A[\d.]+ [\d.]+ 0 [01] [01] -?[\d.]+ -?[\d.]+)", d), ("an edge is a line or one arc", d)
+    num = r"-?[\d.]+"
+    assert re.fullmatch(rf"M{num} {num} (L{num} {num}|A[\d.]+ [\d.]+ 0 [01] [01] {num} {num}|C{num} {num} {num} {num} {num} {num})", d), ("an edge is a line, one arc or one cubic bend", d)
     v = [float(x) for x in re.findall(r"-?[\d.]+", d)]
+    if "C" in d:
+        return [tuple((1 - u) ** 3 * v[k] + 3 * (1 - u) ** 2 * u * v[k + 2] + 3 * (1 - u) * u * u * v[k + 4] + u ** 3 * v[k + 6] for k in (0, 1)) for u in (i / n for i in range(n + 1))]
     if "L" in d:
         return [(v[0] + (v[2] - v[0]) * i / n, v[1] + (v[3] - v[1]) * i / n) for i in range(n + 1)]
     x1, y1, rx, ry, _, fa, fs, x2, y2 = v
@@ -7451,7 +7455,7 @@ def map_focus():
                   "]);")
             got = probe(name, js)
             team = next(n for n in M.build(os.path.join(repo, name))["nodes"] if n["kind"] == "engine" and "W-8" in (n.get("workflows") or []))
-            assert all(re.fullmatch(r"M[-\d. ]+ (L[-\d. ]+|A[-\d. ]+)", d) for d in got["treeEdges"]), (name, "the Tree's edges on the page are lines or arcs")
+            assert all(re.fullmatch(r"M[-\d. ]+ C[-\d. ]+", d) for d in got["treeEdges"]), (name, "the Tree's edges on the page are one cubic bend each")
             assert got["teamFlags"][:3] == [1, 1, 1] and got["teamFlags"][4] == 0 and got["teamPanelText"].count("Open") == 1 and "Open these workflows" not in got["teamPanelText"], (name, "a team is focused by a click; its panel has one open button", got["teamFlags"], got["teamPanelText"])
             assert got["opened"][0] == "team" and got["opened"][2] == 0 and got["opened"][3] > 0, (name, "a second click on the focused team opens its solar system", got["opened"])
             assert got["backFromTeam"] == [0, 1], (name, "Back from the team returns to the team focused in the Tree", got["backFromTeam"])
@@ -7612,6 +7616,22 @@ def left_bar():
             out = render_node(snap, docs={"docs": docs_, "map": m, "railtabs": tabs, "plan": plan, "artifacts": {**A.listing(d), "tree": t}})
             model = out["rail"]
             assert [x["id"] for x in model] == order, (name, "the sections, in order")
+            # deep links from the Map: every workflow has its row in Workflows, every artifact and section on the Map its item in Artifacts
+            for w in wfs:
+                assert f'data-wfrow="{htmllib.escape(w["id"])}"' in out["workflows"], (name, w["id"], "a workflow's deep link lands on no Workflows row")
+            arts_html = out["artifacts"]
+            map_arts = {n["id"]: n for n in m["nodes"] if n["kind"] == "work"}
+            ids = set(map_arts) | {a for C in (m.get("constellations") or {}).values() for a in [C["id"]] + [s_["section"] for s_ in C["slots"] if s_["section"]]}
+            def want_of(a):      # mapDeepTarget: a section's own row, else its document's item
+                if a.startswith("sec:"):
+                    return [f'data-sec="{htmllib.escape(":".join(a.split(":")[1:-1]) + "|" + a.split(":")[-1])}"'] + want_of(":".join(a.split(":")[1:-1]))
+                f_ = (map_arts.get(a) or {}).get("file")
+                return [f'data-node="{htmllib.escape(a)}"'] + ([f'data-art="{htmllib.escape(f_)}"'] if f_ else []) + (['data-art="goal.json"'] if a == "work:charter" else [])
+            for a in sorted(ids):
+                want = want_of(a)
+                assert any(w_ in arts_html for w_ in want), (name, a, "an artifact's deep link lands on no Artifacts item", want)
+                seen["deep links"] += 1
+            seen["deep links"] += len(wfs)
             sec = {x["id"]: x for x in model}
             placed = [t_["tab"] for x in model for t_ in x["tabs"]]
             assert sorted(placed) == sorted(tabs), (name, "every tab is in exactly one section")
@@ -8245,6 +8265,9 @@ def warm_ui():
             low += [(t, k, b, round(contrast(v[k], v[b]), 2)) for b in bs if contrast(v[k], v[b]) < 4.5]
         for k, bs in (("edge", ("mapbg",)), ("muted", ("panel",)), ("spoke", ("sky0", "sky1")), ("sec", ("sky0", "sky1")), ("fix", ("sky0", "sky1")), ("eat", ("sky0", "sky1")), ("doc", ("sky0", "sky1"))):      # lines: 3:1
             low += [(t, k, b, round(contrast(v[k], v[b]), 2)) for b in bs if contrast(v[k], v[b]) < 3]
+        blend = lambda f, b_, a_: "#" + "".join(f"{round(int(f[i:i + 2], 16) * a_ + int(b_[i:i + 2], 16) * (1 - a_)):02x}" for i in (1, 3, 5))
+        for k in ("e-reads", "warm1", "warm2"):      # the edges: 3:1 on the sky, at the source end of their gradient too (82%)
+            low += [(t, k, b_, a_, round(contrast(blend(v[k], v[b_], a_), v[b_]), 2)) for b_ in ("sky0", "sky1") for a_ in (1, .82) if contrast(blend(v[k], v[b_], a_), v[b_]) < 3]
     assert not low, ("below WCAG AA", low)
     rail = ui[ui.index('<nav class="rail tabs"'):ui.index("</nav>", ui.index('<nav class="rail tabs"'))]
     assert 'data-tab="style"' not in rail and 'data-themepick="system"' in ui, "no Style guide tab; Appearance in Run settings"
@@ -8256,10 +8279,22 @@ def warm_ui():
         js = ("const errs = []; addEventListener('error', e => errs.push(String(e.message))); const hexy = /(?:fill|stroke|color|background)[=:]\\s*\"?(?:#[0-9a-f]{3}|rgb)/i;"
               " const tok = k => { const d = document.createElement('i'); d.style.color = `var(--${k})`; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };"
               " const sunTo = p => { Object.assign(CONS, {path: [p], id: p.id, kind: p.kind, focus: '', fan: {}, grp: {}}); paintMap(); };      /* no glide: the drawing as it lands */"
+              " let edgesN = 0; const edgeCheck = (th, what, s) => {      /* every edge: the shared style, its arrowhead at the target's border, through no node and no label */"
+              "   const off = el => { const m = /translate\\(([-\\d.e]+)[ ,]+([-\\d.e]+)\\)/.exec(el.getAttribute('transform') || ''); return m ? [+m[1], +m[2]] : [0, 0]; }, bb = (el, o) => { const b = el.getBBox(); return [b.x + o[0], b.y + o[1], b.x + b.width + o[0], b.y + b.height + o[1]]; };"
+              "   const nodes = {}, quiet = s.classList.contains('quiet'); s.querySelectorAll('.tnodes > .tnode, .cnodes > .cnode, .mapnode').forEach(g => { const o = off(g), sh = [...g.querySelectorAll('.tdot, .ccore, .cdia, .cwf, .cdoc, .cbadge, .shape')].filter(x => x.getClientRects().length).map(x => bb(x, o)); if (!sh.length) return;"
+              "     nodes[g.dataset.cid || g.dataset.id] = {round: !!g.querySelector('circle.tdot, .ccore, .cwf, circle.shape, .cbadge'), b: [Math.min(...sh.map(q => q[0])), Math.min(...sh.map(q => q[1])), Math.max(...sh.map(q => q[2])), Math.max(...sh.map(q => q[3]))], t: quiet ? [] : [...g.querySelectorAll('text')].filter(t => t.getClientRects().length && t.textContent.trim()).map(t => bb(t, o))}; });"
+              "   const boxes = Object.entries(nodes).flatMap(([id, n]) => [[id, n.b, 'shape'], ...n.t.map(t => [id, t, 'label'])]);"
+              "   for (const e of s.querySelectorAll('path[data-from]')){ if (!e.getClientRects().length || !nodes[e.dataset.from] || !nodes[e.dataset.to] || e.dataset.from === e.dataset.to) continue; edgesN++;"
+              "     if (!e.dataset.edge || !/^url\\(\"?#ea-/.test(e.getAttribute('marker-end') || '') || !/url\\(\"?#eg-/.test(e.style.stroke) || !/^M[^A-Za-z]+C[^A-Za-z]+$/.test(e.getAttribute('d'))){ bad.push([th, what, 'edge not in the shared style', e.dataset.from, e.dataset.to, e.getAttribute('d').slice(0, 40)]); continue; }"
+              "     const L = e.getTotalLength(), end = e.getPointAtLength(L), b = nodes[e.dataset.to].b, dx = Math.max(b[0] - end.x, 0, end.x - b[2]), dy = Math.max(b[1] - end.y, 0, end.y - b[3]), tn = nodes[e.dataset.to], d = tn.round ? Math.hypot(end.x - (b[0] + b[2]) / 2, end.y - (b[1] + b[3]) / 2) - Math.max(b[2] - b[0], b[3] - b[1]) / 2 : Math.hypot(dx, dy);"
+              "     if (d < 0.5 || d > 4) bad.push([th, what, 'arrowhead not at the target border', e.dataset.from, e.dataset.to, +d.toFixed(2)]);"
+              "     for (let i = 2; i <= 38; i++){ const p = e.getPointAtLength(L * i / 40), h = boxes.find(([, q]) => p.x > q[0] + 1 && p.x < q[2] - 1 && p.y > q[1] + 1 && p.y < q[3] - 1); if (h){ bad.push([th, what, 'an edge through a ' + h[2], e.dataset.from, e.dataset.to, h[0]]); break; } } } };"
               " let small = 99; const views = {dark: 0, light: 0}, bad = [], bgs = {}; showTab('map'); r.first = [document.documentElement.dataset.theme, document.querySelector('[data-themepick=\"dark\"]').getAttribute('aria-pressed')];"
               " const look = (th, what, sel, bgk) => { const s = document.querySelector(sel); if (!s){ bad.push([th, what, 'missing']); return; } views[th]++; if (hexy.test(s.outerHTML)) bad.push([th, what, 'colour in markup']);"
               "   const cs = getComputedStyle(s), t = s.querySelector('text'); if (bgk && cs.backgroundColor !== tok(bgk) && !cs.backgroundImage.includes(tok(bgk).slice(0, 12))) bad.push([th, what, 'background', cs.backgroundColor, cs.backgroundImage.slice(0, 80), tok(bgk)]);"
-              "   if (t && !getComputedStyle(t).fill) bad.push([th, what, 'no text fill']); (bgs[what.split(' ')[0]] = bgs[what.split(' ')[0]] || {})[th] = cs.backgroundColor + cs.backgroundImage.slice(0, 40);"
+              "   if (t && !getComputedStyle(t).fill) bad.push([th, what, 'no text fill']); (bgs[what.split(' ')[0]] = bgs[what.split(' ')[0]] || {})[th] = cs.backgroundColor + cs.backgroundImage;"
+              "   if (!cs.backgroundImage.includes('radial-gradient')) bad.push([th, what, 'no sky']);"
+              "   if (th === 'dark') edgeCheck(th, what, s);"
               "   if (what.startsWith('line') || th === 'light') return;      /* the words: at least 11px on screen, never cut, no two nodes' words overlapping (once per view: the layout is the theme's) */"
               "   const groups = [...s.querySelectorAll('.tnode, .cnode')].map(g => [...g.querySelectorAll('text')].filter(x => x.getBoundingClientRect().width > 0 && getComputedStyle(x).display !== 'none' && !s.classList.contains('quiet')));"
               "   for (const ts of groups) for (const x of ts){ const px = parseFloat(getComputedStyle(x).fontSize) * x.getScreenCTM().a; small = Math.min(small, px); if (px < 10.95) bad.push([th, what, 'under 11px', x.textContent, px]); if (x.textContent.includes('…')) bad.push([th, what, 'cut', x.textContent]); }"
@@ -8267,12 +8302,12 @@ def warm_ui():
               "   for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) for (const [a, ta] of rects[i]) for (const [b, tb] of rects[j]) if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) bad.push([th, what, 'words overlap', ta, tb, [a.left, a.top, a.right, a.bottom].map(Math.round), [b.left, b.top, b.right, b.bottom].map(Math.round)]); };"
               " for (const run of RUNS){ const m = await (await fetch('/api/map?run=' + encodeURIComponent(run), {cache: 'no-store'})).json(); for (const k of Object.keys(MAP)) delete MAP[k]; Object.assign(MAP, m);"
               "   for (const th of ['light', 'dark']){ document.querySelector(`[data-themepick=\"${th}\"]`).click(); if (document.documentElement.dataset.theme !== th) bad.push([th, run, 'theme not set']);"
-              "     consBack(); MAPVIEW = 'tree'; TREE.focus = ''; TREE.zoom = null; paintMap(); look(th, 'tree ' + run, '.treesvg', 'mapbg'); MAPVIEW = 'line'; paintMap(); look(th, 'line ' + run, '.mapsvg:not(.consvg)', 'panel'); MAPVIEW = 'tree';"
-              "     for (const sid of Object.keys(mapTree(MAP).stages)){ TREE.focus = sid; TREE.zoom = null; paintMap(); look(th, 'tfocus ' + run + ' ' + sid, '.treesvg', 'mapbg'); TREE.focus = ''; TREE.zoom = null;"
+              "     consBack(); MAPVIEW = 'tree'; TREE.focus = ''; TREE.zoom = null; paintMap(); look(th, 'tree ' + run, '.treesvg', 'sky1'); MAPVIEW = 'line'; paintMap(); look(th, 'line ' + run, '.mapsvg:not(.consvg)', 'sky1'); MAPVIEW = 'tree';"
+              "     for (const sid of Object.keys(mapTree(MAP).stages)){ TREE.focus = sid; TREE.zoom = null; paintMap(); look(th, 'tfocus ' + run + ' ' + sid, '.treesvg', 'sky1'); TREE.focus = ''; TREE.zoom = null;"
               "       sunTo({id: sid, kind: 'team'}); look(th, 'team ' + run + ' ' + sid, '.consvg', 'sky1'); consBack(); }"
               "     for (const a of Object.keys(m.constellations || {})){ sunTo({id: a, kind: 'art'}); look(th, 'sun ' + run + ' ' + a, '.consvg', 'sky1'); }"
               "     for (const w of Object.keys(consIndex(MAP).wf)){ sunTo({id: w, kind: 'wf'}); look(th, 'wfsun ' + run + ' ' + w, '.consvg', 'sky1'); } consBack(); } }"
-              " r.views = views; r.small = small; r.kinds = Object.keys(bgs); r.bad = bad.slice(0, 20); r.nbad = bad.length; r.errs = errs; r.flip = Object.entries(bgs).map(([k, v]) => [k, v.dark !== v.light]);"
+              " r.views = views; r.small = small; r.edges = edgesN; r.why = {}; bad.forEach(b => { r.why[b[2]] = (r.why[b[2]] || 0) + 1; }); r.kinds = Object.keys(bgs); r.bad = bad.slice(0, 20); r.nbad = bad.length; r.errs = errs; r.flip = Object.entries(bgs).map(([k, v]) => [k, v.dark !== v.light]);"
               " document.querySelector('[data-themepick=\"light\"]').click();"
               " const f = document.createElement('iframe'); f.style.cssText = 'width:900px;height:600px'; document.body.appendChild(f); const loaded = () => new Promise(ok => f.onload = ok);"
               " f.src = location.href; await loaded(); await wait(800); r.reload1 = [f.contentDocument.documentElement.dataset.theme, f.contentDocument.querySelector('[data-themepick=\"light\"]').getAttribute('aria-pressed')];"
@@ -8303,19 +8338,22 @@ def warm_ui():
         r = json.loads(htmllib.unescape(hit.group(1)))
         assert "error" not in r and not r["errs"], r
         assert r["first"] == ["dark", "true"], ("Dark by default", r["first"])
-        assert r["nbad"] == 0 and r["views"]["dark"] == r["views"]["light"] > 2 * len(names), ("every map view in both themes, colours from the tokens", r["bad"], r["views"])
+        assert r["nbad"] == 0 and r["views"]["dark"] == r["views"]["light"] > 2 * len(names), ("every map view in both themes, colours from the tokens", r["why"], r["bad"], r["views"])
         assert all(x[1] for x in r["flip"]) and r["kinds"] == ["tree", "line", "tfocus", "team", "sun", "wfsun"], ("each kind of map changes with the theme, no reload", r["flip"], r["kinds"])
         assert r["reload1"] == ["light", "true"] and r["reload2"][0] == r["reload2"][2] and r["reload2"][1] == "true" and r["stored"] == "dark", ("the choice persists across a reload", r)
-        note = (f"Chrome at 1440x900: {r['views']['dark']} map views per theme over {len(names)} runs (Tree, Line, every team focused and opened, every artifact and workflow sun), no page error; "
+        note = (f"Chrome at 1440x900: {r['views']['dark']} map views per theme over {len(names)} runs (Tree, Line, every team focused and opened, every artifact and workflow sun), no page error, each on its sky; "
+                f"{r['edges']} edges, each one cubic in the shared style with its arrowhead at the target's border, none through a node or a label; "
                 f"words at least 11px (smallest {r['small']:.1f}px), never cut, no two nodes' words overlapping; the choice kept across a reload")
     print(f"warm UI: no hard-coded colour outside the two token sets, {len(THEME_TEXT)} text tokens 4.5:1 and the map lines 3:1 in dark and light, no Style guide tab; {note} ok")
 
 
 def map_motion():
     """Map motion (Chrome, --browser): every node of every view of every run (Tree, Line, every team focused and opened, every artifact and workflow sun) springs
-    in and comes to rest within 2px of its slot, in fact exactly on it (the static layout: transforms and lines as drawn); on 174314 a drag stretches the node
-    and its lines and a release springs it back, in the Tree, the Line, a team and a sun; hover leans the neighbours in and the rest away, and lets them go;
-    the nodes drift; reduced motion: no drift, a new view lands at once, hover moves nothing; in real time (no virtual clock) a motion frame takes under 16ms."""
+    in and comes to rest within 2px of its slot, in fact exactly on it (the static layout: transforms and lines as drawn); in each a drag (more than 4px) moves
+    only that node, its lines in the shared style, it stays where dropped, no click and no focus, Reset enabled and the place saved; Reset brings every node back
+    within 1px (exactly), forgets the place and is disabled again, in light (even runs) and dark (odd runs). 174314: the place survives a reload, touch drags,
+    hover leans the neighbours in and the rest away, the nodes drift; reduced motion: no drift, a new view and Reset at once, hover moves nothing; in real time
+    (no virtual clock) a motion frame takes under 16ms."""
     import html as htmllib
     import shutil
     import subprocess
@@ -8333,8 +8371,8 @@ def map_motion():
     ui = open(os.path.join(here, "j2_ui.html"), encoding="utf-8").read()
     helpers = ("const wait = ms => new Promise(f => setTimeout(f, ms)), q = s => [...document.querySelectorAll(s)];"
                " const fire = (t, el, x, y) => el.dispatchEvent(new MouseEvent(t, {bubbles: true, cancelable: true, view: window, clientX: x, clientY: y, button: 0}));"
-               " const away = M => Math.max(0, ...M.nodes.map(n => { const m = /translate\(([-\d.]+),([-\d.]+)\)/.exec(n.el.getAttribute('transform') || ''); const x = M.v.abs ? +m[1] : n.sx + (m ? +m[1] : 0), y = M.v.abs ? +m[2] : n.sy + (m ? +m[2] : 0); return Math.hypot(x - n.sx, y - n.sy); }));"
-               " const exact = M => M.nodes.every(n => M.v.abs ? n.el.getAttribute('transform') === 'translate(' + tRd(n.sx) + ',' + tRd(n.sy) + ')' : !n.el.hasAttribute('transform')) && M.edges.every(e => e.el.getAttribute('d') === e.d0);"
+               " const away = M => Math.max(0, ...M.nodes.map(n => { const m = /translate\(([-\d.]+),([-\d.]+)\)/.exec(n.el.getAttribute('transform') || ''); const x = M.v.abs ? +m[1] : n.hx + (m ? +m[1] : 0), y = M.v.abs ? +m[2] : n.hy + (m ? +m[2] : 0); return Math.hypot(x - n.hx, y - n.hy); }));"
+               " const exact = M => M.nodes.every(n => M.v.abs ? n.el.getAttribute('transform') === 'translate(' + tRd(n.hx) + ',' + tRd(n.hy) + ')' : !n.el.hasAttribute('transform')) && M.edges.every(e => e.el.getAttribute('d') === e.d0);"
                " const land = async M => { for (let i = 0; i < 300 && M.svg.dataset.settled !== '1'; i++) await wait(20); return M.svg.dataset.settled === '1'; };"
                " const sel = () => document.querySelector('.consvg') || document.querySelector('.treesvg:not([hidden])') && MAPVIEW === 'tree' && document.querySelector('.treesvg') || q('.mapsvg').find(x => x.getClientRects().length);")
 
@@ -8351,7 +8389,7 @@ def map_motion():
                     self.end_headers()
                     return
                 return super().do_POST()
-        open(os.path.join(tmp, "j2_ui.html"), "w", encoding="utf-8").write(ui.replace("</body>", "<script>setTimeout(async () => { const r = {}; try { " + helpers + js
+        open(os.path.join(tmp, "j2_ui.html"), "w", encoding="utf-8").write(ui.replace("</body>", "<script>if (window === top) setTimeout(async () => { const r = {}; try { " + helpers + js
                                                                                       + " } catch (e) { r.error = String(e.stack || e); } document.body.setAttribute('data-r', JSON.stringify(r)); fetch('/__r', {method: 'POST', body: JSON.stringify(r)}); }, 2500)</script></body>"))
         keep_here, keep_runs = j2_server.HERE, j2.RUNS_DIR
         j2_server.HERE, j2.RUNS_DIR = tmp, repo
@@ -8383,39 +8421,72 @@ def map_motion():
         assert "error" not in r, r
         return r
     # every view of every run: it springs open from the middle and comes to rest on its slots (the frames run here, one after another, to the end)
-    every = ("const views = [], bad = []; showTab('map'); const settle = svg => { const M = motionOf(svg); if (!M) return bad.push(['no motion', svg.getAttribute('class')]); motionFrom(svg, null, null);"
-             "  let i = 0; while (M.svg.dataset.settled !== '1' && i++ < 500) motionTick(M); views.push(i); const a = away(M); if (a > 2 || !exact(M)) bad.push([svg.dataset.cons || svg.getAttribute('class'), a, exact(M)]); };"
-             " const sunTo = p => { Object.assign(CONS, {path: [p], id: p.id, kind: p.kind, focus: '', fan: {}, grp: {}}); paintMap(); settle(document.querySelector('.consvg')); };"
-             " for (const run of RUNS){ const m = await (await fetch('/api/map?run=' + encodeURIComponent(run), {cache: 'no-store'})).json(); for (const k of Object.keys(MAP)) delete MAP[k]; Object.assign(MAP, m);"
-             "  consBack(); MAPVIEW = 'tree'; TREE.focus = ''; TREE.zoom = null; paintMap(); settle(document.querySelector('.treesvg')); MAPVIEW = 'line'; paintMap(); q('.mapsvg:not(.consvg)').filter(x => x.getClientRects().length).forEach(settle); MAPVIEW = 'tree';"
-             "  for (const sid of Object.keys(mapTree(MAP).stages)){ TREE.focus = sid; TREE.zoom = null; paintMap(); settle(document.querySelector('.treesvg')); TREE.focus = ''; sunTo({id: sid, kind: 'team'}); consBack(); }"
-             "  for (const a of Object.keys(m.constellations || {})) sunTo({id: a, kind: 'art'}); for (const w of Object.keys(consIndex(MAP).wf)) sunTo({id: w, kind: 'wf'}); consBack(); }"
-             " r.views = views.length; r.frames = Math.max(...views); r.bad = bad.slice(0, 10); r.nbad = bad.length;")
+    every = ("const views = [], bad = []; let drags = 0; showTab('map');"
+             " const dragReset = async (svg, what) => { const M = motionOf(svg), n = M.nodes.find(x => M.edges.some(e => e.a === x || e.b === x) && x.el.getClientRects().length) || M.nodes.find(x => x.el.getClientRects().length); if (!n) return;"
+             "  const tf0 = M.nodes.map(x => x.el.getAttribute('transform')), st0 = JSON.stringify([CONS.id, CONS.kind, CONS.focus, TREE.focus, MAPPIN, q('.conspanel, .mappanel').length]), btn = () => svg.closest('.consbox, .mapsvgwrap').parentElement.querySelector(':scope > .mapreset'), key = motionKey(svg);"
+             "  if (!btn() || !btn().disabled) bad.push([what, 'Reset not disabled at first']); const b = n.el.getBoundingClientRect(), cx = b.left + b.width / 2, cy = b.top + b.height / 2, k = n.el.parentNode.getScreenCTM().a;"
+             "  fire('mousedown', n.el, cx, cy); for (let i = 1; i <= 5; i++) fire('mousemove', window, cx + 8 * i, cy + 5 * i); fire('mouseup', window, cx + 40, cy + 25); fire('click', n.el, cx + 40, cy + 25); drags++;"
+             "  const want = [40 / k, 25 / k], moved = Math.abs(n.x - n.hx - want[0]) < 1 && Math.abs(n.y - n.hy - want[1]) < 1;"
+             "  if (!moved) bad.push([what, n.id, 'not dropped where let go', n.x - n.hx, n.y - n.hy, want]); if (!M.nodes.every((x, i) => x === n || x.el.getAttribute('transform') === tf0[i])) bad.push([what, 'another node moved']);"
+             "  if (JSON.stringify([CONS.id, CONS.kind, CONS.focus, TREE.focus, MAPPIN, q('.conspanel, .mappanel').length]) !== st0) bad.push([what, 'the drag clicked or changed the focus']); if (document.activeElement === n.el) bad.push([what, 'the drag focused the node']);"
+             "  if (btn().disabled || !localStorage.getItem(key)) bad.push([what, 'not saved or Reset not enabled']); if (M.edges.filter(e => e.a === n || e.b === n).some(e => e.el.getClientRects().length && (!e.el.dataset.edge || !/^M[^A-Za-z]+C[^A-Za-z]+$/.test(e.el.getAttribute('d'))))) bad.push([what, 'an edge left the shared style']);"
+             "  await wait(30); btn().click(); await wait(360); if (!M.nodes.every((x, i) => x.el.getAttribute('transform') === tf0[i] && Math.hypot(x.x - x.hx, x.y - x.hy) <= 1) || localStorage.getItem(key) !== null || !btn().disabled) bad.push([what, 'Reset did not bring every node home, forget and disable']); };"
+             " const settle = svg => { const M = motionOf(svg); if (!M) return bad.push(['no motion', svg.getAttribute('class')]); motionFrom(svg, null, null);"
+             "  let i = 0; while (M.svg.dataset.settled !== '1' && i++ < 500) motionTick(M); views.push(i); const a = away(M); if (a > 2 || !exact(M)) bad.push([svg.dataset.cons || svg.getAttribute('class'), a, exact(M)]); return svg; };"
+             " const sunTo = async p => { Object.assign(CONS, {path: [p], id: p.id, kind: p.kind, focus: '', fan: {}, grp: {}}); paintMap(); await dragReset(settle(document.querySelector('.consvg')), p.kind + ' ' + p.id); };"
+             " for (const [ri, run] of RUNS.entries()){ viewRun = run; document.querySelector(`[data-themepick=\"${ri % 2 ? 'dark' : 'light'}\"]`).click(); const m = await (await fetch('/api/map?run=' + encodeURIComponent(run), {cache: 'no-store'})).json(); for (const k of Object.keys(MAP)) delete MAP[k]; Object.assign(MAP, m);"
+             "  consBack(); MAPVIEW = 'tree'; TREE.focus = ''; TREE.zoom = null; paintMap(); await dragReset(settle(document.querySelector('.treesvg')), 'tree ' + run); MAPVIEW = 'line'; paintMap(); for (const x of q('.mapsvg:not(.consvg)').filter(x => x.getClientRects().length)) await dragReset(settle(x), 'line ' + run); MAPVIEW = 'tree';"
+             "  for (const sid of Object.keys(mapTree(MAP).stages)){ TREE.focus = sid; TREE.zoom = null; paintMap(); await dragReset(settle(document.querySelector('.treesvg')), 'tfocus ' + sid); TREE.focus = ''; await sunTo({id: sid, kind: 'team'}); consBack(); }"
+             "  for (const a of Object.keys(m.constellations || {})) await sunTo({id: a, kind: 'art'}); for (const w of Object.keys(consIndex(MAP).wf)) await sunTo({id: w, kind: 'wf'}); consBack(); }"
+             " r.views = views.length; r.drags = drags; r.frames = Math.max(...views); r.bad = bad.slice(0, 10); r.nbad = bad.length;")
     r = probe("const RUNS = " + json.dumps(names) + "; " + every)
-    assert r["nbad"] == 0 and r["views"] > 2 * len(names), ("every view comes to rest exactly on its slots", r["bad"], r["views"])
+    assert r["nbad"] == 0 and r["views"] > 2 * len(names) and r["drags"] == r["views"], ("every view comes to rest exactly on its slots; a drag pins one node, Reset brings all home", r["bad"], r["views"], r["drags"])
     settled = r
     # 174314 on the real page: drag and release in the Tree, the Line, a team and a sun; hover; the drift
-    js = ("showTab('map'); const out = {}; const drag = async (M, n) => { const b = n.el.getBoundingClientRect(), cx = b.left + b.width / 2, cy = b.top + b.height / 2, e0 = M.edges.filter(e => e.a === n || e.b === n);"
-          "  fire('mousedown', n.el, cx, cy); for (let i = 1; i <= 8; i++){ fire('mousemove', window, cx + 7 * i, cy + 4 * i); await wait(20); }"
-          "  const held = [Math.round(Math.hypot(n.x - n.sx, n.y - n.sy)), e0.length > 0 && e0.every(e => e.el.getAttribute('d') !== e.d0)]; fire('mouseup', window, cx + 56, cy + 32); const back = await land(M); return [...held, back, away(M), exact(M)]; };"
-          " MAPVIEW = 'tree'; paintMap(); let M = motionOf(document.querySelector('.treesvg')); out.tree = await drag(M, M.nodes.find(n => M.edges.some(e => e.a === n || e.b === n)));"
+    js = ("showTab('map'); const out = {};"
+          " MAPVIEW = 'tree'; paintMap(); let M = motionOf(document.querySelector('.treesvg')); "
           " const k = Object.keys(mapTree(MAP).stages).find(x => mapTree(MAP).stages[x].label === 'Web Developer'); treeFocusTeam(k); M = document.querySelector('.treesvg').__m; out.focusMoving = M.svg.classList.contains('tmoving'); out.focus = [await land(M), away(M), exact(M)];"
-          " treeOpen(k); M = document.querySelector('.consvg').__m; out.teamOpen = [M.svg.classList.contains('cmoving'), await land(M), exact(M)]; out.team = await drag(M, M.nodes.find(n => n.id === 'W-8'));"
-          " consGo([{id: 'work:website', kind: 'art'}]); M = document.querySelector('.consvg').__m; out.sunOpen = [await land(M), exact(M)]; out.sun = await drag(M, M.nodes.find(n => n.id === 'W-8'));"
+          " treeOpen(k); M = document.querySelector('.consvg').__m; out.teamOpen = [M.svg.classList.contains('cmoving'), await land(M), exact(M)];"
+          " consGo([{id: 'work:website', kind: 'art'}]); M = document.querySelector('.consvg').__m; out.sunOpen = [await land(M), exact(M)];"
           " const n = M.nodes.find(x => x.id === 'W-8'), nb = M.nodes.find(x => x.id === 'sec:work:website:W-8'), far = M.nodes.find(x => x.id === 'W-13'); fire('mouseover', n.el, 0, 0); await wait(400);"
-          " const lean = (a, b) => Math.hypot(b.sx - a.sx, b.sy - a.sy) - Math.hypot(b.sx - a.x, b.sy - a.y); out.hover = [lean(nb, n) > 2, lean(far, n) < -1, Math.round(Math.hypot(n.x - n.sx, n.y - n.sy))]; fire('mouseout', n.el, 0, 0); out.unhover = [await land(M), exact(M)];"
-          " out.drift = getComputedStyle(n.el).animationName; consBack(); MAPVIEW = 'line'; paintMap(); M = motionOf(q('.mapsvg:not(.consvg)').find(x => x.getClientRects().length)); out.line = await drag(M, M.nodes.find(n => M.edges.some(e => e.a === n || e.b === n)));"
+          " const lean = (a, b) => Math.hypot(b.hx - a.hx, b.hy - a.hy) - Math.hypot(b.hx - a.x, b.hy - a.y); out.hover = [lean(nb, n) > 2, lean(far, n) < -1, Math.round(Math.hypot(n.x - n.hx, n.y - n.hy))]; fire('mouseout', n.el, 0, 0); out.unhover = [await land(M), exact(M)];"
+          " out.drift = getComputedStyle(n.el).animationName; consBack(); MAPVIEW = 'line'; paintMap();"
           " Object.assign(r, out);")
     t = probe(js)
-    for v in ("tree", "team", "sun", "line"):
-        assert t[v][0] >= 30 and t[v][1] and t[v][2] and t[v][3] <= 2 and t[v][4], (v, "a drag stretches the node and its lines; a release springs it back onto its slot", t[v])
+    # 174314: a dropped place survives a reload (the page again, same viewer), Reset forgets it across a reload too; a touch drags as the mouse does
+    rl = probe("showTab('map'); const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:0;top:0;width:1440px;height:900px'; document.body.appendChild(f);"
+               " const loaded = () => new Promise(ok => f.onload = ok), W = () => f.contentWindow, sun = async () => { W().showTab('map'); W().eval(\"consOpen('work:website')\"); await wait(1200); return W().document.querySelector('.consvg').__m; };"
+               " f.src = location.href; await loaded(); await wait(2600); let M = await sun(), n = M.nodes.find(x => x.id === 'W-8'), b = n.el.getBoundingClientRect(), k = n.el.parentNode.getScreenCTM().a;"
+               " const F = (t, el, x, y) => el.dispatchEvent(new (W().MouseEvent)(t, {bubbles: true, cancelable: true, view: W(), clientX: x, clientY: y, button: 0}));"
+               " F('mousedown', n.el, b.left + 5, b.top + 5); for (let i = 1; i <= 5; i++) F('mousemove', W(), b.left + 5 - 12 * i, b.top + 5 - 8 * i); F('mouseup', W(), b.left - 55, b.top - 35); const at = [n.x, n.y]; await wait(30);"
+               " W().location.reload(); await loaded(); await wait(2600); M = await sun(); n = M.nodes.find(x => x.id === 'W-8'); r.kept = [Math.abs(n.x - at[0]) < 0.2 && Math.abs(n.y - at[1]) < 0.2, Math.round(n.x - n.hx), Math.round(n.y - n.hy), !W().document.querySelector('.mapreset').disabled];"
+               " W().document.querySelector('.mapreset').click(); await wait(400); W().location.reload(); await loaded(); await wait(2600); M = await sun(); r.reset = [M.nodes.every(x => x.x === x.hx && x.y === x.hy), W().document.querySelector('.mapreset').disabled];"
+               " const t = M.nodes.find(x => x.id === 'W-9'), tb = t.el.getBoundingClientRect(), T = (x, y) => new (W().Touch)({identifier: 7, target: t.el, clientX: x, clientY: y});"
+               " const touch = (type, x, y) => t.el.dispatchEvent(new (W().TouchEvent)(type, {bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [T(x, y)], targetTouches: type === 'touchend' ? [] : [T(x, y)], changedTouches: [T(x, y)]}));"
+               " touch('touchstart', tb.left + 5, tb.top + 5); for (let i = 1; i <= 5; i++) touch('touchmove', tb.left + 5 + 10 * i, tb.top + 5 + 6 * i); touch('touchend', tb.left + 55, tb.top + 35);"
+               " r.touch = [Math.round((t.x - t.hx) * t.el.parentNode.getScreenCTM().a), Math.round((t.y - t.hy) * t.el.parentNode.getScreenCTM().a), !W().document.querySelector('.mapreset').disabled];")
+    assert rl["kept"][0] and rl["kept"][1] < -40 and rl["kept"][3] and rl["reset"] == [True, True], ("a dropped place survives a reload; Reset forgets it across one too", rl)
+    assert rl["touch"] == [50, 30, True], ("a one-finger drag moves the node too", rl["touch"])
     assert t["focusMoving"] and t["focus"] == [True, 0, True] and t["teamOpen"] == [True, True, True] and t["sunOpen"] == [True, True], ("a new view or focus springs in and lands on its slots", t)
     assert t["hover"][:2] == [True, True] and t["hover"][2] == 0 and t["unhover"] == [True, True] and t["drift"] == "mdrift", ("hover: the neighbours lean in, the rest ease away, all go back; the nodes drift", t["hover"], t["unhover"], t["drift"])
+    # deep links: from a workflow's sun to its Workflows row, from a section's focus to its Artifacts row (its fold opened); Back returns to the same view and focus
+    dl = probe("showTab('map'); const vis = el => !!el && el.getClientRects().length > 0, inview = el => { const b = el.getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight; };"
+               " const k = Object.keys(mapTree(MAP).stages).find(x => mapTree(MAP).stages[x].label === 'Web Developer'); consGo([{id: k, kind: 'team'}, {id: 'W-8', kind: 'wf'}]); await wait(200);"
+               " document.querySelector('[data-openwf]').click(); await wait(400); const row = document.querySelector('#pane-workflows .dlhit');"
+               " r.wf = [vis(document.getElementById('pane-workflows')), row ? row.dataset.wfrow : '', row ? inview(row) : false, document.querySelectorAll('.dlhit').length];"
+               " document.getElementById('backmap').click(); await wait(300); r.wfBack = [vis(document.getElementById('pane-map')), CONS.kind, CONS.id, CONS.path.length, !!document.querySelector('.consvg[data-kind=wf]')];"
+               " consGo([{id: 'work:website', kind: 'art'}], 'sec:work:website:W-8'); await wait(200); document.querySelector('.conspanel [data-openart]').click(); await wait(800);"
+               " const a = document.querySelector('#pane-artifacts .dlhit'); r.art = [vis(document.getElementById('pane-artifacts')), a ? a.dataset.sec : '', a ? inview(a) : false, a ? [...(function* (){ let d = a.closest('details'); while (d){ yield d.open; d = d.parentElement.closest('details'); } })()].every(Boolean) : false];"
+               " document.getElementById('backmap').click(); await wait(300); r.artBack = [vis(document.getElementById('pane-map')), CONS.kind, CONS.id, CONS.focus, !!document.querySelector('.consvg.focusing')];")
+    assert dl["wf"] == [True, "W-8", True, 1] and dl["wfBack"] == [True, "wf", "W-8", 2, True], ("Open in Workflows: W-8's row, lit and in view; Back to the same sun", dl)
+    assert dl["art"] == [True, "work:website|W-8", True, True] and dl["artBack"] == [True, "art", "work:website", "sec:work:website:W-8", True], ("Open in Artifacts: the section's row in its open fold, lit and in view; Back to the same focus", dl)
     # reduced motion: no drift, a new view at once, hover moves nothing
     rm = probe("showTab('map'); MAPVIEW = 'tree'; paintMap(); const k = Object.keys(mapTree(MAP).stages)[0]; treeFocusTeam(k); let M = document.querySelector('.treesvg').__m; r.focus = [M.svg.dataset.settled, M.svg.classList.contains('tmoving'), exact(M)];"
                " consOpen('work:website'); M = document.querySelector('.consvg').__m; r.sun = [M.svg.dataset.settled, exact(M)]; const n = M.nodes.find(x => x.id === 'W-8'); fire('mouseover', n.el, 0, 0); await wait(300);"
-               " r.hover = M.nodes.filter(x => Math.hypot(x.x - x.sx, x.y - x.sy) > 0.01).length; r.drift = getComputedStyle(n.el).animationName;", ("--force-prefers-reduced-motion",))
-    assert rm["focus"] == ["1", False, True] and rm["sun"] == ["1", True] and rm["hover"] == 0 and rm["drift"] == "none", ("reduced motion: no drift, no overshoot, at once", rm)
+               " r.hover = M.nodes.filter(x => Math.hypot(x.x - x.hx, x.y - x.hy) > 0.01).length; r.drift = getComputedStyle(n.el).animationName;"
+               " const b = n.el.getBoundingClientRect(); fire('mousedown', n.el, b.left + 5, b.top + 5); for (let i = 1; i <= 5; i++) fire('mousemove', window, b.left + 5 + 9 * i, b.top + 5); fire('mouseup', window, b.left + 50, b.top + 5); await wait(30);"
+               " r.dropped = Math.round(n.x - n.hx) > 0; document.querySelector('.mapreset').click(); r.resetNow = [M.nodes.every(x => x.x === x.hx && x.y === x.hy), M.svg.dataset.settled];", ("--force-prefers-reduced-motion",))
+    assert rm["focus"] == ["1", False, True] and rm["sun"] == ["1", True] and rm["hover"] == 0 and rm["drift"] == "none" and rm["dropped"] and rm["resetNow"] == [True, "1"], ("reduced motion: no drift, no overshoot, Reset at once", rm)
     # frame time, on the real clock: the motion's own work each frame, and the display's frames while it moves
     ft = probe("showTab('map'); MAPVIEW = 'tree'; paintMap(); await wait(300); MOTION.frames.length = 0; const raf = []; let last = performance.now(), on = true; const loop = now => { raf.push(now - last); last = now; if (on) requestAnimationFrame(loop); }; requestAnimationFrame(loop);"
                " const k = Object.keys(mapTree(MAP).stages).find(x => mapTree(MAP).stages[x].label === 'Web Developer'); treeFocusTeam(k); await wait(900); consOpen('work:website'); await wait(900);"
@@ -8423,8 +8494,9 @@ def map_motion():
                " for (let i = 1; i <= 20; i++){ fire('mousemove', window, b.left + 5 + 6 * i, b.top + 5 + 4 * i); await wait(16); } fire('mouseup', window, b.left + 125, b.top + 85); await wait(900); on = false;"
                " const f = MOTION.frames, rr = raf.slice(1).sort((a, c) => a - c); r.work = [f.length, Math.max(...f), f.reduce((a, c) => a + c, 0) / f.length]; r.raf = [rr.length, rr[Math.floor(rr.length / 2)]];", real=True)
     assert ft["work"][0] > 30 and ft["work"][1] < 16 and ft["raf"][1] < 17.5, ("a motion frame under 16ms on 174314", ft)
-    print(f"map motion: {settled['views']} views over {len(names)} runs spring open and rest exactly on their slots (within 2px; at most {settled['frames']} frames); 174314: a drag stretches "
-          f"the node and its lines and springs back in the Tree, the Line, a team and a sun, hover leans the neighbours in and the rest away, the nodes drift; reduced motion: none of it, "
+    print(f"map motion: {settled['views']} views over {len(names)} runs spring open and rest exactly on their slots (within 2px; at most {settled['frames']} frames); in each a node dragged "
+          f"({settled['drags']}) moves alone, stays where dropped, no click or focus, its place saved, and Reset brings every node home exactly, forgets it and disables itself (light and dark); "
+          f"174314: the place survives a reload, a touch drags, hover leans the neighbours in and the rest away, the nodes drift; deep links land and Back returns; reduced motion: none of it, Reset "
           f"at once; real clock: motion work at most {ft['work'][1]:.1f}ms a frame (mean {ft['work'][2]:.2f}ms), display frames {ft['raf'][1]:.1f}ms (median) ok")
 
 
