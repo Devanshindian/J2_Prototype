@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "out_of_scope": {
+      "description": "what the product will not do, one line each (for Still Point Yoga, a prd)",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Out of scope",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Out of scope section says what the product won't do",
+          "The form sends the booking to bookings@stillpoint.example",
+          "The page has a class booking form with the fields name, email, class and preferred date",
+          "The page must work on phones",
+          "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+          "The weekly class list has five classes, each with day, time and price in rupees"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "out_of_scope",
+    "assumptions",
+    "facts_used"
+  ],
+  "type": "object"
+}

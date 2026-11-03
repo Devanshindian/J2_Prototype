@@ -1,0 +1,173 @@
+{
+  "name": "Still Point Yoga Requirements",
+  "artifact": "prd",
+  "section": "Requirements",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Requirements for Still Point Yoga (prd): the generic PRD/1 · Requirements fields plus facts_used, booking_form_fields, classes, from 7 charter fact(s)",
+  "fields": [
+    {
+      "name": "requirements",
+      "type": "list[Requirement]",
+      "required": true,
+      "description": "the requirements, R1, R2, ... in order (for Still Point Yoga, a prd)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Requirements",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Requirements section lists every must-have feature as R1, R2, ...",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "nullable": false
+    },
+    {
+      "name": "booking_form_fields",
+      "type": "list[string]",
+      "required": false,
+      "description": "the fields of the booking form this section names, from the charter: The page has a class booking form with the fields name, email, class and preferred date",
+      "enum": [
+        "name",
+        "email",
+        "class",
+        "preferred date"
+      ],
+      "nullable": false
+    },
+    {
+      "name": "classes",
+      "type": "list[ClassesItem]",
+      "required": false,
+      "description": "The weekly class list has five classes, each with day, time and price in rupees; one item each, copied from the charter ([] when the charter doesn't list them)",
+      "enum": null,
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "Requirement",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "R1, R2, ... in order",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "statement",
+          "type": "string",
+          "required": true,
+          "description": "what the product must do, naming the user group that does it",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "required": true,
+          "description": "must, should or could",
+          "enum": [
+            "must",
+            "should",
+            "could"
+          ],
+          "nullable": false
+        },
+        {
+          "name": "goals",
+          "type": "list[string]",
+          "required": false,
+          "description": "the goal ids this requirement serves, e.g. [\"G1\"]",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "name": "ClassesItem",
+      "fields": [
+        {
+          "name": "day",
+          "type": "string",
+          "required": true,
+          "description": "the day, as the charter gives it",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "time",
+          "type": "string",
+          "required": true,
+          "description": "the time, as the charter gives it",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "price",
+          "type": "string",
+          "required": true,
+          "description": "the price, as the charter gives it",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Requirements section lists every must-have feature as R1, R2, ...",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "67ad37362b6cbfada8ab4e3b3c2db9d63851a559d5a1c66442027fb5534c7bb6",
+  "extends": "prd/requirements@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-4",
+    "atom": "W-4.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "prd",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Requirements section lists every must-have feature as R1, R2, ...",
+      "The form sends the booking to bookings@stillpoint.example",
+      "The page has a class booking form with the fields name, email, class and preferred date",
+      "The page must work on phones",
+      "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+      "The weekly class list has five classes, each with day, time and price in rupees"
+    ],
+    "fingerprint": "334c3ee2530360e339632befcb0837b006962b0e32a36b0f8e3a84f52cb5a488"
+  }
+}

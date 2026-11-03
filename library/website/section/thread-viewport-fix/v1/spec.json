@@ -1,0 +1,81 @@
+{
+  "name": "Thread Viewport fix",
+  "artifact": "website",
+  "section": "Section",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true,
+      "description": "the section id of this workflow, as the task gives it (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "anchor",
+      "type": "string",
+      "required": false,
+      "description": "the id attribute of the section element, with the #; \"\" when this workflow writes page-head tags only (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "implements",
+      "type": "list[string]",
+      "required": false,
+      "description": "the LLD section ids this builds; empty when the run has no LLD (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "html",
+      "type": "string",
+      "required": false,
+      "description": "the section's HTML only: no <html>, <head> or <body> tags; \"\" when this workflow writes page-head tags only (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "head",
+      "type": "string",
+      "required": false,
+      "description": "page-head tags this section needs (meta, link, style or script only); \"\" when it needs none (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "selectors_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the ids and classes you used (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section shows, copied exactly (for Thread, a boutique)",
+      "enum": null,
+      "nullable": false
+    }
+  ],
+  "objects": [],
+  "rules": [],
+  "sha": "5f7ed0cacd73ad3b686ec911e7ba39680bae8089161e3d14e3a628e0618c818b",
+  "extends": "website/section@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028",
+    "workflow": "W-5",
+    "atom": "W-5.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "boutique",
+    "facts_used": [],
+    "fingerprint": "aff83a59e5f27c83749a8ea4cfe31d1e0b9dfeefcbcf4db6358786412e4261c9"
+  }
+}

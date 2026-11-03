@@ -1,0 +1,142 @@
+{
+  "name": "Still Point Yoga Form fields",
+  "artifact": "lld",
+  "section": "Form fields",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Form fields for Still Point Yoga (lld): the generic LLD/1 · Form fields fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "form_fields",
+      "type": "list[FormField]",
+      "required": true,
+      "description": "every form field, F1, F2, ... in order (for Still Point Yoga, a lld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Form fields",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Form fields section is written for Still Point Yoga"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "FormField",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "F1, F2, ... in order",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "form",
+          "type": "string",
+          "required": true,
+          "description": "the form's selector, e.g. \"#booking\"",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "the field name attribute",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": true,
+          "description": "one of text, email, tel, url, number, date, time, select, textarea, checkbox, radio, password, file",
+          "enum": [
+            "text",
+            "email",
+            "tel",
+            "url",
+            "number",
+            "date",
+            "time",
+            "select",
+            "textarea",
+            "checkbox",
+            "radio",
+            "password",
+            "file"
+          ],
+          "nullable": false
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "required": true,
+          "description": "true when the visitor must fill it in",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "section",
+          "type": "string",
+          "required": false,
+          "description": "the section id the form sits in, e.g. \"S1\"",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "validation",
+          "type": "string",
+          "required": false,
+          "description": "the validation rule in one line",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Form fields section is written for Still Point Yoga"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "0116f23f1daee12afc61569ca477de06443ebc26108d03ccd78803c5c3b92cf7",
+  "extends": "lld/form-fields@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-15",
+    "atom": "W-15.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "lld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Form fields section is written for Still Point Yoga"
+    ],
+    "fingerprint": "426dbebbe5186cc5f49a9f03ce47802d930193cce9d143c0730d25d8bd9ac646"
+  }
+}

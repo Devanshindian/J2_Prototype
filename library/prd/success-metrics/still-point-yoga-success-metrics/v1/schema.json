@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "success_metrics": {
+      "description": "one metric per goal (for Still Point Yoga, a prd)",
+      "items": {
+        "$ref": "#/definitions/SuccessMetric"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Success metrics",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Success metrics section gives a measurable metric for each goal",
+          "The form sends the booking to bookings@stillpoint.example",
+          "The page has a class booking form with the fields name, email, class and preferred date",
+          "The page must work on phones",
+          "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+          "The weekly class list has five classes, each with day, time and price in rupees"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "success_metrics"
+  ],
+  "type": "object",
+  "definitions": {
+    "SuccessMetric": {
+      "additionalProperties": false,
+      "properties": {
+        "goal": {
+          "description": "the goal id this metric measures, e.g. \"G1\"",
+          "type": "string"
+        },
+        "metric": {
+          "description": "what is measured",
+          "type": "string"
+        },
+        "target": {
+          "description": "the number or state to reach",
+          "type": "string"
+        },
+        "window": {
+          "description": "the measurement window, e.g. \"in the first 30 days\"; write \"measurement window not set\" when the brief doesn't say",
+          "type": "string"
+        }
+      },
+      "required": [
+        "goal",
+        "metric"
+      ],
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Pages",
+  "version": 1,
+  "sha": "4cb93d0788a55c17d53887b1623fc7fc0bb76b87f5026c96d52fb46e35fd1935",
+  "schema_sha": "65131bf89539b9ff525a8227733ffe69dbbea49643e6b0f6fbdf44b72be51a5d",
+  "model_sha": "8bb4dcf6add6bcd222e0951da6e7db7087afb516b62e09f2e0f2a5dbbedd70f9",
+  "class": "StillPointYogaPagesV1",
+  "created": "2026-11-03T15:40:28",
+  "fingerprints": [
+    "b1ac2935be87d9a84985bd25c9c4650e0bbf3f1bd1da9232d6f769ee38e6dab1"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-154028-3",
+      "workflow": "W-8",
+      "atom": "W-8.a1",
+      "action": "created"
+    }
+  ]
+}

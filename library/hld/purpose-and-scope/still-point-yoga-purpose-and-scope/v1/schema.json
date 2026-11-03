@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "purpose": {
+      "description": "what this design covers and what it leaves out (for Still Point Yoga, a hld)",
+      "type": "string"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Purpose and scope",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Purpose and scope section is written for Still Point Yoga"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "purpose"
+  ],
+  "type": "object"
+}

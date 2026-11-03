@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "components": {
+      "description": "the components, C1, C2, ... in order; each names the PRD requirement ids it covers (for Still Point Yoga, a hld)",
+      "items": {
+        "$ref": "#/definitions/Component"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Components",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Components section is written for Still Point Yoga, and names every requirement (R1, R2, R3, R4, R5) it covers"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "components"
+  ],
+  "type": "object",
+  "definitions": {
+    "Component": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "C1, C2, ... in order",
+          "type": "string"
+        },
+        "name": {
+          "description": "the component name",
+          "type": "string"
+        },
+        "responsibility": {
+          "description": "its one responsibility, in one line",
+          "type": "string"
+        },
+        "covers": {
+          "description": "the PRD requirement ids it covers, e.g. [\"R1\"]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "page": {
+          "description": "the page id it sits on, e.g. \"P1\"",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "responsibility"
+      ],
+      "type": "object"
+    }
+  }
+}

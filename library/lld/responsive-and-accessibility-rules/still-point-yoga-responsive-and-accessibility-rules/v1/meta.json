@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Responsive and accessibility rules",
+  "version": 1,
+  "sha": "bf976c888bc49b8c3fd0d59e0f185304246f43e331d81b12442242306f498285",
+  "schema_sha": "8f80bb52aa56fb290ae53d91d3b8ffb734a82265ce443a8bbcb79e69cd070faa",
+  "model_sha": "e81a24d2bbe6bdea98b78e01b5ce6bac4a4ff053da24af875817c7519106fd63",
+  "class": "StillPointYogaResponsiveAndAccessibilityRulesV1",
+  "created": "2026-11-03T15:40:28",
+  "fingerprints": [
+    "ec73c97fba0cbc08857bdf70c577d742a3580514a46f077a2f7aa5800ecac3db"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-154028-3",
+      "workflow": "W-17",
+      "atom": "W-17.a1",
+      "action": "created"
+    }
+  ]
+}

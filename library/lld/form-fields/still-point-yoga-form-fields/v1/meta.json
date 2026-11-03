@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Form fields",
+  "version": 1,
+  "sha": "0116f23f1daee12afc61569ca477de06443ebc26108d03ccd78803c5c3b92cf7",
+  "schema_sha": "5e5620bf8acb92e1ee621b9c6e30f9c73e999706881abe73ae9d98b364b977bc",
+  "model_sha": "631831657a8a08d5776e5b1030027c92e3a8f04cf7457532711e400a00de29e8",
+  "class": "StillPointYogaFormFieldsV1",
+  "created": "2026-11-03T15:40:28",
+  "fingerprints": [
+    "426dbebbe5186cc5f49a9f03ce47802d930193cce9d143c0730d25d8bd9ac646"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-154028-3",
+      "workflow": "W-15",
+      "atom": "W-15.a1",
+      "action": "created"
+    }
+  ]
+}

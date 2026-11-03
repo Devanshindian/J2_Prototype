@@ -1,0 +1,104 @@
+{
+  "name": "Still Point Yoga Pages",
+  "artifact": "hld",
+  "section": "Pages",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Pages for Still Point Yoga (hld): the generic HLD/1 · Pages fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "pages",
+      "type": "list[Page]",
+      "required": true,
+      "description": "the pages, P1, P2, ... in order (for Still Point Yoga, a hld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Pages",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Pages section is written for Still Point Yoga"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "Page",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "P1, P2, ... in order",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "the page name",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "purpose",
+          "type": "string",
+          "required": true,
+          "description": "what the page is for",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "implements",
+          "type": "list[string]",
+          "required": false,
+          "description": "the PRD requirement ids this page carries",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Pages section is written for Still Point Yoga"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "4cb93d0788a55c17d53887b1623fc7fc0bb76b87f5026c96d52fb46e35fd1935",
+  "extends": "hld/pages@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-8",
+    "atom": "W-8.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "hld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Pages section is written for Still Point Yoga"
+    ],
+    "fingerprint": "b1ac2935be87d9a84985bd25c9c4650e0bbf3f1bd1da9232d6f769ee38e6dab1"
+  }
+}

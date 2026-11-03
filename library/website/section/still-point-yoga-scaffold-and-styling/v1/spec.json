@@ -1,0 +1,81 @@
+{
+  "name": "Still Point Yoga Scaffold and styling",
+  "artifact": "website",
+  "section": "Section",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true,
+      "description": "the section id of this workflow, as the task gives it (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "anchor",
+      "type": "string",
+      "required": false,
+      "description": "the id attribute of the section element, with the #; \"\" when this workflow writes page-head tags only (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "implements",
+      "type": "list[string]",
+      "required": false,
+      "description": "the LLD section ids this builds; empty when the run has no LLD (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "html",
+      "type": "string",
+      "required": false,
+      "description": "the section's HTML only: no <html>, <head> or <body> tags; \"\" when this workflow writes page-head tags only (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "head",
+      "type": "string",
+      "required": false,
+      "description": "page-head tags this section needs (meta, link, style or script only); \"\" when it needs none (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "selectors_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the ids and classes you used (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section shows, copied exactly (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    }
+  ],
+  "objects": [],
+  "rules": [],
+  "sha": "ac08a9fac021e948f5143697da9d633fede3be6775961e91e4b927f9b7ec37f9",
+  "extends": "website/section@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-18",
+    "atom": "W-18.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "business",
+    "facts_used": [],
+    "fingerprint": "2a81981a8a28661d24ddf2e872e4e79f1dbc785a1dedb9b34226e68628aeb13e"
+  }
+}

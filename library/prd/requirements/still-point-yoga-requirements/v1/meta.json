@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Requirements",
+  "version": 1,
+  "sha": "67ad37362b6cbfada8ab4e3b3c2db9d63851a559d5a1c66442027fb5534c7bb6",
+  "schema_sha": "2142c6dc4f14b39d3b95559a7d57466fa7a8a018e38fc336bc1a351653fc93f4",
+  "model_sha": "7001eecd20031137a83bba0fa7d794272881f675077b56d598f58d70eb1b1d00",
+  "class": "StillPointYogaRequirementsV1",
+  "created": "2026-11-03T15:40:28",
+  "fingerprints": [
+    "334c3ee2530360e339632befcb0837b006962b0e32a36b0f8e3a84f52cb5a488"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-154028-3",
+      "workflow": "W-4",
+      "atom": "W-4.a1",
+      "action": "created"
+    }
+  ]
+}

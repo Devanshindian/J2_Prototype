@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Risks",
+  "version": 1,
+  "sha": "b359c50e77029b7dc8324eb428daf57e40ba98852f2c8eb5b217e2e5369bd9b7",
+  "schema_sha": "3c3378604e9df7fc41567d43401e43a01109c2a614a7403164a250a7bba3d755",
+  "model_sha": "020e9e89c8643dc76444cc803297c3417043ba2d0df6e83ade1a837398f1eedc",
+  "class": "StillPointYogaRisksV1",
+  "created": "2026-11-03T15:40:28",
+  "fingerprints": [
+    "758f2bbecbdd5ca37a8ae4469c6643189d4401d07ced2d75e811b28ee3d2c42e"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-154028-3",
+      "workflow": "W-12",
+      "atom": "W-12.a1",
+      "action": "created"
+    }
+  ]
+}

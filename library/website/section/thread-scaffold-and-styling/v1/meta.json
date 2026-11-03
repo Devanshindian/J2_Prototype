@@ -1,0 +1,27 @@
+{
+  "schema": "template-library/1",
+  "name": "Thread Scaffold and styling",
+  "version": 1,
+  "sha": "67455d1fa9feb787a5640b710b58a7a13156fdca815b417098e46b3fca45ef6d",
+  "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
+  "model_sha": "a8be395847cd21b2db8419bed6f953bbc37a87011e32a842c793245b4e369c40",
+  "class": "ThreadScaffoldAndStylingV1",
+  "created": "2026-11-03T15:40:28",
+  "fingerprints": [
+    "5807d75a6bd62311d78b195cc017cdcb7a9973b3bf7ee1e26bb2eeea29048840"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-154028",
+      "workflow": "W-1",
+      "atom": "W-1.a1",
+      "action": "created"
+    },
+    {
+      "run": "j2-20261103-154028-2",
+      "workflow": "W-1",
+      "atom": "W-1.a1",
+      "action": "reused"
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "name": "Still Point Yoga Responsive and accessibility rules",
+  "artifact": "lld",
+  "section": "Responsive and accessibility rules",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Responsive and accessibility rules for Still Point Yoga (lld): the generic LLD/1 · Responsive and accessibility rules fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "responsive_rules",
+      "type": "list[string]",
+      "required": false,
+      "description": "one rule per line (for Still Point Yoga, a lld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "accessibility_rules",
+      "type": "list[string]",
+      "required": false,
+      "description": "one rule per line (for Still Point Yoga, a lld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Responsive and accessibility rules",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Responsive and accessibility rules section is written for Still Point Yoga"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Responsive and accessibility rules section is written for Still Point Yoga"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "bf976c888bc49b8c3fd0d59e0f185304246f43e331d81b12442242306f498285",
+  "extends": "lld/responsive-and-accessibility-rules@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-17",
+    "atom": "W-17.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "lld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Responsive and accessibility rules section is written for Still Point Yoga"
+    ],
+    "fingerprint": "ec73c97fba0cbc08857bdf70c577d742a3580514a46f077a2f7aa5800ecac3db"
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "sections": {
+      "description": "the page sections, S1, S2, ... in order, each with its anchor and the HLD components it implements (for Still Point Yoga, a lld)",
+      "items": {
+        "$ref": "#/definitions/LLDSection"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "the assumptions of Still Point Yoga's Pages and sections",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "facts_used": {
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "items": {
+        "enum": [
+          "Still Point Yoga",
+          "The Pages and sections section is written for Still Point Yoga, and names every component (C1, C2, C3, C4, C5) it implements"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "sections"
+  ],
+  "type": "object",
+  "definitions": {
+    "LLDSection": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "S1, S2, ... in order",
+          "type": "string"
+        },
+        "anchor": {
+          "description": "the id attribute on the page, with the #, e.g. \"#classes\"",
+          "type": "string"
+        },
+        "page": {
+          "description": "the page id, e.g. \"P1\"",
+          "type": "string"
+        },
+        "implements": {
+          "description": "the HLD component ids this section implements",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    }
+  }
+}

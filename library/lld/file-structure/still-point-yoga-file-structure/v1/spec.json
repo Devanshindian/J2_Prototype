@@ -1,0 +1,88 @@
+{
+  "name": "Still Point Yoga File structure",
+  "artifact": "lld",
+  "section": "File structure",
+  "version": 1,
+  "kind": "specialised",
+  "description": "File structure for Still Point Yoga (lld): the generic LLD/1 · File structure fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "files",
+      "type": "list[FileEntry]",
+      "required": true,
+      "description": "every file of the build (for Still Point Yoga, a lld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's File structure",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The File structure section is written for Still Point Yoga"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "FileEntry",
+      "fields": [
+        {
+          "name": "path",
+          "type": "string",
+          "required": true,
+          "description": "the file path, e.g. \"index.html\"",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "purpose",
+          "type": "string",
+          "required": true,
+          "description": "what it holds",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The File structure section is written for Still Point Yoga"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "b7340816f5d7634f4284b5b272a35f9d471ae0eef796023190008478e432eeba",
+  "extends": "lld/file-structure@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-16",
+    "atom": "W-16.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "lld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The File structure section is written for Still Point Yoga"
+    ],
+    "fingerprint": "4670f845d25e447c1853b003a6228d38237a2d731673d173817a599f379dda4b"
+  }
+}

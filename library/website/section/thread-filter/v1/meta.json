@@ -1,0 +1,27 @@
+{
+  "schema": "template-library/1",
+  "name": "Thread Filter",
+  "version": 1,
+  "sha": "5383aec9d139fdc4a16baae8bd8ac25a2afbf695ac8011aab4160c1cf7b8b022",
+  "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
+  "model_sha": "fb7e25f44bf0c4d2b81c46620fdf053e825b779136e832d459bc51db8346d8f2",
+  "class": "ThreadFilterV1",
+  "created": "2026-11-03T15:40:28",
+  "fingerprints": [
+    "93bad79dda178be9242572abd6f3cf0a34c5163766328615b48f00be6bcd8f9c"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-154028",
+      "workflow": "W-4",
+      "atom": "W-4.a1",
+      "action": "created"
+    },
+    {
+      "run": "j2-20261103-154028-2",
+      "workflow": "W-4",
+      "atom": "W-4.a1",
+      "action": "reused"
+    }
+  ]
+}

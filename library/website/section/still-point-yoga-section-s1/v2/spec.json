@@ -1,0 +1,118 @@
+{
+  "name": "Still Point Yoga section S1",
+  "artifact": "website",
+  "section": "Section",
+  "version": 2,
+  "kind": "specialised",
+  "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 1 charter fact(s)",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true,
+      "description": "the section id of this workflow, as the task gives it (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "anchor",
+      "type": "string",
+      "required": false,
+      "description": "the id attribute of the section element, with the #; \"\" when this workflow writes page-head tags only (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "implements",
+      "type": "list[string]",
+      "required": false,
+      "description": "the LLD section ids this builds; empty when the run has no LLD (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "html",
+      "type": "string",
+      "required": false,
+      "description": "the section's HTML only: no <html>, <head> or <body> tags; \"\" when this workflow writes page-head tags only (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "head",
+      "type": "string",
+      "required": false,
+      "description": "page-head tags this section needs (meta, link, style or script only); \"\" when it needs none (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "selectors_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the ids and classes you used (for Still Point Yoga, a business)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section uses, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "How to get in touch is on the page",
+        "What the business offers is on the page"
+      ],
+      "nullable": false
+    },
+    {
+      "name": "elements",
+      "type": "list[string]",
+      "required": false,
+      "description": "the interactive elements of the LLD this section builds, by selector",
+      "enum": [
+        "#act-1",
+        "#act-2"
+      ],
+      "nullable": false
+    },
+    {
+      "name": "form_fields",
+      "type": "list[string]",
+      "required": false,
+      "description": "the form fields of the LLD this section builds, by name",
+      "enum": [
+        "name-1"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "How to get in touch is on the page",
+        "What the business offers is on the page"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "22e800df4a1fdde4c6cbf25b209fac59e51c2dd44230aa471c3223216ec6d316",
+  "extends": "website/section@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-20",
+    "atom": "W-20.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "business",
+    "facts_used": [
+      "How to get in touch is on the page"
+    ],
+    "fingerprint": "133abb0f65f745c4b1af867f7950aeb954328bb528b18cabbabdc0bcbc2b46b4"
+  }
+}

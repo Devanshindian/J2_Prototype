@@ -1,0 +1,1433 @@
+{
+  "schema": "template-library/1",
+  "templates": [
+    {
+      "artifact": "hld",
+      "section": "Components",
+      "section_slug": "components",
+      "slug": "still-point-yoga-components",
+      "name": "Still Point Yoga Components",
+      "kind": "specialised",
+      "extends": "hld/components@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "a3c1fb98275a9eda93810db1378d3ecbf0144c514c8bfeebb7076773b5a5403f",
+          "schema_sha": "310cfa0e07d0fcf661b050ff21900dbede31a557d139c887c6ef50016c18cb8e",
+          "description": "Components for Still Point Yoga (hld): the generic HLD/1 · Components fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "81a2da2cf30157f34ba4f3f182553bae094fc02ff25bca3ef6773d14a829d0b8"
+          ],
+          "business_type": "hld",
+          "facts": [
+            "Still Point Yoga",
+            "The Components section is written for Still Point Yoga, and names every requirement (R1, R2, R3, R4, R5) it covers"
+          ],
+          "fields": [
+            "components",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Components section is written for Still Point Yoga, and names every requirement (R1, R2, R3, R4, R5) it covers"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-9",
+            "atom": "W-9.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-9",
+              "atom": "W-9.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Components for Still Point Yoga (hld): the generic HLD/1 · Components fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "hld",
+      "section": "Data flow",
+      "section_slug": "data-flow",
+      "slug": "still-point-yoga-data-flow",
+      "name": "Still Point Yoga Data flow",
+      "kind": "specialised",
+      "extends": "hld/data-flow@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "bf59be0b295106ce06efc0b55c01982fcbbd20a8610ba0cd9e52dc399eeba3eb",
+          "schema_sha": "8ccf71d059b417aed4b708c0f1cb7e449038576d4ec8519e72826fb914ce2663",
+          "description": "Data flow for Still Point Yoga (hld): the generic HLD/1 · Data flow fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "fa1e0f6eb247ac5f3625a46cac2323dbeba259cf1cdd9995c813919562a25bbd"
+          ],
+          "business_type": "hld",
+          "facts": [
+            "Still Point Yoga",
+            "The Data flow section is written for Still Point Yoga"
+          ],
+          "fields": [
+            "data_flows",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Data flow section is written for Still Point Yoga"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-10",
+            "atom": "W-10.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-10",
+              "atom": "W-10.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Data flow for Still Point Yoga (hld): the generic HLD/1 · Data flow fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "hld",
+      "section": "Hosting and deployment",
+      "section_slug": "hosting-and-deployment",
+      "slug": "still-point-yoga-hosting-and-deployment",
+      "name": "Still Point Yoga Hosting and deployment",
+      "kind": "specialised",
+      "extends": "hld/hosting-and-deployment@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "c11f4fcb32aef0acf636dbe37e4d0ac75571d95794d5674c3a628a32d923f045",
+          "schema_sha": "85392717c1b732f8e1743cc132f810f713b29d68f76cf0f12484fa9978f776cc",
+          "description": "Hosting and deployment for Still Point Yoga (hld): the generic HLD/1 · Hosting and deployment fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "7cf81c6c259189d84f6a86c30e9d65605bade298960a61896a763de8398d3b85"
+          ],
+          "business_type": "hld",
+          "facts": [
+            "Still Point Yoga",
+            "The Hosting and deployment section is written for Still Point Yoga"
+          ],
+          "fields": [
+            "hosting",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Hosting and deployment section is written for Still Point Yoga"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-11",
+            "atom": "W-11.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-11",
+              "atom": "W-11.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Hosting and deployment for Still Point Yoga (hld): the generic HLD/1 · Hosting and deployment fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "hld",
+      "section": "Pages",
+      "section_slug": "pages",
+      "slug": "still-point-yoga-pages",
+      "name": "Still Point Yoga Pages",
+      "kind": "specialised",
+      "extends": "hld/pages@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "4cb93d0788a55c17d53887b1623fc7fc0bb76b87f5026c96d52fb46e35fd1935",
+          "schema_sha": "65131bf89539b9ff525a8227733ffe69dbbea49643e6b0f6fbdf44b72be51a5d",
+          "description": "Pages for Still Point Yoga (hld): the generic HLD/1 · Pages fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "b1ac2935be87d9a84985bd25c9c4650e0bbf3f1bd1da9232d6f769ee38e6dab1"
+          ],
+          "business_type": "hld",
+          "facts": [
+            "Still Point Yoga",
+            "The Pages section is written for Still Point Yoga"
+          ],
+          "fields": [
+            "pages",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Pages section is written for Still Point Yoga"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-8",
+            "atom": "W-8.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-8",
+              "atom": "W-8.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Pages for Still Point Yoga (hld): the generic HLD/1 · Pages fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "hld",
+      "section": "Purpose and scope",
+      "section_slug": "purpose-and-scope",
+      "slug": "still-point-yoga-purpose-and-scope",
+      "name": "Still Point Yoga Purpose and scope",
+      "kind": "specialised",
+      "extends": "hld/purpose-and-scope@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "99d914f5ead4964755f10d4faa656c2e96556221f562600aae4d6c9635133096",
+          "schema_sha": "9fa6bb91938dbc4fd31a17571a88dc2ddc09094285ec6eca59a4d421b35e4493",
+          "description": "Purpose and scope for Still Point Yoga (hld): the generic HLD/1 · Purpose and scope fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "32b622df91991c502adbe6474ad3edfbb3fd355dd0e3fa9c7fc4e18e5b27d071"
+          ],
+          "business_type": "hld",
+          "facts": [
+            "Still Point Yoga",
+            "The Purpose and scope section is written for Still Point Yoga"
+          ],
+          "fields": [
+            "purpose",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Purpose and scope section is written for Still Point Yoga"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-7",
+            "atom": "W-7.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-7",
+              "atom": "W-7.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Purpose and scope for Still Point Yoga (hld): the generic HLD/1 · Purpose and scope fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "hld",
+      "section": "Risks",
+      "section_slug": "risks",
+      "slug": "still-point-yoga-risks",
+      "name": "Still Point Yoga Risks",
+      "kind": "specialised",
+      "extends": "hld/risks@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "b359c50e77029b7dc8324eb428daf57e40ba98852f2c8eb5b217e2e5369bd9b7",
+          "schema_sha": "3c3378604e9df7fc41567d43401e43a01109c2a614a7403164a250a7bba3d755",
+          "description": "Risks for Still Point Yoga (hld): the generic HLD/1 · Risks fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "758f2bbecbdd5ca37a8ae4469c6643189d4401d07ced2d75e811b28ee3d2c42e"
+          ],
+          "business_type": "hld",
+          "facts": [
+            "Still Point Yoga",
+            "The Risks section is written for Still Point Yoga"
+          ],
+          "fields": [
+            "risks",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Risks section is written for Still Point Yoga"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-12",
+            "atom": "W-12.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-12",
+              "atom": "W-12.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Risks for Still Point Yoga (hld): the generic HLD/1 · Risks fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "lld",
+      "section": "File structure",
+      "section_slug": "file-structure",
+      "slug": "still-point-yoga-file-structure",
+      "name": "Still Point Yoga File structure",
+      "kind": "specialised",
+      "extends": "lld/file-structure@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "b7340816f5d7634f4284b5b272a35f9d471ae0eef796023190008478e432eeba",
+          "schema_sha": "5a4e8a9f20cce7cf4008a8717537005d48d047a8faf73a54b2deaa5707047db5",
+          "description": "File structure for Still Point Yoga (lld): the generic LLD/1 · File structure fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "4670f845d25e447c1853b003a6228d38237a2d731673d173817a599f379dda4b"
+          ],
+          "business_type": "lld",
+          "facts": [
+            "Still Point Yoga",
+            "The File structure section is written for Still Point Yoga"
+          ],
+          "fields": [
+            "files",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The File structure section is written for Still Point Yoga"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-16",
+            "atom": "W-16.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-16",
+              "atom": "W-16.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "File structure for Still Point Yoga (lld): the generic LLD/1 · File structure fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "lld",
+      "section": "Form fields",
+      "section_slug": "form-fields",
+      "slug": "still-point-yoga-form-fields",
+      "name": "Still Point Yoga Form fields",
+      "kind": "specialised",
+      "extends": "lld/form-fields@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "0116f23f1daee12afc61569ca477de06443ebc26108d03ccd78803c5c3b92cf7",
+          "schema_sha": "5e5620bf8acb92e1ee621b9c6e30f9c73e999706881abe73ae9d98b364b977bc",
+          "description": "Form fields for Still Point Yoga (lld): the generic LLD/1 · Form fields fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "426dbebbe5186cc5f49a9f03ce47802d930193cce9d143c0730d25d8bd9ac646"
+          ],
+          "business_type": "lld",
+          "facts": [
+            "Still Point Yoga",
+            "The Form fields section is written for Still Point Yoga"
+          ],
+          "fields": [
+            "form_fields",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Form fields section is written for Still Point Yoga"
+            ],
+            "FormField.type": [
+              "text",
+              "email",
+              "tel",
+              "url",
+              "number",
+              "date",
+              "time",
+              "select",
+              "textarea",
+              "checkbox",
+              "radio",
+              "password",
+              "file"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-15",
+            "atom": "W-15.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-15",
+              "atom": "W-15.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Form fields for Still Point Yoga (lld): the generic LLD/1 · Form fields fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "lld",
+      "section": "Interactive elements",
+      "section_slug": "interactive-elements",
+      "slug": "still-point-yoga-interactive-elements",
+      "name": "Still Point Yoga Interactive elements",
+      "kind": "specialised",
+      "extends": "lld/interactive-elements@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "c1e265270bb5d1e38dde5cb91c9fae6c5336df8966849990d2acc52152166c38",
+          "schema_sha": "0be518194908dcd2cc5eb477ce963391b5e67da24d2ee2ed79864180b94cde78",
+          "description": "Interactive elements for Still Point Yoga (lld): the generic LLD/1 · Interactive elements fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "6a0a5695ec297c5b57b1f04b7314f6b1de653bde7a5c7d2e4752e6ba406b0b4d"
+          ],
+          "business_type": "lld",
+          "facts": [
+            "Still Point Yoga",
+            "The Interactive elements section is written for Still Point Yoga"
+          ],
+          "fields": [
+            "elements",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Interactive elements section is written for Still Point Yoga"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-14",
+            "atom": "W-14.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-14",
+              "atom": "W-14.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Interactive elements for Still Point Yoga (lld): the generic LLD/1 · Interactive elements fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "lld",
+      "section": "Pages and sections",
+      "section_slug": "pages-and-sections",
+      "slug": "still-point-yoga-pages-and-sections",
+      "name": "Still Point Yoga Pages and sections",
+      "kind": "specialised",
+      "extends": "lld/pages-and-sections@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "9a4fb82db4b8570f4b4ba96d9b7e2ea5b823fd62128c4232c93a1c1a54b3fd5b",
+          "schema_sha": "3713706858ed8d4d2566edd7f87893a18148a1bb777ede71314aac4090d9ccf5",
+          "description": "Pages and sections for Still Point Yoga (lld): the generic LLD/1 · Pages and sections fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "196c43bc0beab5f34405247ce0a72fcc9a424aef9a5437504cfae6fc661afe79"
+          ],
+          "business_type": "lld",
+          "facts": [
+            "Still Point Yoga",
+            "The Pages and sections section is written for Still Point Yoga, and names every component (C1, C2, C3, C4, C5) it implements"
+          ],
+          "fields": [
+            "sections",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Pages and sections section is written for Still Point Yoga, and names every component (C1, C2, C3, C4, C5) it implements"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-13",
+            "atom": "W-13.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-13",
+              "atom": "W-13.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Pages and sections for Still Point Yoga (lld): the generic LLD/1 · Pages and sections fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "lld",
+      "section": "Responsive and accessibility rules",
+      "section_slug": "responsive-and-accessibility-rules",
+      "slug": "still-point-yoga-responsive-and-accessibility-rules",
+      "name": "Still Point Yoga Responsive and accessibility rules",
+      "kind": "specialised",
+      "extends": "lld/responsive-and-accessibility-rules@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "bf976c888bc49b8c3fd0d59e0f185304246f43e331d81b12442242306f498285",
+          "schema_sha": "8f80bb52aa56fb290ae53d91d3b8ffb734a82265ce443a8bbcb79e69cd070faa",
+          "description": "Responsive and accessibility rules for Still Point Yoga (lld): the generic LLD/1 · Responsive and accessibility rules fields plus facts_used, from 2 charter fact(s)",
+          "fingerprints": [
+            "ec73c97fba0cbc08857bdf70c577d742a3580514a46f077a2f7aa5800ecac3db"
+          ],
+          "business_type": "lld",
+          "facts": [
+            "Still Point Yoga",
+            "The Responsive and accessibility rules section is written for Still Point Yoga"
+          ],
+          "fields": [
+            "responsive_rules",
+            "accessibility_rules",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Responsive and accessibility rules section is written for Still Point Yoga"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-17",
+            "atom": "W-17.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-17",
+              "atom": "W-17.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Responsive and accessibility rules for Still Point Yoga (lld): the generic LLD/1 · Responsive and accessibility rules fields plus facts_used, from 2 charter fact(s)"
+    },
+    {
+      "artifact": "prd",
+      "section": "Goals",
+      "section_slug": "goals",
+      "slug": "still-point-yoga-goals",
+      "name": "Still Point Yoga Goals",
+      "kind": "specialised",
+      "extends": "prd/goals@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "7b0e453ee89134b7f8c6e7a5083d1261ff85540b53246bd13ebdc727fc08e546",
+          "schema_sha": "e3f04539ae5e87eb4390983e86e87e07577f37b3232c6818e9eab741e21a10c2",
+          "description": "Goals for Still Point Yoga (prd): the generic PRD/1 · Goals fields plus facts_used, from 7 charter fact(s)",
+          "fingerprints": [
+            "0e97e8edb933b90a822e53c8f3b5a5d06edc77522c11c64b517e6f960d108e0e"
+          ],
+          "business_type": "prd",
+          "facts": [
+            "Still Point Yoga",
+            "The Goals section lists the goals as G1, G2, ...",
+            "The form sends the booking to bookings@stillpoint.example",
+            "The page has a class booking form with the fields name, email, class and preferred date",
+            "The page must work on phones",
+            "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+            "The weekly class list has five classes, each with day, time and price in rupees"
+          ],
+          "fields": [
+            "goals",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Goals section lists the goals as G1, G2, ...",
+              "The form sends the booking to bookings@stillpoint.example",
+              "The page has a class booking form with the fields name, email, class and preferred date",
+              "The page must work on phones",
+              "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+              "The weekly class list has five classes, each with day, time and price in rupees"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-3",
+            "atom": "W-3.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-3",
+              "atom": "W-3.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Goals for Still Point Yoga (prd): the generic PRD/1 · Goals fields plus facts_used, from 7 charter fact(s)"
+    },
+    {
+      "artifact": "prd",
+      "section": "Out of scope",
+      "section_slug": "out-of-scope",
+      "slug": "still-point-yoga-out-of-scope",
+      "name": "Still Point Yoga Out of scope",
+      "kind": "specialised",
+      "extends": "prd/out-of-scope@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "888ae92d6052b2c07308e25a6bc36372b00f4c7c35f03d99adc4cb025bedfa5b",
+          "schema_sha": "356fc656b6885cb8621dea178eebc4753d4bafa5ac17c0605299fe5ada7c269a",
+          "description": "Out of scope for Still Point Yoga (prd): the generic PRD/1 · Out of scope fields plus facts_used, from 7 charter fact(s)",
+          "fingerprints": [
+            "4b7c8fb1ab1867e3a92c6cccf36bf0ee2eed7e4ce46f0a8f07dfcf0b49a66ed3"
+          ],
+          "business_type": "prd",
+          "facts": [
+            "Still Point Yoga",
+            "The Out of scope section says what the product won't do",
+            "The form sends the booking to bookings@stillpoint.example",
+            "The page has a class booking form with the fields name, email, class and preferred date",
+            "The page must work on phones",
+            "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+            "The weekly class list has five classes, each with day, time and price in rupees"
+          ],
+          "fields": [
+            "out_of_scope",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Out of scope section says what the product won't do",
+              "The form sends the booking to bookings@stillpoint.example",
+              "The page has a class booking form with the fields name, email, class and preferred date",
+              "The page must work on phones",
+              "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+              "The weekly class list has five classes, each with day, time and price in rupees"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-6",
+            "atom": "W-6.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-6",
+              "atom": "W-6.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Out of scope for Still Point Yoga (prd): the generic PRD/1 · Out of scope fields plus facts_used, from 7 charter fact(s)"
+    },
+    {
+      "artifact": "prd",
+      "section": "Problem",
+      "section_slug": "problem",
+      "slug": "still-point-yoga-problem",
+      "name": "Still Point Yoga Problem",
+      "kind": "specialised",
+      "extends": "prd/problem@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "0889e3654f52af5628622cb314e43232928d2602fcb0d16526b8f0cf809c1290",
+          "schema_sha": "f2f6191a5d45e49e38315bbfeb87a9c9aa294e2c9f1240e24f1bee3ccbc9a979",
+          "description": "Problem for Still Point Yoga (prd): the generic PRD/1 · Problem fields plus facts_used, from 7 charter fact(s)",
+          "fingerprints": [
+            "41eb8b363f2f312ff7f1eda658f9276628e293bb463f3b0b3c46c4dd279a8fb4"
+          ],
+          "business_type": "prd",
+          "facts": [
+            "Still Point Yoga",
+            "The Problem section states the problem Still Point Yoga solves",
+            "The form sends the booking to bookings@stillpoint.example",
+            "The page has a class booking form with the fields name, email, class and preferred date",
+            "The page must work on phones",
+            "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+            "The weekly class list has five classes, each with day, time and price in rupees"
+          ],
+          "fields": [
+            "statement",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Problem section states the problem Still Point Yoga solves",
+              "The form sends the booking to bookings@stillpoint.example",
+              "The page has a class booking form with the fields name, email, class and preferred date",
+              "The page must work on phones",
+              "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+              "The weekly class list has five classes, each with day, time and price in rupees"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-1",
+            "atom": "W-1.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-1",
+              "atom": "W-1.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Problem for Still Point Yoga (prd): the generic PRD/1 · Problem fields plus facts_used, from 7 charter fact(s)"
+    },
+    {
+      "artifact": "prd",
+      "section": "Requirements",
+      "section_slug": "requirements",
+      "slug": "still-point-yoga-requirements",
+      "name": "Still Point Yoga Requirements",
+      "kind": "specialised",
+      "extends": "prd/requirements@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "67ad37362b6cbfada8ab4e3b3c2db9d63851a559d5a1c66442027fb5534c7bb6",
+          "schema_sha": "2142c6dc4f14b39d3b95559a7d57466fa7a8a018e38fc336bc1a351653fc93f4",
+          "description": "Requirements for Still Point Yoga (prd): the generic PRD/1 · Requirements fields plus facts_used, booking_form_fields, classes, from 7 charter fact(s)",
+          "fingerprints": [
+            "334c3ee2530360e339632befcb0837b006962b0e32a36b0f8e3a84f52cb5a488"
+          ],
+          "business_type": "prd",
+          "facts": [
+            "Still Point Yoga",
+            "The Requirements section lists every must-have feature as R1, R2, ...",
+            "The form sends the booking to bookings@stillpoint.example",
+            "The page has a class booking form with the fields name, email, class and preferred date",
+            "The page must work on phones",
+            "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+            "The weekly class list has five classes, each with day, time and price in rupees"
+          ],
+          "fields": [
+            "requirements",
+            "assumptions",
+            "facts_used",
+            "booking_form_fields",
+            "classes"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Requirements section lists every must-have feature as R1, R2, ...",
+              "The form sends the booking to bookings@stillpoint.example",
+              "The page has a class booking form with the fields name, email, class and preferred date",
+              "The page must work on phones",
+              "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+              "The weekly class list has five classes, each with day, time and price in rupees"
+            ],
+            "booking_form_fields": [
+              "name",
+              "email",
+              "class",
+              "preferred date"
+            ],
+            "Requirement.priority": [
+              "must",
+              "should",
+              "could"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-4",
+            "atom": "W-4.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-4",
+              "atom": "W-4.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Requirements for Still Point Yoga (prd): the generic PRD/1 · Requirements fields plus facts_used, booking_form_fields, classes, from 7 charter fact(s)"
+    },
+    {
+      "artifact": "prd",
+      "section": "Success metrics",
+      "section_slug": "success-metrics",
+      "slug": "still-point-yoga-success-metrics",
+      "name": "Still Point Yoga Success metrics",
+      "kind": "specialised",
+      "extends": "prd/success-metrics@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "826fd00e9e62444b721a4410ea04aa346737b0c2beede78ef7e5d188b6c77e4c",
+          "schema_sha": "a4b4006ab366507cf864db870c0fc17eabb757c546cdd8402d6fbdfddc7021ca",
+          "description": "Success metrics for Still Point Yoga (prd): the generic PRD/1 · Success metrics fields plus facts_used, from 7 charter fact(s)",
+          "fingerprints": [
+            "38e0f9ae37ac2ff5f566895569ade0f5a63b37c9d84a41aed3d1ec163f29a4ac"
+          ],
+          "business_type": "prd",
+          "facts": [
+            "Still Point Yoga",
+            "The Success metrics section gives a measurable metric for each goal",
+            "The form sends the booking to bookings@stillpoint.example",
+            "The page has a class booking form with the fields name, email, class and preferred date",
+            "The page must work on phones",
+            "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+            "The weekly class list has five classes, each with day, time and price in rupees"
+          ],
+          "fields": [
+            "success_metrics",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Success metrics section gives a measurable metric for each goal",
+              "The form sends the booking to bookings@stillpoint.example",
+              "The page has a class booking form with the fields name, email, class and preferred date",
+              "The page must work on phones",
+              "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+              "The weekly class list has five classes, each with day, time and price in rupees"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-5",
+            "atom": "W-5.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-5",
+              "atom": "W-5.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Success metrics for Still Point Yoga (prd): the generic PRD/1 · Success metrics fields plus facts_used, from 7 charter fact(s)"
+    },
+    {
+      "artifact": "prd",
+      "section": "Users",
+      "section_slug": "users",
+      "slug": "still-point-yoga-users",
+      "name": "Still Point Yoga Users",
+      "kind": "specialised",
+      "extends": "prd/users@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "3fea6276279a82562e62c8f0e4a7c02cd6ed258885d5adb9d72cfca49d9bb681",
+          "schema_sha": "b841e8cffdc67a82978b65fd56cd2b4811f4c22538033bb5ebcf06b2961d4201",
+          "description": "Users for Still Point Yoga (prd): the generic PRD/1 · Users fields plus facts_used, from 7 charter fact(s)",
+          "fingerprints": [
+            "2e0f35b4f5e0dfdb1fac5864dd2735f86dd546a9d4b1e07087ef25fb88d88061"
+          ],
+          "business_type": "prd",
+          "facts": [
+            "Still Point Yoga",
+            "The Users section says who the users are",
+            "The form sends the booking to bookings@stillpoint.example",
+            "The page has a class booking form with the fields name, email, class and preferred date",
+            "The page must work on phones",
+            "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+            "The weekly class list has five classes, each with day, time and price in rupees"
+          ],
+          "fields": [
+            "users",
+            "assumptions",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Still Point Yoga",
+              "The Users section says who the users are",
+              "The form sends the booking to bookings@stillpoint.example",
+              "The page has a class booking form with the fields name, email, class and preferred date",
+              "The page must work on phones",
+              "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+              "The weekly class list has five classes, each with day, time and price in rupees"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-2",
+            "atom": "W-2.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-2",
+              "atom": "W-2.a1",
+              "action": "created"
+            }
+          ]
+        }
+      ],
+      "description": "Users for Still Point Yoga (prd): the generic PRD/1 · Users fields plus facts_used, from 7 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "still-point-yoga-scaffold-and-styling",
+      "name": "Still Point Yoga Scaffold and styling",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "ac08a9fac021e948f5143697da9d633fede3be6775961e91e4b927f9b7ec37f9",
+          "schema_sha": "d06877172dd3dcf9dc5b42f798ea2d74089014774ccdd795fdd9f0bb217fac00",
+          "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)",
+          "fingerprints": [
+            "2a81981a8a28661d24ddf2e872e4e79f1dbc785a1dedb9b34226e68628aeb13e"
+          ],
+          "business_type": "business",
+          "facts": [],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used"
+          ],
+          "enums": {},
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-18",
+            "atom": "W-18.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-18",
+              "atom": "W-18.a1",
+              "action": "created"
+            },
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-21",
+              "atom": "W-21.a1",
+              "action": "reused"
+            },
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-22",
+              "atom": "W-22.a1",
+              "action": "reused"
+            },
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-23",
+              "atom": "W-23.a1",
+              "action": "reused"
+            },
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-24",
+              "atom": "W-24.a1",
+              "action": "reused"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "still-point-yoga-section-s1",
+      "name": "Still Point Yoga section S1",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "a720bb599621794d04092437ea603daf96c4cf58ccc206c9a5dd3153d6d9bdbe",
+          "schema_sha": "a63ba6fea5212472cc00e482ee311bcc654fd8129adcc24cb8808f176e2fb4c5",
+          "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 1 charter fact(s)",
+          "fingerprints": [
+            "9249637496a19fb753b36cb590fb062828eeeb19d517502f9dc3eb138361a835"
+          ],
+          "business_type": "business",
+          "facts": [
+            "What the business offers is on the page"
+          ],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used",
+            "elements",
+            "form_fields"
+          ],
+          "enums": {
+            "facts_used": [
+              "What the business offers is on the page"
+            ],
+            "elements": [
+              "#act-1"
+            ],
+            "form_fields": [
+              "name-1"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-19",
+            "atom": "W-19.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-19",
+              "atom": "W-19.a1",
+              "action": "created"
+            }
+          ]
+        },
+        {
+          "version": 2,
+          "sha": "22e800df4a1fdde4c6cbf25b209fac59e51c2dd44230aa471c3223216ec6d316",
+          "schema_sha": "d07fbd09f9f6654f29e744823f9150994cf8e85eb2ed2f3f6961a2f9d325d5af",
+          "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 1 charter fact(s)",
+          "fingerprints": [
+            "133abb0f65f745c4b1af867f7950aeb954328bb528b18cabbabdc0bcbc2b46b4"
+          ],
+          "business_type": "business",
+          "facts": [
+            "How to get in touch is on the page"
+          ],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used",
+            "elements",
+            "form_fields"
+          ],
+          "enums": {
+            "facts_used": [
+              "How to get in touch is on the page",
+              "What the business offers is on the page"
+            ],
+            "elements": [
+              "#act-1",
+              "#act-2"
+            ],
+            "form_fields": [
+              "name-1"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028-3",
+            "workflow": "W-20",
+            "atom": "W-20.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028-3",
+              "workflow": "W-20",
+              "atom": "W-20.a1",
+              "action": "extended"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Still Point Yoga (business): the generic WebsiteSection/1 · Section fields plus elements, form_fields, from 1 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "thread-filter",
+      "name": "Thread Filter",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "5383aec9d139fdc4a16baae8bd8ac25a2afbf695ac8011aab4160c1cf7b8b022",
+          "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
+          "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
+          "fingerprints": [
+            "93bad79dda178be9242572abd6f3cf0a34c5163766328615b48f00be6bcd8f9c"
+          ],
+          "business_type": "boutique",
+          "facts": [
+            "Visitors can filter products by size and price"
+          ],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Visitors can filter products by size and price"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028",
+            "workflow": "W-4",
+            "atom": "W-4.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028",
+              "workflow": "W-4",
+              "atom": "W-4.a1",
+              "action": "created"
+            },
+            {
+              "run": "j2-20261103-154028-2",
+              "workflow": "W-4",
+              "atom": "W-4.a1",
+              "action": "reused"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "thread-order-on-whatsapp",
+      "name": "Thread Order on WhatsApp",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "bc071b654d55e70674889a00dfaac014d963c0ec068fecf9c1fa094bdd50b1f4",
+          "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
+          "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
+          "fingerprints": [
+            "ad2d01741285599de012d6e0149c60fdebb3cac3d660443df26dd18e757a7e41"
+          ],
+          "business_type": "boutique",
+          "facts": [
+            "Every product has an order button that opens a WhatsApp link with the product id and price"
+          ],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Every product has an order button that opens a WhatsApp link with the product id and price"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028",
+            "workflow": "W-3",
+            "atom": "W-3.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028",
+              "workflow": "W-3",
+              "atom": "W-3.a1",
+              "action": "created"
+            },
+            {
+              "run": "j2-20261103-154028-2",
+              "workflow": "W-3",
+              "atom": "W-3.a1",
+              "action": "reused"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "thread-products",
+      "name": "Thread Products",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "4e8ad22147f1ecfec9f23471aa2c94647f3c6283bdb77582c1470a76d4d9fc76",
+          "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
+          "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
+          "fingerprints": [
+            "1b6ff1d3aee3d5507e6d9c80c21072a93d8ec63df300dacc2f3da0ea96d994df"
+          ],
+          "business_type": "boutique",
+          "facts": [
+            "Every product shows its id and price"
+          ],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Every product shows its id and price"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028",
+            "workflow": "W-2",
+            "atom": "W-2.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028",
+              "workflow": "W-2",
+              "atom": "W-2.a1",
+              "action": "created"
+            },
+            {
+              "run": "j2-20261103-154028-2",
+              "workflow": "W-2",
+              "atom": "W-2.a1",
+              "action": "reused"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "thread-scaffold-and-styling",
+      "name": "Thread Scaffold and styling",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "67455d1fa9feb787a5640b710b58a7a13156fdca815b417098e46b3fca45ef6d",
+          "schema_sha": "d2011dfdc2cc4332fdf3ed9877e5219e94377076186fd08afa516a15cf77c09f",
+          "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)",
+          "fingerprints": [
+            "5807d75a6bd62311d78b195cc017cdcb7a9973b3bf7ee1e26bb2eeea29048840"
+          ],
+          "business_type": "boutique",
+          "facts": [
+            "Visitors can browse products by category"
+          ],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used"
+          ],
+          "enums": {
+            "facts_used": [
+              "Visitors can browse products by category"
+            ]
+          },
+          "made_by": {
+            "run": "j2-20261103-154028",
+            "workflow": "W-1",
+            "atom": "W-1.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028",
+              "workflow": "W-1",
+              "atom": "W-1.a1",
+              "action": "created"
+            },
+            {
+              "run": "j2-20261103-154028-2",
+              "workflow": "W-1",
+              "atom": "W-1.a1",
+              "action": "reused"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 1 charter fact(s)"
+    },
+    {
+      "artifact": "website",
+      "section": "Section",
+      "section_slug": "section",
+      "slug": "thread-viewport-fix",
+      "name": "Thread Viewport fix",
+      "kind": "specialised",
+      "extends": "website/section@generic/1",
+      "versions": [
+        {
+          "version": 1,
+          "sha": "5f7ed0cacd73ad3b686ec911e7ba39680bae8089161e3d14e3a628e0618c818b",
+          "schema_sha": "81ba74dfe1ab99322a95f3aa94964aff04175785a69a200e36a63aadc5f67719",
+          "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)",
+          "fingerprints": [
+            "aff83a59e5f27c83749a8ea4cfe31d1e0b9dfeefcbcf4db6358786412e4261c9"
+          ],
+          "business_type": "boutique",
+          "facts": [],
+          "fields": [
+            "id",
+            "anchor",
+            "implements",
+            "html",
+            "head",
+            "selectors_used",
+            "facts_used"
+          ],
+          "enums": {},
+          "made_by": {
+            "run": "j2-20261103-154028",
+            "workflow": "W-5",
+            "atom": "W-5.a1",
+            "agent": "template generator (mock)"
+          },
+          "used_by": [
+            {
+              "run": "j2-20261103-154028",
+              "workflow": "W-5",
+              "atom": "W-5.a1",
+              "action": "created"
+            },
+            {
+              "run": "j2-20261103-154028-2",
+              "workflow": "W-5",
+              "atom": "W-5.a1",
+              "action": "reused"
+            }
+          ]
+        }
+      ],
+      "description": "Section for Thread (boutique): the generic WebsiteSection/1 · Section fields, from 0 charter fact(s)"
+    }
+  ]
+}

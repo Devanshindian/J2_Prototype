@@ -1,0 +1,112 @@
+{
+  "name": "Still Point Yoga Interactive elements",
+  "artifact": "lld",
+  "section": "Interactive elements",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Interactive elements for Still Point Yoga (lld): the generic LLD/1 · Interactive elements fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "elements",
+      "type": "list[Element]",
+      "required": true,
+      "description": "every interactive element, E1, E2, ... in order (for Still Point Yoga, a lld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Interactive elements",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Interactive elements section is written for Still Point Yoga"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "Element",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "E1, E2, ... in order",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "section",
+          "type": "string",
+          "required": true,
+          "description": "the section id it sits in, e.g. \"S1\"",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "selector",
+          "type": "string",
+          "required": true,
+          "description": "its selector, e.g. \"#book-now\"",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "trigger",
+          "type": "string",
+          "required": true,
+          "description": "what the visitor does, e.g. \"click\"",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "behaviour",
+          "type": "string",
+          "required": true,
+          "description": "what happens then",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Interactive elements section is written for Still Point Yoga"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "c1e265270bb5d1e38dde5cb91c9fae6c5336df8966849990d2acc52152166c38",
+  "extends": "lld/interactive-elements@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-14",
+    "atom": "W-14.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "lld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Interactive elements section is written for Still Point Yoga"
+    ],
+    "fingerprint": "6a0a5695ec297c5b57b1f04b7314f6b1de653bde7a5c7d2e4752e6ba406b0b4d"
+  }
+}

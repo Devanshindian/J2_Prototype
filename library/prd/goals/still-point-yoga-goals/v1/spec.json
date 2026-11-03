@@ -1,0 +1,103 @@
+{
+  "name": "Still Point Yoga Goals",
+  "artifact": "prd",
+  "section": "Goals",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Goals for Still Point Yoga (prd): the generic PRD/1 · Goals fields plus facts_used, from 7 charter fact(s)",
+  "fields": [
+    {
+      "name": "goals",
+      "type": "list[Goal]",
+      "required": true,
+      "description": "the goals, G1, G2, ... in order (for Still Point Yoga, a prd)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Goals",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Goals section lists the goals as G1, G2, ...",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "Goal",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "G1, G2, ... in order",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "statement",
+          "type": "string",
+          "required": true,
+          "description": "the goal in one line",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Goals section lists the goals as G1, G2, ...",
+        "The form sends the booking to bookings@stillpoint.example",
+        "The page has a class booking form with the fields name, email, class and preferred date",
+        "The page must work on phones",
+        "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+        "The weekly class list has five classes, each with day, time and price in rupees"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "7b0e453ee89134b7f8c6e7a5083d1261ff85540b53246bd13ebdc727fc08e546",
+  "extends": "prd/goals@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-3",
+    "atom": "W-3.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "prd",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Goals section lists the goals as G1, G2, ...",
+      "The form sends the booking to bookings@stillpoint.example",
+      "The page has a class booking form with the fields name, email, class and preferred date",
+      "The page must work on phones",
+      "The page shows the name Still Point Yoga and the address as text, with no embedded map",
+      "The weekly class list has five classes, each with day, time and price in rupees"
+    ],
+    "fingerprint": "0e97e8edb933b90a822e53c8f3b5a5d06edc77522c11c64b517e6f960d108e0e"
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "name": "Still Point Yoga Pages and sections",
+  "artifact": "lld",
+  "section": "Pages and sections",
+  "version": 1,
+  "kind": "specialised",
+  "description": "Pages and sections for Still Point Yoga (lld): the generic LLD/1 · Pages and sections fields plus facts_used, from 2 charter fact(s)",
+  "fields": [
+    {
+      "name": "sections",
+      "type": "list[LLDSection]",
+      "required": true,
+      "description": "the page sections, S1, S2, ... in order, each with its anchor and the HLD components it implements (for Still Point Yoga, a lld)",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "assumptions",
+      "type": "list[string]",
+      "required": false,
+      "description": "the assumptions of Still Point Yoga's Pages and sections",
+      "enum": null,
+      "nullable": false
+    },
+    {
+      "name": "facts_used",
+      "type": "list[string]",
+      "required": false,
+      "description": "the charter facts this section is written from, copied exactly from Still Point Yoga's charter",
+      "enum": [
+        "Still Point Yoga",
+        "The Pages and sections section is written for Still Point Yoga, and names every component (C1, C2, C3, C4, C5) it implements"
+      ],
+      "nullable": false
+    }
+  ],
+  "objects": [
+    {
+      "name": "LLDSection",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "S1, S2, ... in order",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "anchor",
+          "type": "string",
+          "required": true,
+          "description": "the id attribute on the page, with the #, e.g. \"#classes\"",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "page",
+          "type": "string",
+          "required": false,
+          "description": "the page id, e.g. \"P1\"",
+          "enum": null,
+          "nullable": false
+        },
+        {
+          "name": "implements",
+          "type": "list[string]",
+          "required": false,
+          "description": "the HLD component ids this section implements",
+          "enum": null,
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule": "enum",
+      "path": "facts_used[]",
+      "values": [
+        "Still Point Yoga",
+        "The Pages and sections section is written for Still Point Yoga, and names every component (C1, C2, C3, C4, C5) it implements"
+      ],
+      "from": "facts",
+      "name": "facts_used are facts of Still Point Yoga's charter"
+    }
+  ],
+  "sha": "9a4fb82db4b8570f4b4ba96d9b7e2ea5b823fd62128c4232c93a1c1a54b3fd5b",
+  "extends": "lld/pages-and-sections@generic/1",
+  "made_by": {
+    "run": "j2-20261103-154028-3",
+    "workflow": "W-13",
+    "atom": "W-13.a1",
+    "agent": "template generator (mock)"
+  },
+  "context": {
+    "business_type": "lld",
+    "facts_used": [
+      "Still Point Yoga",
+      "The Pages and sections section is written for Still Point Yoga, and names every component (C1, C2, C3, C4, C5) it implements"
+    ],
+    "fingerprint": "196c43bc0beab5f34405247ce0a72fcc9a424aef9a5437504cfae6fc661afe79"
+  }
+}

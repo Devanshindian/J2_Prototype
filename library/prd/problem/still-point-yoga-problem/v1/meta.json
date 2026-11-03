@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Problem",
+  "version": 1,
+  "sha": "0889e3654f52af5628622cb314e43232928d2602fcb0d16526b8f0cf809c1290",
+  "schema_sha": "f2f6191a5d45e49e38315bbfeb87a9c9aa294e2c9f1240e24f1bee3ccbc9a979",
+  "model_sha": "736cbe0ef900da1f4024797885d92378438025e577c479b733ea2763e9ba729d",
+  "class": "StillPointYogaProblemV1",
+  "created": "2026-11-03T15:40:28",
+  "fingerprints": [
+    "41eb8b363f2f312ff7f1eda658f9276628e293bb463f3b0b3c46c4dd279a8fb4"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-154028-3",
+      "workflow": "W-1",
+      "atom": "W-1.a1",
+      "action": "created"
+    }
+  ]
+}

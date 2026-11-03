@@ -1,0 +1,21 @@
+{
+  "schema": "template-library/1",
+  "name": "Still Point Yoga Users",
+  "version": 1,
+  "sha": "3fea6276279a82562e62c8f0e4a7c02cd6ed258885d5adb9d72cfca49d9bb681",
+  "schema_sha": "b841e8cffdc67a82978b65fd56cd2b4811f4c22538033bb5ebcf06b2961d4201",
+  "model_sha": "5f5c1618056772e59031b75062d9c2c8c7548577925349cc242aa7c950ce49f5",
+  "class": "StillPointYogaUsersV1",
+  "created": "2026-11-03T15:40:28",
+  "fingerprints": [
+    "2e0f35b4f5e0dfdb1fac5864dd2735f86dd546a9d4b1e07087ef25fb88d88061"
+  ],
+  "used_by": [
+    {
+      "run": "j2-20261103-154028-3",
+      "workflow": "W-2",
+      "atom": "W-2.a1",
+      "action": "created"
+    }
+  ]
+}
