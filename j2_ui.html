@@ -200,7 +200,7 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .consvg .cbadge{fill:var(--badgefill);stroke:var(--fix);stroke-dasharray:3 2}.consvg .cdoc{fill:var(--docfill);stroke:var(--doc);stroke-width:1.6;stroke-linejoin:round}.consvg .chit{fill:transparent}
 .consvg .cnode{cursor:pointer;transition:opacity .35s}.consvg .cnode:focus{outline:none}.consvg .cnode:focus-visible .chit{stroke:var(--accent);stroke-width:1.5}
 .consvg .chalo{fill:none;stroke:var(--eat);stroke-width:2;opacity:0}.consvg .eat .chalo{opacity:1;animation:cpulse 1.6s ease-in-out infinite}.consvg .eat .cdoc{stroke:var(--eat);stroke-width:2.5;fill:var(--eatfill)}.consvg .eat text{fill:var(--eattext)!important;font-weight:700}
-@keyframes cpulse{50%{opacity:.35}}.consvg.focusing .far{opacity:.1}.consvg.focusing .cline:not(.lit){opacity:.06}.consvg.cmoving .clines{opacity:0}
+@keyframes cpulse{50%{opacity:.35}}.consvg.focusing .far{opacity:.1}.consvg.focusing .cline:not(.lit){opacity:.06}
 @media (prefers-reduced-motion:reduce){.consvg .cline,.consvg .eat .chalo{animation:none}}
 .consvg.quiet .ctext{opacity:0}.consvg.quiet .cnode:hover .ctext,.consvg.quiet .cnode:focus-visible .ctext,.consvg.quiet.focusing .lit .ctext{opacity:1}
 .conspanel{position:absolute;right:12px;top:12px;width:270px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;background:color-mix(in srgb,var(--panel) 93%,transparent);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--ink)}
@@ -209,7 +209,7 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .clegend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:12.5px;margin-top:8px}.clegend .ck{margin-right:-10px}.clegend .sun{color:var(--warm1)}.clegend .sec{color:var(--sec)}.clegend .wf{color:var(--bld)}.clegend .fix{color:var(--fix)}.clegend .doc{color:var(--doc)}
 .treesvg .tedge.hot.fin{stroke:var(--flowin);opacity:.95}.treesvg .tedge.hot.fout{stroke:var(--flowout);opacity:.95}
 .treesvg .tflow{pointer-events:none}.treesvg .tflow.fin,.treesvg .tarr.fin{fill:var(--flowin)}.treesvg .tflow.fout,.treesvg .tarr.fout{fill:var(--flowout)}
-.treesvg .tpill .tdot{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--warm1) 45%,transparent))}.treesvg .tedges{transition:opacity .25s}.treesvg.tmoving .tedges{opacity:0}
+.treesvg .tpill .tdot{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--warm1) 45%,transparent))}.treesvg .tedges{transition:opacity .25s}
 .treesvg .fedge{stroke-width:1.4}.treesvg .fedge.readby{stroke-dasharray:4 3}
 
 @media (prefers-reduced-motion: reduce){.treesvg .tnode,.treesvg .tedge{transition:none}}
@@ -297,6 +297,12 @@ body.simple .rail.tabs button[aria-selected="true"]{color:var(--muted);backgroun
 .artshots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:0 14px 14px}.artshot{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;color:var(--muted);background:var(--panel2);text-align:left}
 .artshot img{display:block;width:100%;height:80px;object-fit:cover;object-position:top;border-radius:5px;margin-bottom:6px;background:var(--node)}.artshot[aria-expanded="true"]{border-color:var(--accent)}
 .runset .appear{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+/* idle drift (Motion): a pixel or so, each node on its own phase; the spring keeps the slot */
+@keyframes mdrift{0%,100%{translate:0 0}33%{translate:1px -.6px}66%{translate:-.7px .8px}}
+.treesvg .tnodes>.tnode,.consvg .cnodes>.cnode,.mapsvg .mapnode{animation:mdrift 9s ease-in-out infinite}.treesvg .tnodes>.tnode:nth-child(3n+1),.consvg .cnodes>.cnode:nth-child(3n+1),.mapsvg .mapnode:nth-child(3n+1){animation-delay:-3s}
+.treesvg .tnodes>.tnode:nth-child(3n+2),.consvg .cnodes>.cnode:nth-child(3n+2),.mapsvg .mapnode:nth-child(3n+2){animation-delay:-6s}
+.nodrift .tnode,.nodrift .cnode,.nodrift .mapnode{animation:none!important}
+@media (prefers-reduced-motion:reduce){.treesvg .tnodes>.tnode,.consvg .cnodes>.cnode,.mapsvg .mapnode{animation:none}}
 </style>
 <script>/* the viewer's Appearance before the first paint (Run settings sets it): light, dark or system; dark by default */
 try { var tp = localStorage.getItem("j2theme"); document.documentElement.dataset.theme = tp === "light" ? "light" : tp === "system" && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; } catch (e) { document.documentElement.dataset.theme = "dark"; }</script>
@@ -1890,7 +1896,88 @@ function treeHtml(m, other){      // other: the panel of a deliverable picked on
 }
 // Tree view at run time: pan and zoom (d3-zoom), the 300 ms move of a stage to the middle and back, and the clicks. renderMap draws
 // the state in TREE; these only animate between two drawn states and then repaint.
-function paintMap(){ paint($("pane-map"), renderMap(MAP)); treeMount(); treeAvoid(); lineMount(); consPlace(); }
+// ---- Motion, every map view (Tree, Line, a team, a sun). Each node is held to its computed slot by a spring: d3-force with a strong forceX / forceY to the slot and a
+// light collision, never a free layout. A drag stretches a node and its lines and a release springs it back; hover pulls its neighbours in a little and eases the rest
+// away; a new view or focus springs each node in from where it stood, with a small overshoot; at rest the nodes drift by about a pixel (CSS). When the spring settles
+// every node is put exactly on its slot, so the resting picture is the static layout. Reduced motion: no drift, no overshoot, every node lands at once.
+const MOTION = {k: 0.18, decay: 0.4, near: 6, away: 3, frames: []},      // spring and friction: about 5% overshoot, settled in about 30 frames
+  MVIEWS = [{svg: "treesvg", node: ".tnodes > .tnode", edge: ".tedge", abs: true, cls: "tmoving"}, {svg: "consvg", node: ".cnodes > .cnode", edge: ".cline", abs: true, cls: "cmoving"},
+    {svg: "mapsvg", node: ".mapnode", edge: ".mapedge, .mapln", abs: false, cls: "mmoving"}];
+function motionPath(d){      // a path's points (absolute commands), each as the token positions of its x and y (-1 for the one H or V leaves alone)
+  const t = String(d || "").match(/[A-Za-z]|-?\d*\.?\d+(?:e-?\d+)?/g) || [], pts = []; let c = "", n = 0;
+  t.forEach((x, i) => { if (/^[A-Za-z]$/.test(x)){ c = x.toUpperCase(); n = 0; return; } const per = c === "A" ? 7 : c === "H" || c === "V" ? 1 : 2, j = n++ % per;
+    if (c === "H") pts.push([i, -1]); else if (c === "V") pts.push([-1, i]); else if (c === "A" ? j === 5 : j === 0) pts.push([i, i + 1]); });
+  return {t, pts};
+}
+const motionD = (P, a, b) => { const t = P.t.slice(), m = P.pts.length - 1;      // the path with its start moved by a, its end by b and every point between by its share
+  P.pts.forEach(([i, j], q) => { const u = m > 0 ? q / m : 0; if (i >= 0) t[i] = tRd(+t[i] + a[0] + (b[0] - a[0]) * u); if (j >= 0) t[j] = tRd(+t[j] + a[1] + (b[1] - a[1]) * u); });
+  return t.join(" ").replace(/ ?([A-Za-z]) ?/g, "$1"); };
+function motionOf(svg){
+  if (svg.__m) return svg.__m; const v = MVIEWS.find(x => svg.classList.contains(x.svg)); if (!v || typeof d3 === "undefined" || !d3.forceSimulation || !svg.getClientRects().length) return null;
+  const nodes = [...svg.querySelectorAll(v.node)].map(el => { const s = v.svg === "treesvg" ? [+el.dataset.ax, +el.dataset.ay] : v.abs ? [+el.dataset.x, +el.dataset.y] : (b => [b.x + b.width / 2, b.y + b.height / 2])(el.getBBox());      // the slot (a Line node: its middle)
+    return {el, id: el.dataset.cid || el.dataset.id, sx: s[0], sy: s[1], x: s[0], y: s[1], tx: s[0], ty: s[1]}; });
+  const by = Object.fromEntries(nodes.map(n => [n.id, n])), nb = {};
+  const edges = [...svg.querySelectorAll(v.edge)].filter(e => by[e.dataset.from] || by[e.dataset.to]).map(e => { [[e.dataset.from, e.dataset.to], [e.dataset.to, e.dataset.from]].forEach(([a, b]) => { (nb[a] = nb[a] || new Set()).add(b); });
+    return {el: e, d0: e.getAttribute("d"), P: motionPath(e.getAttribute("d")), a: by[e.dataset.from], b: by[e.dataset.to]}; });
+  const sim = d3.forceSimulation(nodes).alphaDecay(0).velocityDecay(MOTION.decay).force("x", d3.forceX(n => n.tx).strength(MOTION.k)).force("y", d3.forceY(n => n.ty).strength(MOTION.k))
+    .force("c", d3.forceCollide(6).strength(0.1)).stop();
+  const M = svg.__m = {svg, v, nodes, by, nb, edges, sim, ticks: 0};
+  nodes.forEach(n => d3.select(n.el).call(d3.drag().clickDistance(4).subject(() => ({x: n.x, y: n.y}))      // a drag stretches the node and its lines; let go, it springs back
+    .on("start", () => { n.fx = n.x; n.fy = n.y; }).on("drag", e => { n.fx = e.x; n.fy = e.y; motionGo(M); }).on("end", () => { n.fx = n.fy = null; motionGo(M); })));
+  return M;
+}
+function motionDraw(M){
+  M.nodes.forEach(n => { const x = tRd(n.x), y = tRd(n.y);
+    if (M.v.abs) n.el.setAttribute("transform", `translate(${x},${y})`); else if (x === tRd(n.sx) && y === tRd(n.sy)) n.el.removeAttribute("transform"); else n.el.setAttribute("transform", `translate(${tRd(n.x - n.sx)},${tRd(n.y - n.sy)})`); });
+  M.edges.forEach(e => { const o = q => q ? [q.x - q.sx, q.y - q.sy] : [0, 0], a = o(e.a), b = o(e.b); e.el.setAttribute("d", Math.max(...a.map(Math.abs), ...b.map(Math.abs)) < 0.05 ? e.d0 : motionD(e.P, a, b)); });
+}
+function motionTick(M){      // one frame: the spring steps, the nodes and their lines are drawn; the frame's own time is kept (MOTION.frames)
+  const t0 = performance.now(); M.ticks++; M.sim.tick(); motionDraw(M);
+  M.nodes.forEach(n => { n.still = Math.hypot(n.vx, n.vy) < 0.05 ? (n.still || 0) + 1 : 0; });      // still for five frames (not the top of a swing): then exactly on the slots
+  if (M.nodes.every(n => n.fx == null && (Math.hypot(n.x - n.tx, n.y - n.ty) < 0.5 && n.still > 0 || n.still >= 5)) || M.ticks > 400) motionRest(M);
+  MOTION.frames.push(performance.now() - t0); if (MOTION.frames.length > 600) MOTION.frames.shift();
+}
+function motionLoop(M){      // the frames: on the display's own beat, or every 20 ms where a tab draws none
+  if (M.loop) return; M.loop = true;
+  const next = () => { let ran = false; const go = () => { if (ran || !M.loop) return; ran = true; if (!M.svg.isConnected) { M.loop = false; return; } motionTick(M); if (M.loop) next(); };
+    requestAnimationFrame(go); setTimeout(go, 20); };
+  next();
+}
+function motionRest(M){      // settled: every node exactly on its target (its slot, unless a hover holds it), the drawing as laid out
+  M.loop = false; M.nodes.forEach(n => { n.x = n.fx != null ? n.fx : n.tx; n.y = n.fy != null ? n.fy : n.ty; n.vx = n.vy = 0; }); motionDraw(M);
+  M.svg.classList.remove(M.v.cls); M.svg.dataset.settled = "1"; if (M.v.svg === "treesvg") TREE.moving = false;
+}
+function motionGo(M){
+  M.ticks = 0; M.svg.dataset.settled = "0";
+  if (treeReduce()) return motionRest(M);      // reduced motion: at once
+  M.svg.classList.add(M.v.cls); if (M.v.svg === "treesvg") TREE.moving = true; M.sim.alpha(1); M.sim.force("x").x(n => n.tx); M.sim.force("y").y(n => n.ty); motionLoop(M);      // (forceX keeps its targets until told again)
+}
+function motionFrom(svg, prev, from){      // a new view or focus: each node springs in from where it stood, a new one from the node clicked (or out from the middle)
+  const M = svg && motionOf(svg); if (!M) return; prev = prev || {};
+  const o = prev[from] || null, mx = M.nodes.reduce((s, n) => s + n.sx, 0) / Math.max(1, M.nodes.length), my = M.nodes.reduce((s, n) => s + n.sy, 0) / Math.max(1, M.nodes.length);
+  if (!treeReduce()) M.nodes.forEach(n => { const p = prev[n.id] || prev[String(n.id).replace(/^wf:/, "")] || o || [mx + (n.sx - mx) * 0.85, my + (n.sy - my) * 0.85]; n.x = p[0]; n.y = p[1]; });
+  motionGo(M);
+}
+function motionHover(svg, id){      // its neighbours lean in, the rest ease away; "" lets them all go back
+  const M = svg && motionOf(svg); if (!M || treeReduce()) return; const h = M.by[id], near = (h && M.nb[id]) || new Set();
+  M.nodes.forEach(n => { n.tx = n.sx; n.ty = n.sy; if (!h || n === h) return; const dx = h.sx - n.sx, dy = h.sy - n.sy, d = Math.hypot(dx, dy) || 1, f = near.has(n.id) ? MOTION.near : -MOTION.away;
+    n.tx = n.sx + dx / d * f; n.ty = n.sy + dy / d * f; });
+  motionGo(M);
+}
+function motionHoverEvt(e, on){ if (!/^mouse/.test(e.type)) return; const g = e.target.closest && e.target.closest(".tnodes > .tnode, .cnodes > .cnode, .mapnode"); if (!g) return;
+  if (!on && e.relatedTarget && g.contains(e.relatedTarget)) return; motionHover(g.ownerSVGElement, on ? g.dataset.cid || g.dataset.id : ""); }
+function motionMount(){ $("pane-map").querySelectorAll && $("pane-map").querySelectorAll(".treesvg, .consvg, .mapsvg").forEach(motionOf); }
+function motionInertia(zoom, svg){      // a pan keeps going after the pointer lets go, slowing to a stop (not with reduced motion)
+  let last = null, vel = [0, 0];
+  zoom.on("start.inertia", e => { if (!e.sourceEvent) return; svg.__coast = (svg.__coast || 0) + 1; last = null; vel = [0, 0]; })
+    .on("zoom.inertia", e => { const s = e.sourceEvent; if (!s || !/move/.test(s.type)) return; const t = performance.now(); if (last){ const dt = Math.max(1, t - last.t); vel = [(e.transform.x - last.x) / dt, (e.transform.y - last.y) / dt]; } last = {x: e.transform.x, y: e.transform.y, t}; })
+    .on("end.inertia", e => { if (!e.sourceEvent || treeReduce() || !last || performance.now() - last.t > 80 || Math.hypot(...vel) < 0.05) return;
+      const id = ++svg.__coast; let [vx, vy] = vel, t = performance.now();
+      const step = now => { if (svg.__coast !== id || !svg.isConnected) return; const dt = Math.max(1, now - t), k = d3.zoomTransform(svg).k; t = now; const f = Math.pow(0.94, dt / 16); vx *= f; vy *= f;
+        if (Math.hypot(vx, vy) < 0.01) return; zoom.translateBy(d3.select(svg), vx * dt / k, vy * dt / k); requestAnimationFrame(step); };
+      requestAnimationFrame(step); });
+}
+function paintMap(){ paint($("pane-map"), renderMap(MAP)); treeMount(); treeAvoid(); lineMount(); consPlace(); motionMount(); }
 // Line view: the same pan and zoom as the Tree, in screen pixels (the viewBox is the card's size, so the labels stay vector and crisp). Fit scales the drawing's
 // content box to the card with a margin; when that would make a label smaller than 11px, it holds 11px and the side that overflows pans instead. Zoom is 0.25x to 4x of the fit.
 const LINE = {zoom: {}}, LINEM = 12, LINEMIN = 11, LINEBOT = 44,      // LINEBOT: the legend chip sits in the bottom-left corner; the fit leaves its strip clear
@@ -1898,10 +1985,10 @@ const LINE = {zoom: {}}, LINEM = 12, LINEMIN = 11, LINEBOT = 44,      // LINEBOT
 const lineSvgs = () => [...$("pane-map").querySelectorAll(".mapsvgwrap[data-view=line] .mapsvg, .consvg")];      // a constellation pans and zooms as the Line view
 function lineFitOf(svg){
   const g = svg.querySelector(".lview"), cw = svg.clientWidth, ch = svg.clientHeight, M = LINEM, tf = g.getAttribute("transform");
-  g.removeAttribute("transform"); let b = (g.querySelector(".cnodes") || g).getBBox();      // a solar system: its nodes, not its sky      // text metrics shift a fraction of a pixel with the scale: always measure at 1
+  g.removeAttribute("transform"); svg.classList.add("nodrift"); let b = (g.querySelector(".cnodes") || g).getBBox();      // a solar system: its nodes, not its sky; measured without the drift      // text metrics shift a fraction of a pixel with the scale: always measure at 1
   const lit = svg.classList.contains("focusing") ? [...g.querySelectorAll(".cnode.lit, .cline.lit")].map(x => x.getBBox()) : [];      // a constellation's focus: fit what it lights
   if (lit.length){ const x0 = Math.min(...lit.map(r => r.x)), y0 = Math.min(...lit.map(r => r.y)); b = {x: x0, y: y0, width: Math.max(...lit.map(r => r.x + r.width)) - x0, height: Math.max(...lit.map(r => r.y + r.height)) - y0}; }
-  if (tf) g.setAttribute("transform", tf);
+  if (tf) g.setAttribute("transform", tf); svg.classList.remove("nodrift");
   const f = Math.min(...[...g.querySelectorAll("text")].map(t => parseFloat(getComputedStyle(t).fontSize)).filter(x => x > 0), 12);
   const bot = svg.classList.contains("consvg") ? M : LINEBOT, kw = (cw - 2 * M) / b.width, kc = Math.min(kw, (ch - M - bot) / b.height), kmin = LINEMIN / f, all = kc >= kmin, k = all ? kc : Math.max(kw, kmin);      // never under 11px: the side that overflows pans
   const ox = b.width * k > cw - 2 * M, oy = b.height * k > ch - M - bot;
@@ -1919,7 +2006,7 @@ function lineMountOne(svg, refit){
   const fit = svg.__fit = lineFitOf(svg); svg.dataset.fit = fit.all ? "all" : "pan"; svg.dataset.fontpx = Math.round(fit.k * fit.f * 100) / 100;
   if (!svg.__zoom_b){
     svg.__zoom_b = d3.zoom().scaleExtent([0.25, 4]).clickDistance(4).on("zoom", e => { LINE.zoom[key] = {k: e.transform.k, x: e.transform.x, y: e.transform.y, size: svg.__size}; lineShow(svg, e.transform); });
-    d3.select(svg).call(svg.__zoom_b).on("dblclick.zoom", null);
+    motionInertia(svg.__zoom_b, svg); d3.select(svg).call(svg.__zoom_b).on("dblclick.zoom", null);
   }
   svg.__zoom_b.scaleExtent([0.25 * fit.k, 4 * fit.k]);
   const z = LINE.zoom[key], t = !refit && z && z.size === size ? z : fit;
@@ -1940,7 +2027,7 @@ function treeMount(){
   const svg = treeSvg(); if (!svg || svg.__zoom_on || typeof d3 === "undefined" || !d3.zoom) return; svg.__zoom_on = true;
   const view = svg.querySelector(".tview");
   const zoom = d3.zoom().scaleExtent([0.25, 4]).clickDistance(4).on("zoom", e => { view.setAttribute("transform", e.transform.toString()); if (svg === treeSvg()) TREE.zoom = {k: e.transform.k, x: e.transform.x, y: e.transform.y}; });
-  svg.__zoom_b = zoom; const s = d3.select(svg).call(zoom).on("dblclick.zoom", null);
+  svg.__zoom_b = zoom; motionInertia(zoom, svg); const s = d3.select(svg).call(zoom).on("dblclick.zoom", null);
   if (TREE.zoom) s.property("__zoom", d3.zoomIdentity.translate(TREE.zoom.x, TREE.zoom.y).scale(TREE.zoom.k));      // keep the pan and zoom across a repaint, without an event
   else { const t = treeFloor(svg); if (t.k !== 1){ s.property("__zoom", t); view.setAttribute("transform", t.toString()); TREE.zoom = {k: t.k, x: t.x, y: t.y}; } }
 }
@@ -1995,29 +2082,14 @@ function treeSpots(svg){ const pos = {}; svg.querySelectorAll("[data-k]").forEac
 function treeGo(fn, key){
   const svg = treeSvg(), prev = svg && svg.querySelector("[data-k]") ? treeSpots(svg) : null;
   fn(); MAPPIN = ""; TREE.zoom = null; delete TREE.before; paintMap();
-  if (prev && !treeReduce()) treeGlide(prev, key);
+  if (prev) motionFrom(treeSvg(), Object.fromEntries(Object.entries(prev.pos).map(([k, p]) => [k, [p.x, p.y]])), key);
   const s2 = treeSvg(), n = s2 && key && [...s2.querySelectorAll("[data-k]")].find(x => x.dataset.k === key); if (n && n.focus) n.focus();
 }
 const treeFocusTeam = id => treeGo(() => { TREE.focus = id; }, id || TREE.focus);      // a team in the Tree ("": back to the Tree)
 const treeOpen = id => consGo([{id, kind: "team"}]);      // the open team: its own solar system (Back returns to the team focused in the Tree)
-function treeGlide(prev, key){
-  const svg = treeSvg(); if (!svg) return;
-  const els = [...svg.querySelectorAll("[data-k]")], vb = [+svg.dataset.w, +svg.dataset.h];
-  const at = el => ({x: +el.dataset.ax, y: +el.dataset.ay}), origin = prev.pos[key] || {x: prev.vb[0] / 2, y: prev.vb[1] / 2};
-  const put = (el, p) => el.setAttribute("transform", `translate(${tRd(p.x)},${tRd(p.y)})`), id = TREE.glide = (TREE.glide || 0) + 1;
-  const from = els.map(el => prev.pos[el.dataset.k] || origin), fresh = els.map(el => !prev.pos[el.dataset.k]);
-  const live = () => TREE.glide === id && svg === treeSvg(), ease = typeof d3 !== "undefined" && d3.easeCubicInOut ? d3.easeCubicInOut : t => t, t0 = performance.now();
-  svg.classList.add("tmoving"); TREE.moving = true; svg.setAttribute("viewBox", `0 0 ${prev.vb[0]} ${prev.vb[1]}`); els.forEach((el, i) => { put(el, from[i]); if (fresh[i]) el.style.opacity = 0; });
-  let over = false; const end = () => { if (over) return; over = true; if (live()){ els.forEach(el => { put(el, at(el)); el.style.opacity = ""; }); svg.setAttribute("viewBox", `0 0 ${vb[0]} ${vb[1]}`); svg.classList.remove("tmoving"); TREE.moving = false; } };
-  setTimeout(end, 450);      // a tab that draws no frames still lands on the end state
-  const frame = now => { if (over) return; if (!live()){ over = true; return; } const t = Math.max(0, Math.min(1, (now - t0) / 300)), e = ease(t), m = (a, b) => a + (b - a) * e;
-    els.forEach((el, i) => { const q = at(el); put(el, {x: m(from[i].x, q.x), y: m(from[i].y, q.y)}); if (fresh[i]) el.style.opacity = e; });
-    svg.setAttribute("viewBox", `0 0 ${tRd(m(prev.vb[0], vb[0]))} ${tRd(m(prev.vb[1], vb[1]))}`); if (t < 1) requestAnimationFrame(frame); else end(); };
-  requestAnimationFrame(frame);
-}
 // one entry for a click or Enter on the tree: true when the tree handled it
 function treeClick(e){
-  const v = e.target.closest("[data-mapview]"); if (v){ MAPVIEW = v.dataset.mapview; try { localStorage.setItem("j2mapview", MAPVIEW); } catch (x) {} paintMap(); return true; }
+  const v = e.target.closest("[data-mapview]"); if (v){ MAPVIEW = v.dataset.mapview; try { localStorage.setItem("j2mapview", MAPVIEW); } catch (x) {} paintMap(); $("pane-map").querySelectorAll(".treesvg, .mapsvg").forEach(x => motionFrom(x, null, null)); return true; }      // the view springs open
   if (e.target.closest("[data-treefit]")){ treeFit(); return true; }
   if (e.target.closest("[data-linefit]")){ lineFit(); return true; }
   const lz = e.target.closest("[data-linezoom]"); if (lz){ lineZoomBy(+lz.dataset.linezoom); return true; }
@@ -2809,21 +2881,9 @@ function consPlace(){
 // moving about: every step glides from where each node stood (a new one grows out of the node that was clicked), the view with it; Esc steps back one
 function consSpots(){ const s = $("pane-map").querySelector && $("pane-map").querySelector(".consvg"); if (!s) return null; const pos = {};
   s.querySelectorAll(".cnode[data-cid]").forEach(g => { const k = g.dataset.cid.replace(/^wf:/, ""); if (!pos[k]) pos[k] = [+g.dataset.x, +g.dataset.y]; }); return {pos, tf: s.querySelector(".lview").getAttribute("transform") || ""}; }
-function consGlide(prev, from){
-  const s = $("pane-map").querySelector(".consvg"); if (!prev || !s || treeReduce()) return;
-  const v = s.querySelector(".lview"), num = x => (/translate\(([-\d.e]+),([-\d.e]+)\) scale\(([-\d.e]+)\)/.exec(x || "") || []).slice(1).map(Number), a = num(prev.tf), b = num(v.getAttribute("transform"));
-  const o = prev.pos[from] || [0, 0], go = [...s.querySelectorAll(".cnode[data-cid]")].map(g => { const k = g.dataset.cid.replace(/^wf:/, ""); return [g, prev.pos[k] || o, [+g.dataset.x, +g.dataset.y], !prev.pos[k]]; });
-  const ease = typeof d3 !== "undefined" && d3.easeCubicInOut ? d3.easeCubicInOut : u => u, id = CONS.glide = (CONS.glide || 0) + 1, t0 = performance.now();
-  const put = u => { const e = ease(u), m = (p, q) => tRd(p + (q - p) * e); go.forEach(([g, p, q, fresh]) => { g.setAttribute("transform", `translate(${m(p[0], q[0])},${m(p[1], q[1])})`); if (fresh) g.style.opacity = e; });
-    if (a.length === 3 && b.length === 3) v.setAttribute("transform", `translate(${m(a[0], b[0])},${m(a[1], b[1])}) scale(${Math.round((a[2] + (b[2] - a[2]) * e) * 1e4) / 1e4})`); };
-  const end = () => { if (CONS.glide !== id) return; CONS.glide++; put(1); go.forEach(([g]) => { g.style.opacity = ""; }); s.classList.remove("cmoving"); };
-  s.classList.add("cmoving"); put(0);
-  const frame = now => { if (CONS.glide !== id) return; const u = Math.min(1, (now - t0) / 300); put(u); if (u < 1) requestAnimationFrame(frame); else end(); };
-  requestAnimationFrame(frame); setTimeout(end, 450);      // a tab that draws no frames still lands
-}
 function consGo(path, focus, from){      // set the walk (its last step is the sun) and glide there
   const prev = consSpots(), p = path[path.length - 1];
-  Object.assign(CONS, {path, id: p ? p.id : "", kind: p ? p.kind : "art", focus: focus || "", fan: {}, grp: {}}); MAPPIN = ""; paintMap(); if (p) consGlide(prev, from);
+  Object.assign(CONS, {path, id: p ? p.id : "", kind: p ? p.kind : "art", focus: focus || "", fan: {}, grp: {}}); MAPPIN = ""; paintMap(); if (p) motionFrom($("pane-map").querySelector(".consvg"), prev && prev.pos, from);
 }
 const consOpen = id => consGo([{id, kind: "art"}]);
 const consBack = () => consGo([]);      // Back: to the Map
@@ -2854,7 +2914,7 @@ function mapSelect(id){      // click or Enter: open this dot's panel (the same 
   const el = id && $("pane-map").querySelectorAll && [...$("pane-map").querySelectorAll(`.mapnode[data-id="${CSS.escape(id)}"]`)].find(x => x.getClientRects().length); if (el && el.focus) el.focus();
   const pn = id && $("pane-map").querySelector && $("pane-map").querySelector(".mappanel"); if (pn && pn.scrollIntoView) pn.scrollIntoView({block: "nearest"});      // the panel opens below the Map: bring it into view
 }
-const mapHover = (e, on) => { if (treeHover(e, on)) return; const g = mapNode(e), svg = mapSvg(); if (!g || !svg) return; if (on) svg.dataset.hover = g.dataset.id; else delete svg.dataset.hover;
+const mapHover = (e, on) => { motionHoverEvt(e, on); if (treeHover(e, on)) return; const g = mapNode(e), svg = mapSvg(); if (!g || !svg) return; if (on) svg.dataset.hover = g.dataset.id; else delete svg.dataset.hover;
   $("pane-map").querySelectorAll(".mapsvg").forEach(x => mapLight(x, on ? g.dataset.id : MAPPIN)); };      // the wide and the narrow drawing stay in step
 $("pane-map").addEventListener("mouseover", e => mapHover(e, true)); $("pane-map").addEventListener("mouseout", e => mapHover(e, false));
 $("pane-map").addEventListener("focusin", e => mapHover(e, true)); $("pane-map").addEventListener("focusout", e => mapHover(e, false));

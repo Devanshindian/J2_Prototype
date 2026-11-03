@@ -7432,7 +7432,7 @@ def map_focus():
                 " snap = k => { const nodes = q('.treesvg .tnode').filter(vis), items = nodes.map(n => ({id: n.dataset.wf || n.dataset.id, dot: rc(n.querySelector('.tdot')), texts: [...n.querySelectorAll('text')].filter(vis).map(rc)}));"
                 " r[k] = {items, vb: q('.treesvg')[0].getAttribute('viewBox'), data: [q('.treesvg')[0].dataset.w, q('.treesvg')[0].dataset.h], moving: q('.treesvg.tmoving').length, settled: settled(), faded: q('.tnode.thide').length, words: q('.tnode.thide .tlab').filter(vis).length, panel: q('.treepanel').length,"
                 " edges: q('.fedge').filter(vis).map(e => { const L = e.getTotalLength(), m = e.getScreenCTM(), pts = []; for (let i = 0; i <= 60; i++){ const p = e.getPointAtLength(L * i / 60); pts.push([m.a * p.x + m.c * p.y + m.e, m.b * p.x + m.d * p.y + m.f]); } return {from: e.dataset.from, to: e.dataset.to, d: e.getAttribute('d'), pts}; })}; };"
-                " const steps = [], go = fs => { let i = 0; const run = () => { if (i >= fs.length){ document.body.setAttribute('data-r', JSON.stringify(r)); return; } fs[i++](); setTimeout(run, 550); }; run(); };")
+                " const steps = [], go = fs => { let i = 0; const run = () => { if (i >= fs.length){ document.body.setAttribute('data-r', JSON.stringify(r)); return; } fs[i++](); setTimeout(run, 1000); }; run(); };")      # each step after the spring has landed
         for name in ("j2-20261026-174314", "j2-20261026-155610"):
             if name not in names:
                 continue
@@ -8146,10 +8146,10 @@ def graph_map():
               " ev(q('.tnodes > .tnode.tdeck').find(x => x.dataset.id === 'work:website'), 'click'); const s = sv(); r.open = s && s.dataset.cons;"
               " r.labels = q('.consvg .ctext').map(rc); r.fontpx = +s.dataset.fontpx; r.rest = q('.consvg .cline.lit').length; r.inLines = q('.consvg .cline.reads').length; r.sw = [document.documentElement.scrollWidth, innerWidth];"
               " r.look = [q('.consvg .csky circle').length, q('.consvg .crings > *').length, getComputedStyle(s).backgroundImage.includes('radial'), q('.consvg .k-centre .csub')[0].textContent];"
-              " ev(node('W-8'), 'click'); r.glide = [q('.consvg.cmoving').length, sv().dataset.kind, sv().dataset.cons]; await wait(600);"
+              " ev(node('W-8'), 'click'); r.glide = [q('.consvg.cmoving').length, sv().dataset.kind, sv().dataset.cons]; await wait(1000);"
               " r.w8 = [q('.consvg .cnode').filter(x => x.dataset.cid !== 'wf:W-8').map(x => x.dataset.cid + ':' + (+x.dataset.x < 0 ? 'L' : 'R')).sort(), q('.consvg .cnode.k-wf').length, crumbs(), q('.consvg.cmoving').length];"
-              " ev(node('sec:work:website:W-8'), 'click'); await wait(600); r.walk = [sv().dataset.cons, CONS.focus, crumbs(), !!document.querySelector('.conspanel')];"
-              " esc(); await wait(50); r.esc1 = [CONS.focus, sv().dataset.cons]; esc(); await wait(600); r.esc2 = sv().dataset.cons; esc(); await wait(600); r.esc3 = [sv().dataset.cons, crumbs()]; esc(); await wait(100); r.esc4 = [!!sv(), !!document.querySelector('.treesvg')];"
+              " ev(node('sec:work:website:W-8'), 'click'); await wait(1000); r.walk = [sv().dataset.cons, CONS.focus, crumbs(), !!document.querySelector('.conspanel')];"
+              " esc(); await wait(50); r.esc1 = [CONS.focus, sv().dataset.cons]; esc(); await wait(1000); r.esc2 = sv().dataset.cons; esc(); await wait(600); r.esc3 = [sv().dataset.cons, crumbs()]; esc(); await wait(100); r.esc4 = [!!sv(), !!document.querySelector('.treesvg')];"
               " ev(q('.tnodes > .tnode.tdeck').find(x => x.dataset.id === 'work:website'), 'click'); await wait(100);"
               " ev(node('work:W-1'), 'click'); r.spec = [q('.consvg .cline.lit.reads').map(x => x.dataset.from), q('.consvg .cline.lit.reads').map(x => x.dataset.to).sort(), document.querySelector('.conspanel').textContent.includes('used by'), q('.consvg .cnode.eat').map(x => x.dataset.cid)];"
               " r.anim = getComputedStyle(q('.consvg .eat .chalo')[0]).animationName; r.far = q('.consvg .cnode.far').length;"
@@ -8309,6 +8309,123 @@ def warm_ui():
         note = (f"Chrome at 1440x900: {r['views']['dark']} map views per theme over {len(names)} runs (Tree, Line, every team focused and opened, every artifact and workflow sun), no page error; "
                 f"words at least 11px (smallest {r['small']:.1f}px), never cut, no two nodes' words overlapping; the choice kept across a reload")
     print(f"warm UI: no hard-coded colour outside the two token sets, {len(THEME_TEXT)} text tokens 4.5:1 and the map lines 3:1 in dark and light, no Style guide tab; {note} ok")
+
+
+def map_motion():
+    """Map motion (Chrome, --browser): every node of every view of every run (Tree, Line, every team focused and opened, every artifact and workflow sun) springs
+    in and comes to rest within 2px of its slot, in fact exactly on it (the static layout: transforms and lines as drawn); on 174314 a drag stretches the node
+    and its lines and a release springs it back, in the Tree, the Line, a team and a sun; hover leans the neighbours in and the rest away, and lets them go;
+    the nodes drift; reduced motion: no drift, a new view lands at once, hover moves nothing; in real time (no virtual clock) a motion frame takes under 16ms."""
+    import html as htmllib
+    import shutil
+    import subprocess
+    import threading
+    import time
+    import j2_server
+    here = os.path.dirname(os.path.abspath(__file__))
+    repo = os.path.join(here, "runs")
+    names = sorted(n for n in os.listdir(repo) if os.path.isfile(os.path.join(repo, n, "workflows.json"))) if os.path.isdir(repo) else []
+    chrome = j2.j2_check.find_chrome()
+    run = "j2-20261026-174314"
+    if not (chrome and BROWSER and names):
+        print("map motion: Chrome checks skipped")
+        return
+    ui = open(os.path.join(here, "j2_ui.html"), encoding="utf-8").read()
+    helpers = ("const wait = ms => new Promise(f => setTimeout(f, ms)), q = s => [...document.querySelectorAll(s)];"
+               " const fire = (t, el, x, y) => el.dispatchEvent(new MouseEvent(t, {bubbles: true, cancelable: true, view: window, clientX: x, clientY: y, button: 0}));"
+               " const away = M => Math.max(0, ...M.nodes.map(n => { const m = /translate\(([-\d.]+),([-\d.]+)\)/.exec(n.el.getAttribute('transform') || ''); const x = M.v.abs ? +m[1] : n.sx + (m ? +m[1] : 0), y = M.v.abs ? +m[2] : n.sy + (m ? +m[2] : 0); return Math.hypot(x - n.sx, y - n.sy); }));"
+               " const exact = M => M.nodes.every(n => M.v.abs ? n.el.getAttribute('transform') === 'translate(' + tRd(n.sx) + ',' + tRd(n.sy) + ')' : !n.el.hasAttribute('transform')) && M.edges.every(e => e.el.getAttribute('d') === e.d0);"
+               " const land = async M => { for (let i = 0; i < 300 && M.svg.dataset.settled !== '1'; i++) await wait(20); return M.svg.dataset.settled === '1'; };"
+               " const sel = () => document.querySelector('.consvg') || document.querySelector('.treesvg:not([hidden])') && MAPVIEW === 'tree' && document.querySelector('.treesvg') || q('.mapsvg').find(x => x.getClientRects().length);")
+
+    def probe(js, flags=(), real=False):
+        tmp = tempfile.mkdtemp(prefix="j2-motion-")
+        os.symlink(os.path.join(here, "vendor"), os.path.join(tmp, "vendor"))
+        got = []
+
+        class H(j2_server.Handler):
+            def do_POST(self):
+                if self.path == "/__r":
+                    got.append(self.rfile.read(int(self.headers["Content-Length"])).decode())
+                    self.send_response(204)
+                    self.end_headers()
+                    return
+                return super().do_POST()
+        open(os.path.join(tmp, "j2_ui.html"), "w", encoding="utf-8").write(ui.replace("</body>", "<script>setTimeout(async () => { const r = {}; try { " + helpers + js
+                                                                                      + " } catch (e) { r.error = String(e.stack || e); } document.body.setAttribute('data-r', JSON.stringify(r)); fetch('/__r', {method: 'POST', body: JSON.stringify(r)}); }, 2500)</script></body>"))
+        keep_here, keep_runs = j2_server.HERE, j2.RUNS_DIR
+        j2_server.HERE, j2.RUNS_DIR = tmp, repo
+        srv = j2_server.http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        prof = tempfile.mkdtemp(prefix="j2-motionprof-")
+        url = f"http://127.0.0.1:{srv.server_address[1]}/?view=detail&run={run}&mapview=tree"
+        try:
+            if real:      # the real clock: the page posts its result, then Chrome is closed
+                p = subprocess.Popen([chrome, "--headless=new", f"--user-data-dir={prof}", "--no-first-run", "--window-size=1440,900", *flags, url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                t0 = time.time()
+                while not got and time.time() - t0 < 90:
+                    time.sleep(0.2)
+                p.kill()
+                p.wait()
+                out = got[0] if got else None
+            else:
+                dom = chrome_dom([chrome, "--headless=new", "--disable-gpu", f"--user-data-dir={prof}", "--no-first-run", "--window-size=1440,900", "--virtual-time-budget=900000", *flags, "--dump-dom", url],
+                                 capture_output=True, text=True, timeout=590).stdout
+                hit = re.search(r'data-r="([^"]*)"', dom)
+                out = htmllib.unescape(hit.group(1)) if hit else None
+        finally:
+            srv.shutdown()
+            j2_server.HERE, j2.RUNS_DIR = keep_here, keep_runs
+            shutil.rmtree(tmp, ignore_errors=True)
+            shutil.rmtree(prof, ignore_errors=True)
+        assert out, "the page did not finish its steps"
+        r = json.loads(out)
+        assert "error" not in r, r
+        return r
+    # every view of every run: it springs open from the middle and comes to rest on its slots (the frames run here, one after another, to the end)
+    every = ("const views = [], bad = []; showTab('map'); const settle = svg => { const M = motionOf(svg); if (!M) return bad.push(['no motion', svg.getAttribute('class')]); motionFrom(svg, null, null);"
+             "  let i = 0; while (M.svg.dataset.settled !== '1' && i++ < 500) motionTick(M); views.push(i); const a = away(M); if (a > 2 || !exact(M)) bad.push([svg.dataset.cons || svg.getAttribute('class'), a, exact(M)]); };"
+             " const sunTo = p => { Object.assign(CONS, {path: [p], id: p.id, kind: p.kind, focus: '', fan: {}, grp: {}}); paintMap(); settle(document.querySelector('.consvg')); };"
+             " for (const run of RUNS){ const m = await (await fetch('/api/map?run=' + encodeURIComponent(run), {cache: 'no-store'})).json(); for (const k of Object.keys(MAP)) delete MAP[k]; Object.assign(MAP, m);"
+             "  consBack(); MAPVIEW = 'tree'; TREE.focus = ''; TREE.zoom = null; paintMap(); settle(document.querySelector('.treesvg')); MAPVIEW = 'line'; paintMap(); q('.mapsvg:not(.consvg)').filter(x => x.getClientRects().length).forEach(settle); MAPVIEW = 'tree';"
+             "  for (const sid of Object.keys(mapTree(MAP).stages)){ TREE.focus = sid; TREE.zoom = null; paintMap(); settle(document.querySelector('.treesvg')); TREE.focus = ''; sunTo({id: sid, kind: 'team'}); consBack(); }"
+             "  for (const a of Object.keys(m.constellations || {})) sunTo({id: a, kind: 'art'}); for (const w of Object.keys(consIndex(MAP).wf)) sunTo({id: w, kind: 'wf'}); consBack(); }"
+             " r.views = views.length; r.frames = Math.max(...views); r.bad = bad.slice(0, 10); r.nbad = bad.length;")
+    r = probe("const RUNS = " + json.dumps(names) + "; " + every)
+    assert r["nbad"] == 0 and r["views"] > 2 * len(names), ("every view comes to rest exactly on its slots", r["bad"], r["views"])
+    settled = r
+    # 174314 on the real page: drag and release in the Tree, the Line, a team and a sun; hover; the drift
+    js = ("showTab('map'); const out = {}; const drag = async (M, n) => { const b = n.el.getBoundingClientRect(), cx = b.left + b.width / 2, cy = b.top + b.height / 2, e0 = M.edges.filter(e => e.a === n || e.b === n);"
+          "  fire('mousedown', n.el, cx, cy); for (let i = 1; i <= 8; i++){ fire('mousemove', window, cx + 7 * i, cy + 4 * i); await wait(20); }"
+          "  const held = [Math.round(Math.hypot(n.x - n.sx, n.y - n.sy)), e0.length > 0 && e0.every(e => e.el.getAttribute('d') !== e.d0)]; fire('mouseup', window, cx + 56, cy + 32); const back = await land(M); return [...held, back, away(M), exact(M)]; };"
+          " MAPVIEW = 'tree'; paintMap(); let M = motionOf(document.querySelector('.treesvg')); out.tree = await drag(M, M.nodes.find(n => M.edges.some(e => e.a === n || e.b === n)));"
+          " const k = Object.keys(mapTree(MAP).stages).find(x => mapTree(MAP).stages[x].label === 'Web Developer'); treeFocusTeam(k); M = document.querySelector('.treesvg').__m; out.focusMoving = M.svg.classList.contains('tmoving'); out.focus = [await land(M), away(M), exact(M)];"
+          " treeOpen(k); M = document.querySelector('.consvg').__m; out.teamOpen = [M.svg.classList.contains('cmoving'), await land(M), exact(M)]; out.team = await drag(M, M.nodes.find(n => n.id === 'W-8'));"
+          " consGo([{id: 'work:website', kind: 'art'}]); M = document.querySelector('.consvg').__m; out.sunOpen = [await land(M), exact(M)]; out.sun = await drag(M, M.nodes.find(n => n.id === 'W-8'));"
+          " const n = M.nodes.find(x => x.id === 'W-8'), nb = M.nodes.find(x => x.id === 'sec:work:website:W-8'), far = M.nodes.find(x => x.id === 'W-13'); fire('mouseover', n.el, 0, 0); await wait(400);"
+          " const lean = (a, b) => Math.hypot(b.sx - a.sx, b.sy - a.sy) - Math.hypot(b.sx - a.x, b.sy - a.y); out.hover = [lean(nb, n) > 2, lean(far, n) < -1, Math.round(Math.hypot(n.x - n.sx, n.y - n.sy))]; fire('mouseout', n.el, 0, 0); out.unhover = [await land(M), exact(M)];"
+          " out.drift = getComputedStyle(n.el).animationName; consBack(); MAPVIEW = 'line'; paintMap(); M = motionOf(q('.mapsvg:not(.consvg)').find(x => x.getClientRects().length)); out.line = await drag(M, M.nodes.find(n => M.edges.some(e => e.a === n || e.b === n)));"
+          " Object.assign(r, out);")
+    t = probe(js)
+    for v in ("tree", "team", "sun", "line"):
+        assert t[v][0] >= 30 and t[v][1] and t[v][2] and t[v][3] <= 2 and t[v][4], (v, "a drag stretches the node and its lines; a release springs it back onto its slot", t[v])
+    assert t["focusMoving"] and t["focus"] == [True, 0, True] and t["teamOpen"] == [True, True, True] and t["sunOpen"] == [True, True], ("a new view or focus springs in and lands on its slots", t)
+    assert t["hover"][:2] == [True, True] and t["hover"][2] == 0 and t["unhover"] == [True, True] and t["drift"] == "mdrift", ("hover: the neighbours lean in, the rest ease away, all go back; the nodes drift", t["hover"], t["unhover"], t["drift"])
+    # reduced motion: no drift, a new view at once, hover moves nothing
+    rm = probe("showTab('map'); MAPVIEW = 'tree'; paintMap(); const k = Object.keys(mapTree(MAP).stages)[0]; treeFocusTeam(k); let M = document.querySelector('.treesvg').__m; r.focus = [M.svg.dataset.settled, M.svg.classList.contains('tmoving'), exact(M)];"
+               " consOpen('work:website'); M = document.querySelector('.consvg').__m; r.sun = [M.svg.dataset.settled, exact(M)]; const n = M.nodes.find(x => x.id === 'W-8'); fire('mouseover', n.el, 0, 0); await wait(300);"
+               " r.hover = M.nodes.filter(x => Math.hypot(x.x - x.sx, x.y - x.sy) > 0.01).length; r.drift = getComputedStyle(n.el).animationName;", ("--force-prefers-reduced-motion",))
+    assert rm["focus"] == ["1", False, True] and rm["sun"] == ["1", True] and rm["hover"] == 0 and rm["drift"] == "none", ("reduced motion: no drift, no overshoot, at once", rm)
+    # frame time, on the real clock: the motion's own work each frame, and the display's frames while it moves
+    ft = probe("showTab('map'); MAPVIEW = 'tree'; paintMap(); await wait(300); MOTION.frames.length = 0; const raf = []; let last = performance.now(), on = true; const loop = now => { raf.push(now - last); last = now; if (on) requestAnimationFrame(loop); }; requestAnimationFrame(loop);"
+               " const k = Object.keys(mapTree(MAP).stages).find(x => mapTree(MAP).stages[x].label === 'Web Developer'); treeFocusTeam(k); await wait(900); consOpen('work:website'); await wait(900);"
+               " const M = document.querySelector('.consvg').__m, n = M.nodes.find(x => x.id === 'W-8'), b = n.el.getBoundingClientRect(); fire('mousedown', n.el, b.left + 5, b.top + 5); raf.length = 0;"
+               " for (let i = 1; i <= 20; i++){ fire('mousemove', window, b.left + 5 + 6 * i, b.top + 5 + 4 * i); await wait(16); } fire('mouseup', window, b.left + 125, b.top + 85); await wait(900); on = false;"
+               " const f = MOTION.frames, rr = raf.slice(1).sort((a, c) => a - c); r.work = [f.length, Math.max(...f), f.reduce((a, c) => a + c, 0) / f.length]; r.raf = [rr.length, rr[Math.floor(rr.length / 2)]];", real=True)
+    assert ft["work"][0] > 30 and ft["work"][1] < 16 and ft["raf"][1] < 17.5, ("a motion frame under 16ms on 174314", ft)
+    print(f"map motion: {settled['views']} views over {len(names)} runs spring open and rest exactly on their slots (within 2px; at most {settled['frames']} frames); 174314: a drag stretches "
+          f"the node and its lines and springs back in the Tree, the Line, a team and a sun, hover leans the neighbours in and the rest away, the nodes drift; reduced motion: none of it, "
+          f"at once; real clock: motion work at most {ft['work'][1]:.1f}ms a frame (mean {ft['work'][2]:.2f}ms), display frames {ft['raf'][1]:.1f}ms (median) ok")
 
 
 def map_every_workflow():
@@ -9488,6 +9605,7 @@ if __name__ == "__main__":
             left_bar_toggle()
             graph_map()
             warm_ui()
+            map_motion()
             map_readback()
             map_shapes()
             artifacts_tree()
