@@ -171,6 +171,28 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .treesvg .tnode{cursor:pointer;transition:opacity .3s}.treesvg .tdim{opacity:.2}.treesvg .tlab{fill:#dcddde;font-size:13px;paint-order:stroke;stroke:#16181d;stroke-width:6px;stroke-linejoin:round}.treesvg .tsub{fill:#8a8f98;font-size:11px;paint-order:stroke;stroke:#16181d;stroke-width:6px;stroke-linejoin:round}.treesvg .tglyph{fill:#8a8f98}.treesvg .tglyphl{fill:none;stroke:#8a8f98;stroke-width:1.2}
 .treesvg .tnode:hover .tdot,.treesvg .tnode:focus-visible .tdot,.treesvg .tnode.sel .tdot{filter:drop-shadow(0 0 5px rgba(200,205,215,.6))}.treesvg .tnode:focus{outline:none}
 .treesvg .tgone{display:none}
+/* solar system (the mock's look): a dark sky, faint orbits, a glowing sun; sections purple diamonds, builders green and fixes amber glowing dots, inputs blue
+   documents that glow while the focus consumes them; what the focus leaves out fades to 10% */
+.consbox{position:relative}.mapsvg.consvg{display:block;width:100%;height:clamp(440px,70vh,800px);background:radial-gradient(circle at 50% 50%,#17221e 0%,#0b0f0e 70%);border:1px solid #2c3532;border-radius:12px;cursor:grab;touch-action:none;user-select:none;font:12px system-ui,-apple-system,"Segoe UI",sans-serif}.consvg:active{cursor:grabbing}
+.consvg .csky circle{fill:#cfe;opacity:.16}.consvg .crings :is(circle,ellipse){fill:none;stroke:#9bd8b2;opacity:.06}
+.consvg .cline{fill:none;transition:opacity .35s}.consvg .cline.spoke{stroke:#fff7d6;stroke-width:1.2;opacity:.35;stroke-dasharray:3 7;animation:cflow 1.4s linear infinite}.consvg .cline.dashed{stroke-dasharray:2 4}
+.consvg .cline.makes{stroke:#b49be8;stroke-width:1.4;opacity:.7}.consvg .cline.makes.fix{stroke:#e6ad62}.consvg .cline.more{stroke:#e6ad62;stroke-dasharray:3 3}
+.consvg .cline.lit.reads,.consvg .cline.wfl.reads{stroke:#6fa8ff;stroke-width:1.5;opacity:.9;stroke-dasharray:4 5;animation:cflow .9s linear infinite}.consvg .cline.lit.makes,.consvg .cline.wfl.makes{opacity:.95;stroke-width:1.8}
+.consvg .carr.reads{fill:#6fa8ff}.consvg .carr.makes{fill:#b49be8}@keyframes cflow{to{stroke-dashoffset:-20}}
+.consvg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.consvg .clab{font-size:12px;fill:#e4e9e6}.consvg .csub{font-size:11px;fill:#8f9b96}.consvg .cname{font-size:15px;font-weight:700;fill:#fff7d6}
+.consvg .ctext text{paint-order:stroke;stroke:#0f1513;stroke-width:3px;stroke-linejoin:round}.consvg .k-section .clab{fill:#d6ccf5;font-weight:600}.consvg .k-input .clab,.consvg .k-group .clab{fill:#aab5b0}
+.consvg .cglow{fill:#fff7d6;opacity:.1}.consvg .ccore{fill:#fff7d6}.consvg .cglow.builder{fill:#9bd8b2;opacity:.15}.consvg .ccore.builder{fill:#e8fff2}.consvg .cglow.fix{fill:#e6ad62;opacity:.15}.consvg .ccore.fix{fill:#f3c98f}
+.consvg .cdia{fill:#b49be8}.consvg .k-empty .cdia{fill:none;stroke:#8f9b96;stroke-dasharray:3 2}.consvg .cwglow{fill:#9bd8b2;opacity:.13}.consvg .cwf{fill:#e8fff2}.consvg .cwglow.fix{fill:#e6ad62}.consvg .cwf.fix{fill:#f3c98f}
+.consvg .cbadge{fill:#1d1a12;stroke:#e6ad62;stroke-dasharray:3 2}.consvg .cdoc{fill:#16202b;stroke:#6fa8ff;stroke-width:1.6;stroke-linejoin:round}.consvg .chit{fill:transparent}
+.consvg .cnode{cursor:pointer;transition:opacity .35s}.consvg .cnode:focus{outline:none}.consvg .cnode:focus-visible .chit{stroke:#9bd8b2;stroke-width:1.5}
+.consvg .chalo{fill:none;stroke:#6fa8ff;stroke-width:2;opacity:0}.consvg .eat .chalo{opacity:1;animation:cpulse 1.6s ease-in-out infinite}.consvg .eat .cdoc{stroke:#9cc4ff;stroke-width:2.5;fill:#1c3352}.consvg .eat text{fill:#cfe2ff!important;font-weight:700}
+@keyframes cpulse{50%{opacity:.35}}.consvg.focusing .far{opacity:.1}.consvg.focusing .cline:not(.lit){opacity:.06}.consvg.cmoving .clines{opacity:0}
+@media (prefers-reduced-motion:reduce){.consvg .cline,.consvg .eat .chalo{animation:none}}
+.consvg.quiet .ctext{opacity:0}.consvg.quiet .cnode:hover .ctext,.consvg.quiet .cnode:focus-visible .ctext,.consvg.quiet.focusing .lit .ctext{opacity:1}
+.conspanel{position:absolute;right:12px;top:12px;width:270px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;background:#121816ee;border:1px solid #2f3d38;border-radius:10px;padding:10px 12px;font-size:13px;color:#e4e9e6}
+.conspanel.left{right:auto;left:12px}.conspanel.bottom{top:auto;bottom:12px}.conspanel b{display:block;font-size:14px;margin-bottom:4px}.conspanel .k{color:#8f9b96;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:6px}.conspanel .linkbtn{margin-top:8px;color:#9bd8b2}
+.cpath{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;margin:0 0 6px;font-size:13px;color:var(--muted)}.cpath b{color:var(--ink)}.cpath .linkbtn{font-size:13px;padding:1px 4px}
+.clegend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:12.5px;margin-top:8px}.clegend .ck{margin-right:-10px}.clegend .sun{color:#c9b96a}.clegend .sec{color:#b49be8}.clegend .wf{color:#4fa57a}.clegend .fix{color:#c98a2b}.clegend .doc{color:#4f86d6}
 .treesvg .tedge.hot.fin{stroke:var(--flowin);opacity:.95}.treesvg .tedge.hot.fout{stroke:var(--flowout);opacity:.95}
 .treesvg .tflow{pointer-events:none}.treesvg .tflow.fin,.treesvg .tarr.fin{fill:var(--flowin)}.treesvg .tflow.fout,.treesvg .tarr.fout{fill:var(--flowout)}
 .treesvg .tpill .tdot{filter:drop-shadow(0 0 6px rgba(200,205,215,.45))}.treesvg .tedges{transition:opacity .25s}.treesvg.tmoving .tedges{opacity:0}
@@ -1881,18 +1903,22 @@ function treeHtml(m, other){      // other: the panel of a deliverable picked on
 }
 // Tree view at run time: pan and zoom (d3-zoom), the 300 ms move of a stage to the middle and back, and the clicks. renderMap draws
 // the state in TREE; these only animate between two drawn states and then repaint.
-function paintMap(){ paint($("pane-map"), renderMap(MAP)); treeMount(); treeAvoid(); lineMount(); }
+function paintMap(){ paint($("pane-map"), renderMap(MAP)); treeMount(); treeAvoid(); lineMount(); consPlace(); }
 // Line view: the same pan and zoom as the Tree, in screen pixels (the viewBox is the card's size, so the labels stay vector and crisp). Fit scales the drawing's
 // content box to the card with a margin; when that would make a label smaller than 11px, it holds 11px and the side that overflows pans instead. Zoom is 0.25x to 4x of the fit.
 const LINE = {zoom: {}}, LINEM = 12, LINEMIN = 11, LINEBOT = 44,      // LINEBOT: the legend chip sits in the bottom-left corner; the fit leaves its strip clear
-   lineKey = svg => svg.classList.contains("mapvert") ? "v" : "h";
-const lineSvgs = () => [...$("pane-map").querySelectorAll(".mapsvgwrap[data-view=line] .mapsvg")];
+   lineKey = svg => svg.classList.contains("consvg") ? "c:" + svg.dataset.kind + ":" + svg.dataset.cons + ":" + (CONS.focus ? 1 : 0) : svg.classList.contains("mapvert") ? "v" : "h";
+const lineSvgs = () => [...$("pane-map").querySelectorAll(".mapsvgwrap[data-view=line] .mapsvg, .consvg")];      // a constellation pans and zooms as the Line view
 function lineFitOf(svg){
   const g = svg.querySelector(".lview"), cw = svg.clientWidth, ch = svg.clientHeight, M = LINEM, tf = g.getAttribute("transform");
-  g.removeAttribute("transform"); const b = g.getBBox(); if (tf) g.setAttribute("transform", tf);      // text metrics shift a fraction of a pixel with the scale: always measure at 1
+  g.removeAttribute("transform"); let b = (g.querySelector(".cnodes") || g).getBBox();      // a solar system: its nodes, not its sky      // text metrics shift a fraction of a pixel with the scale: always measure at 1
+  const lit = svg.classList.contains("focusing") ? [...g.querySelectorAll(".cnode.lit, .cline.lit")].map(x => x.getBBox()) : [];      // a constellation's focus: fit what it lights
+  if (lit.length){ const x0 = Math.min(...lit.map(r => r.x)), y0 = Math.min(...lit.map(r => r.y)); b = {x: x0, y: y0, width: Math.max(...lit.map(r => r.x + r.width)) - x0, height: Math.max(...lit.map(r => r.y + r.height)) - y0}; }
+  if (tf) g.setAttribute("transform", tf);
   const f = Math.min(...[...g.querySelectorAll("text")].map(t => parseFloat(getComputedStyle(t).fontSize)).filter(x => x > 0), 12);
-  const bot = LINEBOT, kw = (cw - 2 * M) / b.width, kc = Math.min(kw, (ch - M - bot) / b.height), kmin = LINEMIN / f, all = kc >= kmin, k = all ? kc : Math.max(kw, kmin);      // never under 11px: the side that overflows pans
+  const bot = svg.classList.contains("consvg") ? M : LINEBOT, kw = (cw - 2 * M) / b.width, kc = Math.min(kw, (ch - M - bot) / b.height), kmin = LINEMIN / f, all = kc >= kmin, k = all ? kc : Math.max(kw, kmin);      // never under 11px: the side that overflows pans
   const ox = b.width * k > cw - 2 * M, oy = b.height * k > ch - M - bot;
+  if (svg.classList.contains("consvg")){ const k2 = Math.min(k, 1); return {k: k2, all, f, x: (cw - k2 * b.width) / 2 - k2 * b.x, y: (M + ch - bot - k2 * b.height) / 2 - k2 * b.y}; }      // a solar system: its middle in the middle, never zoomed past 1
   return {k, all, f, x: ox ? M - k * b.x : (cw - k * b.width) / 2 - k * b.x, y: oy ? M - k * b.y : (M + ch - bot - k * b.height) / 2 - k * b.y};
 }
 function lineShow(svg, t){      // draw transform t; the readout is the zoom of the fit
@@ -2007,7 +2033,7 @@ function treeClick(e){
   if (e.target.closest("[data-treewfclose]")){ treeFocus(""); return true; }
   const w = e.target.closest(".twf"); if (w){ if (TREE.wf === w.dataset.wf){ TREE.nopanel = false; paintMap(); } else treeFocus(w.dataset.wf); return true; }      // the focused workflow stays focused, its details open
   const n = e.target.closest(".tnode"); if (n){ const id = n.dataset.id;      // a second click on the focused team opens it; only Esc, Back and empty space clear
-    if (n.dataset.kind === "stage"){ if (TREE.focus === id) treeOpen(id); else if (TREE.open !== id) treeFocusTeam(id); } else { if (TREE.wf) TREE.wf = ""; mapSelect(MAPPIN === id ? "" : id); } return true; }
+    if (n.dataset.kind === "stage"){ if (TREE.focus === id) treeOpen(id); else if (TREE.open !== id) treeFocusTeam(id); } else { if (TREE.wf) TREE.wf = ""; consPick(id); } return true; }
   if (e.target.closest(".treesvg")){ if (TREE.wf) treeFocus(""); else if (TREE.open) treeClose(); else if (TREE.focus) treeFocusTeam(""); else if (MAPPIN) mapSelect(""); return true; }      // empty space
   return false;
 }
@@ -2451,7 +2477,8 @@ function renderMap(m){
   const legList = `<div class="maplegend" aria-label="Legend">${ordered.map(l => `<span data-legend="${esc(l.key)}">${sw(l.key)}${mapWords(MAPLABEL.legend[l.key] || l.label)}</span>`).join("")}</div>`, legend = `<details class="mapdd mapleg"><summary>Legend</summary>${legList}</details>`;
   given.filter(g => !g.known).forEach(g => gaps.push(`which step used ${name(g.from)} given to ${name(g.box)}: not recorded`));
   const nr = gaps.length ? `<details class="mapnr"><summary>Not recorded (${gaps.length})</summary><ul>${gaps.map(x => `<li>${mapWords(x)}</li>`).join("")}</ul></details>` : "";
-  return `<div class="mapwrap">${head}<div class="mapsvgwrap" data-view="${MAPVIEW === "line" ? "line" : "tree"}">${MAPVIEW === "line" ? `<div class="treebar linebar"><button type="button" class="linkbtn" data-linezoom="1.5" aria-label="Zoom in">+</button><button type="button" class="linkbtn" data-linezoom="0.6667" aria-label="Zoom out">&minus;</button><button type="button" class="linkbtn" data-linefit>Fit</button><span class="sub" data-linez></span><span class="sub">Drag to pan, scroll or pinch to zoom.</span></div>` : ""}${MAPVIEW === "line" ? `<div class="linecard">${svg}<details class="maplay" data-key="maplay"${MAPLAY ? " open" : ""}><summary>Legend${gaps.length ? ` · ${gaps.length} not recorded` : ""}</summary><div class="maplaybody">${legList}${nr}</div></details></div>` : svg}${treeHtml(m, MAPVIEW === "line" ? "" : panel)}${MAPVIEW === "line" ? panel : ""}${under}</div>${cards}${MAPVIEW === "line" ? `<div class="legnarrow">${legend}${nr}</div>` : legend + nr}</div>`;
+  const CG = CONS.id ? consSun(m) : null;      // the solar system, when one is open
+  return `<div class="mapwrap">${head}${CG ? consView(m, CG) : `<div class="mapsvgwrap" data-view="${MAPVIEW === "line" ? "line" : "tree"}">${MAPVIEW === "line" ? `<div class="treebar linebar"><button type="button" class="linkbtn" data-linezoom="1.5" aria-label="Zoom in">+</button><button type="button" class="linkbtn" data-linezoom="0.6667" aria-label="Zoom out">&minus;</button><button type="button" class="linkbtn" data-linefit>Fit</button><span class="sub" data-linez></span><span class="sub">Drag to pan, scroll or pinch to zoom.</span></div>` : ""}${MAPVIEW === "line" ? `<div class="linecard">${svg}<details class="maplay" data-key="maplay"${MAPLAY ? " open" : ""}><summary>Legend${gaps.length ? ` · ${gaps.length} not recorded` : ""}</summary><div class="maplaybody">${legList}${nr}</div></details></div>` : svg}${treeHtml(m, MAPVIEW === "line" ? "" : panel)}${MAPVIEW === "line" ? panel : ""}${under}</div>`}${cards}${MAPVIEW === "line" ? `<div class="legnarrow">${legend}${nr}</div>` : legend + nr}</div>`;
 }
 async function openArtifact(f){
   ARTOPEN = f; showTab("artifacts"); await loadArtifacts();
@@ -2463,6 +2490,7 @@ async function openArtifact(f){
 // to the Chat; Audit to its findings; the other functions to their messages and calls (the tables under the Map, filtered to them); a step to
 // its workflows; the Website to the site preview; the Charter to the Charter; any other deliverable to its document in Artifacts.
 function mapGo(id){
+  if (CONS.id){ Object.assign(CONS, {id: "", path: [], focus: ""}); paintMap(); }      // going to what an artifact made leaves the solar system
   const n = (MAP.nodes || []).find(x => x.id === id); if (!n) return;
   if (n.status === "waiting_on_you"){ const it = needsYou(state)[0]; if (it) focusQuestion(it.msg); else focusChat(); return; }
   if (n.kind === "person"){ $("needs").scrollIntoView({block: "nearest"}); $("needs").focus(); return; }
@@ -2488,6 +2516,248 @@ function mapLight(svg, id){      // hover or focus: light the dot, the lines tha
 $("pane-map").addEventListener("toggle", e => { if (e.target.matches && e.target.matches("details.maplay")){ MAPLAY = e.target.open; try { localStorage.setItem("j2maplay", MAPLAY ? "1" : "0"); } catch (x) {} } }, true);
 const mapNode = e => e.target.closest && e.target.closest(".mapnode");
 const mapSvg = () => $("pane-map").querySelector && $("pane-map").querySelector(".mapsvg");
+// Solar system (m.constellations, from j2_map.constellations). A click on an artifact makes it the sun: its sections orbit it as diamonds, in run order
+// clockwise from the top; each section's builder sits just beyond it on the same angle, later fixes beside the builder (amber); what those workflows read
+// from outside the artifact sits on an outer ring as documents. An artifact with no sections has its makers on the first ring; a workflow with no recorded
+// output has a dashed empty slot. At rest only section -> sun (faint) and workflow -> section (makes) are drawn; a click on a section or an input focuses
+// it: its reads are drawn, what it consumes glows, the rest fades. A click on a workflow makes it the sun: what it read on the left, what it made on the
+// right, artifacts only; a click on one of those makes that artifact the sun again (a section: its file, with the section focused). CONS.path is the walk;
+// Esc steps back one, Back returns to the Map; each step glides (300 ms, none with reduced motion). Over CONS_MAX.wf workflows on a section the builder and
+// a "+N fixes" badge (a click fans them out); over CONS_MAX.inputs inputs one node per team (a click expands it); over CONS_MAX.labels nodes, labels on
+// hover only. Pan, zoom and Fit are the Line view's.
+const CONS = {id: "", kind: "art", path: [], focus: "", fan: {}, grp: {}}, CONS_MAX = {wf: 3, inputs: 12, labels: 100};
+const consTw = (t, px) => String(t || "").length * px;      // a label's width: px a character (6.9 at 12px, 6.3 at 11px)
+const consSec = t => treeTrim(/ section$/.test(t || "") ? t : `${t || ""} section`, 22);
+const consParent = id => /^sec:/.test(id) ? id.split(":").slice(1, -1).join(":") : "";      // a section's file: sec:<file id>:<key>
+const meetsBox = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+function consBlock(x, y, a, lines, gap){      // a two-line label beyond (x, y) on angle a: beside it on the left and right, over or under it at the top and bottom
+  const w = Math.max(consTw(lines[0], 6.9), consTw(lines[1] || "", 6.3)), h = lines[1] ? 28 : 14, c = Math.cos(a), s = Math.sin(a);
+  const anchor = c > 0.35 ? "start" : c < -0.35 ? "end" : "middle", X = anchor === "middle" ? x : x + Math.sign(c) * gap, Y = anchor === "middle" ? y + Math.sign(s || 1) * gap : y;
+  const x0 = anchor === "start" ? X : anchor === "end" ? X - w : X - w / 2, y0 = anchor !== "middle" ? Y - h / 2 : s < 0 ? Y - h : Y;
+  return {x: X, anchor, y0, w, h, box: [x0 - 2, y0 - 1, x0 + w + 2, y0 + h + 1], lines};
+}
+// every artifact and section, and every workflow across the run's constellations: what it read, what it made (its section, or the artifact it made whole)
+function consIndex(m){
+  if (m.__cix) return m.__cix;
+  const ix = {art: {}, wf: {}}, team = {};
+  Object.values(m.constellations || {}).forEach(C => {
+    ix.art[C.id] = {id: C.id, label: C.label, kind: "file"};
+    C.slots.forEach(s => { if (s.section) ix.art[s.section] = {id: s.section, label: s.label, kind: "section", file: C.label}; });
+    (C.inputs || []).forEach(a => { team[a.id] = a.team; });
+  });
+  Object.values(m.constellations || {}).forEach(C => C.slots.forEach(s => [s.builder, ...s.fixes].forEach(w => { const f = C.workflows[w];
+    const x = ix.wf[w] = ix.wf[w] || {id: w, name: f.name, role: f.role, t: f.t, ran: f.ran, reads: f.reads.filter(a => ix.art[a]), outs: []};
+    const out = s.section || (s.empty ? "" : C.id); if (out && !x.outs.includes(out)) x.outs.push(out); })));
+  Object.values(ix.art).forEach(a => { a.team = team[a.id] || ""; });
+  return Object.defineProperty(m, "__cix", {value: ix, enumerable: false, configurable: true}).__cix;
+}
+function consOf(m, id, st){      // an artifact as the sun
+  st = st || CONS;
+  const C = (m.constellations || {})[id]; if (!C) return null;
+  const W = C.workflows, nodes = [], at = {}, add = n => (nodes.push(n), at[n.id] = n), slots = C.slots, stand = {};      // stand: workflow -> the node drawn for it (itself or its section's badge)
+  const sub = `${slots.filter(s => s.section).length} sections · ${Object.keys(W).length} workflows`, lw = Math.max(consTw(treeTrim(C.label, 24), 8.6), consTw(sub, 6.3)) / 2 + 4;
+  add({id: C.id, kind: "centre", x: 0, y: 0, r: 70, size: 11, label: treeTrim(C.label, 24), sub, full: C.label, lab: [-lw, 32, lw, 64]});
+  const items = slots.map(s => {      // the nodes of one ring position, and its label
+    const key = s.section || "slot:" + s.builder, b = s.builder, own = [];
+    if (s.section || s.empty) own.push({id: key, kind: s.section ? "section" : "empty", rad: 0, size: 8, slot: s});
+    const bump = own.length ? 44 : 0; stand[b] = b;
+    own.push({id: b, kind: "wf", role: "builder", rad: bump, size: 6, slot: s});
+    const many = 1 + s.fixes.length > CONS_MAX.wf && !st.fan[key];
+    if (many){ const bid = "fan:" + key; s.fixes.forEach(f => { stand[f] = bid; }); own.push({id: bid, kind: "badge", rad: bump, side: 1, size: 9, slot: s, n: s.fixes.length, label: `+${s.fixes.length} fixes`}); }
+    else s.fixes.forEach((f, j) => { stand[f] = f; own.push({id: f, kind: "wf", role: "fix", rad: bump, side: j + 1, size: 6, slot: s}); });
+    const fx = s.fixes.length ? (many ? ` · +${s.fixes.length} fixes` : ` · fix ${s.fixes.join(", ")}`) : "", wl = treeTrim(`${b} · ${W[b].name}`, 22);
+    const lines = s.section ? [consSec(s.label), b + fx] : [wl, s.empty ? "no recorded output" : W[b].ran ? fx.slice(3) : "did not run" + fx];
+    return {nodes: own, lines, full: [s.label, `built by ${b} · ${W[b].name}`, s.fixes.length ? `fixed by ${s.fixes.join(", ")}` : "", s.empty ? "no recorded output" : ""].filter(Boolean).join(" · ")};
+  });
+  // the inputs: what the workflows read from outside the artifact; over the limit, one node per team (an expanded team shows its own)
+  const used = (C.inputs || []).filter(a => Object.values(W).some(f => f.reads.includes(a.id))), inputs = [], inAt = {};
+  if (used.length > CONS_MAX.inputs) [...new Set(used.map(a => a.team))].forEach(t => { const mem = used.filter(a => a.team === t);
+    if (st.grp[t]) mem.forEach(a => { inputs.push({id: a.id, kind: "input", a, team: t}); inAt[a.id] = a.id; });
+    else { const gid = "grp:" + t; inputs.push({id: gid, kind: "group", team: t, n: mem.length, members: mem.map(a => a.id)}); mem.forEach(a => { inAt[a.id] = gid; }); } });
+  else used.forEach(a => { inputs.push({id: a.id, kind: "input", a, team: a.team}); inAt[a.id] = a.id; });
+  const quiet = 1 + items.reduce((k, it) => k + it.nodes.length, 0) + inputs.length > CONS_MAX.labels;      // labels on hover only: the rings make room for the shapes alone
+  // geometry: the first ring grows until no shape or label meets another; then the outer ring (an ellipse) grows past all of it until its own are clear
+  const N = items.length, ang = i => -Math.PI / 2 + 2 * Math.PI * i / Math.max(1, N), nbox = n => [n.x - n.size - 3, n.y - n.size - 3, n.x + n.size + 3, n.y + n.size + 3];
+  const cbox = [Math.min(-44, at[C.id].lab[0]), -44, Math.max(44, at[C.id].lab[2]), 66];      // the sun: its glow, name and count
+  let R1 = Math.max(130, 20 * N / Math.PI), tries = 0;
+  for (;; R1 += 8){
+    const boxes = [];
+    items.forEach((it, i) => { const a = ang(i);
+      it.nodes.forEach(n => { const r = R1 + n.rad, da = n.side ? n.side * 22 / r : 0; n.x = tRd(r * Math.cos(a + da)); n.y = tRd(r * Math.sin(a + da)); n.box = nbox(n); });
+      const out = Math.max(...it.nodes.map(n => n.rad)) + R1; let g = 12, L;      // the label clears its own ring position's shapes
+      do { L = consBlock(out * Math.cos(a), out * Math.sin(a), a, it.lines, g); g += 4; } while (g < 80 && it.nodes.some(n => meetsBox(n.box, L.box)));
+      it.label = L; if (!quiet) boxes.push({i, b: L.box}); it.nodes.forEach(n => boxes.push({i, b: n.box})); });
+    const clash = boxes.some((p, j) => meetsBox(p.b, cbox) || boxes.some((q, k) => k > j && p.i !== q.i && meetsBox(p.b, q.b)));
+    if (!clash || ++tries > 300) break;
+  }
+  const lb = it => quiet ? [] : [it.label.box], held = [cbox, ...items.flatMap(it => [...lb(it), ...it.nodes.map(n => n.box)])];
+  const M = inputs.length, top = Math.ceil(M / 2), D = Math.PI / 180;      // inputs on two arcs, over and under the ring (labels sit centred there), clockwise from the top left
+  const iang = i => i < top ? (-150 + 120 * (i + 0.5) / top) * D : (150 - 120 * (i - top + 0.5) / (M - top)) * D;
+  let RX = Math.max(...held.flatMap(b => [Math.abs(b[0]), Math.abs(b[2])])) + 22, RY = Math.max(...held.flatMap(b => [Math.abs(b[1]), Math.abs(b[3])])) + 22; tries = 0;
+  const ilines = n => n.kind === "group" ? [`${treeTrim(n.team, 16)} · ${n.n}`, "inputs, click to list"] : [treeTrim(n.a.label, 20), n.a.section ? `in ${treeTrim(n.a.file, 15)}` : treeTrim(n.team, 18)];
+  for (;; RX += 8, RY += 8){
+    inputs.forEach((n, i) => { const a = iang(i); n.size = 10; n.x = tRd(RX * Math.cos(a)); n.y = tRd(RY * Math.sin(a)); n.box = nbox(n); n.label = consBlock(n.x, n.y, a, ilines(n), 14); });
+    const own = inputs.flatMap(n => [n.box, quiet ? n.box : n.label.box]);
+    const clash = own.some((p, j) => own.some((q, k) => k > j && (k >> 1) !== (j >> 1) && meetsBox(p, q))) || own.some(p => held.some(q => meetsBox(p, q)));
+    if (!clash || ++tries > 300) break;
+  }
+  items.forEach(it => it.nodes.forEach(n => add(Object.assign(n, {label: it.label, full: it.full, lead: n === it.nodes[0]}))));
+  inputs.forEach(n => add(Object.assign(n, {full: n.kind === "group" ? `${n.team}: ${n.members.map(x => ((C.inputs || []).find(a => a.id === x) || {}).label).join(", ")}` : `${n.a.label} · ${n.label.lines[1]}`})));
+  const seg = consSeg(70, at[C.id].lab), c0 = at[C.id], rest = [];
+  items.forEach(it => { const d = it.nodes.find(n => n.kind === "section" || n.kind === "empty");
+    if (d) rest.push(seg(d, c0, "spoke", d.kind === "empty" ? "dashed" : ""));
+    it.nodes.filter(n => n.kind === "wf" || n.kind === "badge").forEach(n => { if (d && d.kind !== "empty") rest.push(seg(n, d, "makes", n.kind === "badge" ? "more" : n.role === "fix" ? "fix" : ""));
+      else if (!d) rest.push(seg(n, c0, "makes", n.role === "fix" ? "fix" : "")); }); });
+  const G = {id, kind: "art", label: C.label, nodes, at, rest, stand, inAt, quiet, C, rings: [R1, R1 + 44, [RX, RY]]};
+  Object.assign(G, consFocus(G, st.focus, seg));
+  return consExt(G, cbox);
+}
+function consSeg(cr, lab){      // a line between two nodes, clear of both shapes and of the sun's name (lab); a focus line that would cross the sun bows round it
+  return (a, b, k, cls) => { const ax = a.x, ay = a.y, dx = b.x - ax, dy = b.y - ay, L = Math.hypot(dx, dy) || 1, ra = a.kind === "centre" ? 30 : a.size + 3, rb = b.kind === "centre" ? 30 : b.size + 4;
+    let P = {x: tRd(ax + dx / L * ra), y: tRd(ay + dy / L * ra)}, Q = {x: tRd(b.x - dx / L * rb), y: tRd(b.y - dy / L * rb)};
+    const inLab = (x, y) => lab && x > lab[0] - 3 && x < lab[2] + 3 && y > lab[1] - 3 && y < lab[3] + 3, back = (F, T) => { for (let u = 0; u <= 1; u += 0.01){ const x = T.x + (F.x - T.x) * u, y = T.y + (F.y - T.y) * u; if (!inLab(x, y)) return {x: tRd(x), y: tRd(y)}; } return T; };
+    if (b.kind === "centre") Q = back(P, Q); if (a.kind === "centre") P = back(Q, P);
+    const t = Math.max(0, Math.min(1, -(P.x * (Q.x - P.x) + P.y * (Q.y - P.y)) / ((Q.x - P.x) ** 2 + (Q.y - P.y) ** 2 || 1))), near = Math.hypot(P.x + t * (Q.x - P.x), P.y + t * (Q.y - P.y));
+    if (cls !== "lit" || near > cr + 10 || (lab && !inLab(P.x, P.y) && !inLab(Q.x, Q.y) && near > 40)) return {from: a.id, to: b.id, kind: k, cls: cls || "", d: `M${P.x} ${P.y} L${Q.x} ${Q.y}`, pts: [[P.x, P.y], [Q.x, Q.y]]};
+    const nx = P.x + t * (Q.x - P.x), ny = P.y + t * (Q.y - P.y), mx = (P.x + Q.x) / 2, my = (P.y + Q.y) / 2;
+    const ux = near > 1 ? nx / near : -(Q.y - P.y) / L, uy = near > 1 ? ny / near : (Q.x - P.x) / L, pm = mx * ux + my * uy, R = 2 * (cr + 30) - pm;
+    const cx = tRd(mx + ux * (R - pm)), cy = tRd(my + uy * (R - pm)), pts = [...Array(13)].map((_, i) => { const u = i / 12, v = 1 - u; return [tRd(v * v * P.x + 2 * u * v * cx + u * u * Q.x), tRd(v * v * P.y + 2 * u * v * cy + u * u * Q.y)]; });
+    return {from: a.id, to: b.id, kind: k, cls, d: `M${P.x} ${P.y} Q${cx} ${cy} ${Q.x} ${Q.y}`, pts}; };
+}
+function consExt(G, cbox){
+  const all = [cbox, ...G.nodes.flatMap(n => [n.box, !G.quiet && n.label && n.label.box && (n.lead || n.kind !== "wf") ? n.label.box : null].filter(Boolean))];
+  G.ext = [Math.min(...all.map(b => b[0])), Math.min(...all.map(b => b[1])), Math.max(...all.map(b => b[2])), Math.max(...all.map(b => b[3]))];
+  return G;
+}
+// a workflow as the sun: what it read on the left, what it made on the right (artifacts and sections only)
+function consWfOf(m, wid){
+  const ix = consIndex(m), w = ix.wf[wid]; if (!w) return null;
+  const nodes = [], at = {}, add = n => (nodes.push(n), at[n.id] = n), name = treeTrim(`${wid} · ${w.name}`, 26), sub = `read ${w.reads.length} · made ${w.outs.length}`, lw = Math.max(consTw(name, 8.6), consTw(sub, 6.3)) / 2 + 4;
+  const lab = [-lw, 28, lw, 60], cbox = [Math.min(-34, -lw), -34, Math.max(34, lw), 62];
+  add({id: "wf:" + wid, wf: wid, kind: "centre", role: w.role, x: 0, y: 0, r: 64, size: 11, label: name, sub, full: `${wid} · ${w.name}`, lab});
+  const side = (ids, sgn) => ids.map((a, i) => { const x = ix.art[a], n = ids.length, span = Math.min(150, (n - 1) * 26) * Math.PI / 180, ang = (sgn < 0 ? Math.PI : 0) + (n > 1 ? -span / 2 + span * i / (n - 1) : 0) * (sgn < 0 ? -1 : 1);
+    return {id: sgn > 0 && w.reads.includes(a) ? a + "#made" : a, art: a, kind: x.kind === "section" ? "section" : "input", side: sgn < 0 ? "L" : "R", ang, size: x.kind === "section" ? 8 : 10, a: x,
+      lines: [treeTrim(x.kind === "section" ? consSec(x.label) : x.label, 24), x.kind === "section" ? `in ${treeTrim(x.file, 16)}` : treeTrim(x.team || (sgn < 0 ? "read" : "made"), 18)], full: x.label + (x.file ? ` · in ${x.file}` : "")}; });
+  const L = side(w.reads, -1), Rr = side(w.outs, 1), all = [...L, ...Rr];
+  let R = 150, tries = 0;
+  for (;; R += 8){
+    all.forEach(n => { n.x = tRd(R * Math.cos(n.ang)); n.y = tRd(R * Math.sin(n.ang)); n.box = [n.x - n.size - 3, n.y - n.size - 3, n.x + n.size + 3, n.y + n.size + 3]; n.label = consBlock(n.x, n.y, n.ang, n.lines, 14); });
+    const bs = all.flatMap(n => [n.box, n.label.box]);
+    if (!(bs.some((p, j) => meetsBox(p, cbox) || bs.some((q, k) => k > j && (k >> 1) !== (j >> 1) && meetsBox(p, q)))) || ++tries > 300) break;
+  }
+  all.forEach(add);
+  const seg = consSeg(64, lab), c = nodes[0], rest = [...L.map(n => seg(n, c, "reads", "wfl")), ...Rr.map(n => seg(c, n, "makes", "wfl"))];
+  return consExt({id: wid, kind: "wf", label: `${wid} · ${w.name}`, nodes, at, rest, lines: [], lit: new Set(), eat: new Set(), focus: "", quiet: false, rings: [R], left: w.reads, right: w.outs, W: w}, cbox);
+}
+// a focus: the lines it lights, the nodes it keeps, the artifacts it consumes (input: who used it and what they built; section: its builder and fixes
+// and what they read; a workflow or a badge: everything it read and its section)
+function consFocus(G, f, seg){
+  const out = {focus: "", lit: new Set(), eat: new Set(), lines: []}, n = f && G.at[f]; if (!n || n.kind === "centre") return out;
+  const W = G.C.workflows, node = x => G.at[x], line = (a, b, k) => { const A = node(a), B = node(b); if (A && B && A !== B && !out.lines.some(l => l.from === a && l.to === b)) out.lines.push(seg(A, B, k, "lit")); };
+  const reads = w => W[w].reads.map(a => G.inAt[a] || (node(a) ? a : null)).filter(Boolean);      // an input (or its team's node), or one of the artifact's own sections
+  const builtBy = w => { const s = G.stand[w], sec = W[w].section; out.lit.add(s); if (sec && node(sec)){ out.lit.add(sec); line(s, sec, "makes"); } };
+  const using = w => { const s = G.stand[w]; reads(w).forEach(a => { out.lit.add(a); out.eat.add(a); line(a, s, "reads"); }); };
+  const wfs = Object.keys(W).filter(w => G.stand[w]);
+  out.focus = f; out.lit.add(f); out.lit.add(G.C.id);
+  if (n.kind === "input" || n.kind === "group"){ const mem = n.kind === "group" ? n.members : [f];
+    out.eat.add(f); wfs.filter(w => W[w].reads.some(a => mem.includes(a))).forEach(w => { out.lit.add(G.stand[w]); line(f, G.stand[w], "reads"); builtBy(w); }); }
+  else if (n.kind === "wf" || n.kind === "badge"){ (n.kind === "badge" ? wfs.filter(w => G.stand[w] === f) : [f]).forEach(w => { using(w); builtBy(w); }); }
+  else if (n.kind === "section" || n.kind === "empty"){ const s = n.slot; [s.builder, ...s.fixes].forEach(w => { out.lit.add(G.stand[w]); if (n.kind === "section") line(G.stand[w], f, "makes"); using(w); }); }
+  return out;
+}
+const consSun = m => CONS.kind === "wf" ? consWfOf(m, CONS.id) : consOf(m, CONS.id);
+function consHtml(m, G){
+  const t = x => mapWords(x), lit = id => G.focus ? (G.lit.has(id) ? " lit" : " far") : "", eat = id => G.eat.has(id) ? " eat" : "", e = G.ext, wide = Math.max(e[2] - e[0], e[3] - e[1]);
+  const text = (n, L) => L.lines.map((s, i) => `<text class="${i ? "csub" : "clab"}" x="${tRd(L.x - n.x)}" y="${tRd(L.y0 - n.y + 11 + i * 14)}" text-anchor="${L.anchor}">${t(s)}</text>`).join("");
+  const doc = (dx, dy) => `<path class="cdoc" d="M${-7 + dx} ${-9 + dy} h9 l5 5 v13 h-14 Z M${2 + dx} ${-9 + dy} v5 h5"/>`;
+  const shape = n => {
+    if (n.kind === "centre") return n.wf ? `<circle class="cglow ${n.role}" r="30"/><circle class="cglow ${n.role}" r="18"/><circle class="ccore ${n.role}" r="10"/><text class="cname" y="40" text-anchor="middle">${t(n.label)}</text><text class="csub" y="56" text-anchor="middle">${t(n.sub)}</text>`
+      : `<circle class="cglow" r="40"/><circle class="cglow" r="22"/><circle class="ccore" r="11"/><text class="cname" y="44" text-anchor="middle">${t(n.label)}</text><text class="csub" y="60" text-anchor="middle">${t(n.sub)}</text>`;
+    if (n.kind === "section" || n.kind === "empty") return `<rect class="chalo" x="-15" y="-15" width="30" height="30" rx="8"/><path class="cdia" d="M0 -8 L8 0 L0 8 L-8 0 Z"/>`;
+    if (n.kind === "wf") return `<circle class="cwglow ${n.role}" r="12"/><circle class="cwf ${n.role}" r="5.5"/>`;
+    if (n.kind === "badge") return `<circle class="cbadge" r="9"/><text class="csub" y="4" text-anchor="middle">+${n.n}</text>`;
+    return `<rect class="chalo" x="-15" y="-15" width="30" height="30" rx="8"/>` + (n.kind === "group" ? doc(-3, -3) + doc(1, 1) : doc(0, 0)); };
+  const aria = n => n.kind === "centre" ? `${n.full}: the sun` : n.kind === "badge" ? `${n.label} on ${n.slot.label || n.slot.builder}: show them` : n.kind === "group" ? `${n.full}: list them`
+    : n.kind === "wf" ? `${n.id} ${G.C.workflows[n.id].name}: make it the sun` : G.kind === "wf" ? `${n.full}: make it the sun` : `${n.full}: focus it`;
+  const showLab = n => n.label && n.label.lines && (n.lead || n.kind === "input" || n.kind === "group" || G.kind === "wf");
+  const body = G.nodes.map(n => `<g class="cnode k-${n.kind}${n.role ? " " + n.role : ""}${lit(n.id)}${eat(n.id)}" data-cid="${esc(n.id)}" data-x="${n.x}" data-y="${n.y}" transform="translate(${n.x},${n.y})" tabindex="0" role="button" aria-label="${esc(t(aria(n)))}"><title>${t(n.full || n.label || n.id)}</title>`
+    + `<circle class="chit" r="${Math.max(14, (n.size || 8) + 6)}"/>` + shape(n) + (showLab(n) ? `<g class="ctext">${text(n, n.label)}</g>` : "") + `</g>`).join("");
+  const lines = G.rest.concat(G.lines).map(l => `<path class="cline ${l.kind} ${l.cls}" data-from="${esc(l.from)}" data-to="${esc(l.to)}" d="${l.d}"${l.cls === "lit" || l.cls === "wfl" ? ` marker-end="url(#carr-${l.kind})"` : ""}/>`).join("");
+  const sky = [...Array(180)].map((_, i) => `<circle cx="${tRd(e[0] - wide * .2 + ((i * 137.5) % 1000) / 1000 * (e[2] - e[0] + wide * .4))}" cy="${tRd(e[1] - wide * .2 + ((i * 89.3) % 1000) / 1000 * (e[3] - e[1] + wide * .4))}" r="${i % 6 ? .6 : 1.1}"/>`).join("");      // a fixed starfield
+  const rings = G.rings.map(r => Array.isArray(r) ? `<ellipse rx="${tRd(r[0])}" ry="${tRd(r[1])}"/>` : `<circle r="${tRd(r)}"/>`).join("");
+  return `<svg class="mapsvg consvg${G.quiet ? " quiet" : ""}${G.focus ? " focusing" : ""}" data-cons="${esc(G.id)}" data-kind="${G.kind}" viewBox="${tRd(e[0] - 12)} ${tRd(e[1] - 12)} ${tRd(e[2] - e[0] + 24)} ${tRd(e[3] - e[1] + 24)}" role="group" aria-label="${esc(t(G.label))}: ${G.kind === "wf" ? "what it read and what it made" : "its sections, who built and fixed them, what they read"}">`
+    + `<defs>${["reads", "makes"].map(k => `<marker id="carr-${k}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="carr ${k}" d="M0 0 L8 4 L0 8 z"/></marker>`).join("")}</defs>`
+    + `<g class="lview"><g class="csky">${sky}</g><g class="crings">${rings}</g><g class="clines">${lines}</g><g class="cnodes">${body}</g></g></svg>`;
+}
+// the side panel of a focus: built by / fixed by / using, or used by for an input
+function consPanel(G){
+  const n = G.kind === "art" && G.at[G.focus]; if (!n) return "";
+  const C = G.C, W = C.workflows, t = x => mapWords(x), who = w => `${w} · ${W[w].name}${W[w].t ? ` (ran ${W[w].t})` : W[w].ran ? "" : " (did not run)"}`, art = a => { const x = (C.inputs || []).find(y => y.id === a), s = C.slots.find(y => y.section === a); return x ? x.label : s ? s.label : a; };
+  const row = (k, v) => `<div class="k">${t(k)}</div><div>${v.length ? v.map(t).join(", ") : "nothing recorded"}</div>`;
+  let head = n.full || n.id, rows = "";
+  if (n.kind === "input" || n.kind === "group"){ const mem = n.kind === "group" ? n.members : [n.id], ws = Object.keys(W).filter(w => W[w].reads.some(a => mem.includes(a)));
+    head = n.kind === "group" ? n.full : n.a.label; rows = (n.kind === "group" ? row("inputs", mem.map(art)) : row("made by", [n.team])) + row("used by", ws.map(w => `${who(w)}${W[w].section ? " for " + art(W[w].section) : ""}`)); }
+  else if (n.kind === "badge"){ head = `${n.label} on ${n.slot.label}`; rows = n.slot.fixes.map(w => row("fixed by", [who(w)]) + row("using", W[w].reads.map(art))).join(""); }
+  else if (n.kind === "section" || n.kind === "empty"){ const s = n.slot; head = s.label || `${s.builder}: no recorded output`;
+    rows = row("built by", [who(s.builder)]) + row("fixed by", s.fixes.map(who)) + row("using", [...new Set([s.builder, ...s.fixes].flatMap(w => W[w].reads))].map(art)); }
+  return `<aside class="conspanel" data-conspanel="${esc(n.id)}" aria-label="Details of ${esc(t(head))}"><b>${t(head)}</b>${rows}<button type="button" class="linkbtn" data-consclear>Close (Esc)</button></aside>`;
+}
+function consView(m, G){
+  const by = mapById(m), ix = consIndex(m), a = G.kind === "art" ? by[G.id] || {} : {}, go = a.id ? `<button type="button" class="gobtn" data-mapgo="${esc(a.id)}">${mapWords(mapGoLabel(a))}</button>${a.file ? ` <a href="#" data-mapopen="${esc(a.file)}">Open ${mapWords(a.label)}</a>` : ""}` : "";
+  const help = G.focus ? "Esc or empty space clears the focus." : G.kind === "wf" ? "Left: what it read. Right: what it made. Click one to make it the sun; Esc steps back." : "Click a section or an input to see what fed it, a workflow to make it the sun.";
+  const crumb = p => mapWords(p.kind === "wf" ? `${p.id} · ${(ix.wf[p.id] || {}).name || ""}` : (ix.art[p.id] || {label: p.id}).label);
+  const path = `<nav class="cpath" aria-label="The walk">${CONS.path.map((p, i) => (i ? `<span aria-hidden="true">›</span>` : "") + (i === CONS.path.length - 1 ? `<b aria-current="step">${crumb(p)}</b>` : `<button type="button" class="linkbtn" data-conscrumb="${i}">${crumb(p)}</button>`)).join("")}</nav>`;
+  return `<div class="mapsvgwrap conswrap" data-view="cons"><div class="treebar linebar"><button type="button" class="linkbtn" data-consback>Back</button><button type="button" class="linkbtn" data-linezoom="1.5" aria-label="Zoom in">+</button><button type="button" class="linkbtn" data-linezoom="0.6667" aria-label="Zoom out">&minus;</button><button type="button" class="linkbtn" data-linefit>Fit</button><span class="sub" data-linez></span>${go}<span class="sub">${mapWords(help)}</span></div>`
+    + path + `<div class="consbox">${consHtml(m, G)}${consPanel(G)}</div>`
+    + `<div class="clegend"><span class="ck sun">●</span>artifact <span class="ck sec">◆</span>section <span class="ck wf">●</span>built by <span class="ck fix">●</span>fixed by <span class="ck doc">▯</span>artifact used (glows when consumed) <span class="ck doc">···</span>used for (on click)</div></div>`;
+}
+// the focus panel takes the corner of the card that hides the fewest of the nodes the focus lights (top right first, as in the mock)
+function consPlace(){
+  const p = $("pane-map").querySelector && $("pane-map").querySelector(".conspanel"); if (!p) return;
+  const lit = [...$("pane-map").querySelectorAll(".consvg .cnode.lit")].map(n => n.getBoundingClientRect());
+  const hits = () => { const r = p.getBoundingClientRect(); return lit.filter(b => b.right > r.left && b.left < r.right && b.bottom > r.top && b.top < r.bottom).length; };
+  const best = [["", ""], ["left", ""], ["", "bottom"], ["left", "bottom"]].map(c => { p.classList.toggle("left", !!c[0]); p.classList.toggle("bottom", !!c[1]); return [hits(), c]; }).sort((a, b) => a[0] - b[0])[0][1];
+  p.classList.toggle("left", !!best[0]); p.classList.toggle("bottom", !!best[1]);
+}
+// moving about: every step glides from where each node stood (a new one grows out of the node that was clicked), the view with it; Esc steps back one
+function consSpots(){ const s = $("pane-map").querySelector && $("pane-map").querySelector(".consvg"); if (!s) return null; const pos = {};
+  s.querySelectorAll(".cnode[data-cid]").forEach(g => { const k = g.dataset.cid.replace(/^wf:/, ""); if (!pos[k]) pos[k] = [+g.dataset.x, +g.dataset.y]; }); return {pos, tf: s.querySelector(".lview").getAttribute("transform") || ""}; }
+function consGlide(prev, from){
+  const s = $("pane-map").querySelector(".consvg"); if (!prev || !s || treeReduce()) return;
+  const v = s.querySelector(".lview"), num = x => (/translate\(([-\d.e]+),([-\d.e]+)\) scale\(([-\d.e]+)\)/.exec(x || "") || []).slice(1).map(Number), a = num(prev.tf), b = num(v.getAttribute("transform"));
+  const o = prev.pos[from] || [0, 0], go = [...s.querySelectorAll(".cnode[data-cid]")].map(g => { const k = g.dataset.cid.replace(/^wf:/, ""); return [g, prev.pos[k] || o, [+g.dataset.x, +g.dataset.y], !prev.pos[k]]; });
+  const ease = typeof d3 !== "undefined" && d3.easeCubicInOut ? d3.easeCubicInOut : u => u, id = CONS.glide = (CONS.glide || 0) + 1, t0 = performance.now();
+  const put = u => { const e = ease(u), m = (p, q) => tRd(p + (q - p) * e); go.forEach(([g, p, q, fresh]) => { g.setAttribute("transform", `translate(${m(p[0], q[0])},${m(p[1], q[1])})`); if (fresh) g.style.opacity = e; });
+    if (a.length === 3 && b.length === 3) v.setAttribute("transform", `translate(${m(a[0], b[0])},${m(a[1], b[1])}) scale(${Math.round((a[2] + (b[2] - a[2]) * e) * 1e4) / 1e4})`); };
+  const end = () => { if (CONS.glide !== id) return; CONS.glide++; put(1); go.forEach(([g]) => { g.style.opacity = ""; }); s.classList.remove("cmoving"); };
+  s.classList.add("cmoving"); put(0);
+  const frame = now => { if (CONS.glide !== id) return; const u = Math.min(1, (now - t0) / 300); put(u); if (u < 1) requestAnimationFrame(frame); else end(); };
+  requestAnimationFrame(frame); setTimeout(end, 450);      // a tab that draws no frames still lands
+}
+function consGo(path, focus, from){      // set the walk (its last step is the sun) and glide there
+  const prev = consSpots(), p = path[path.length - 1];
+  Object.assign(CONS, {path, id: p ? p.id : "", kind: p ? p.kind : "art", focus: focus || "", fan: {}, grp: {}}); MAPPIN = ""; paintMap(); if (p) consGlide(prev, from);
+}
+const consOpen = id => consGo([{id, kind: "art"}]);
+const consBack = () => consGo([]);      // Back: to the Map
+const consStep = () => { if (CONS.focus){ CONS.focus = ""; paintMap(); } else if (CONS.path.length > 1) consGo(CONS.path.slice(0, -1), "", CONS.id); else consBack(); };      // Esc
+const consPick = id => (MAP && (MAP.constellations || {})[id]) ? consOpen(id) : mapSelect(MAPPIN === id ? "" : id);      // a click on an artifact on the Map makes it the sun
+function consClick(e){
+  if (!CONS.id) return false;
+  if (e.target.closest("[data-consback]")){ consBack(); return true; }
+  if (e.target.closest("[data-consclear]")){ CONS.focus = ""; paintMap(); return true; }
+  const cr = e.target.closest("[data-conscrumb]"); if (cr){ consGo(CONS.path.slice(0, +cr.dataset.conscrumb + 1), "", CONS.id); return true; }
+  const g = e.target.closest(".consvg .cnode"); if (g){ const id = g.dataset.cid, G = consSun(MAP), n = (G || {at: {}}).at[id] || {}, path = CONS.path;
+    if (n.kind === "centre"){ if (CONS.focus){ CONS.focus = ""; paintMap(); } }
+    else if (G.kind === "wf"){ const id = n.art || g.dataset.cid, f = consParent(id); if (f && (MAP.constellations || {})[f]) consGo(path.concat({id: f, kind: "art"}), id, id); else if ((MAP.constellations || {})[id]) consGo(path.concat({id, kind: "art"}), "", id); }      // an artifact round a workflow: it is the sun again
+    else if (n.kind === "wf") consGo(path.concat({id, kind: "wf"}), "", id);
+    else if (n.kind === "badge"){ CONS.fan[id.slice(4)] = true; paintMap(); }
+    else if (n.kind === "group"){ CONS.grp[n.team] = true; paintMap(); }
+    else { CONS.focus = CONS.focus === id ? "" : id; paintMap(); }
+    return true; }
+  if (e.target.closest(".consvg")){ if (CONS.focus){ CONS.focus = ""; paintMap(); } return true; }      // empty space
+  return false;
+}
 function mapSelect(id){      // click or Enter: open this dot's panel (the same one again closes it); the pin keeps its lines lit
   MAPPIN = id; paintMap();
   const el = id && $("pane-map").querySelectorAll && [...$("pane-map").querySelectorAll(`.mapnode[data-id="${CSS.escape(id)}"]`)].find(x => x.getClientRects().length); if (el && el.focus) el.focus();
@@ -2498,15 +2768,18 @@ const mapHover = (e, on) => { if (treeHover(e, on)) return; const g = mapNode(e)
 $("pane-map").addEventListener("mouseover", e => mapHover(e, true)); $("pane-map").addEventListener("mouseout", e => mapHover(e, false));
 $("pane-map").addEventListener("focusin", e => mapHover(e, true)); $("pane-map").addEventListener("focusout", e => mapHover(e, false));
 $("pane-map").addEventListener("keydown", e => { const tn = e.target.closest && e.target.closest(".tnode"); if (tn && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); treeClick(e); return; }
-  const g = mapNode(e); if (g && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); mapSelect(MAPPIN === g.dataset.id ? "" : g.dataset.id); } });
+  const cn = e.target.closest && e.target.closest(".cnode"); if (cn && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); consClick(e); return; }
+  const g = mapNode(e); if (g && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); consPick(g.dataset.id); } });
 document.addEventListener("keydown", e => { if (e.key !== "Escape" || $("pane-map").hidden) return;      // Esc: the picked workflow, then the open stage, then the panel
+  if (CONS.id){ consStep(); return; }      // the solar system: its focus, then one step of the walk back, then the Map
   if (MAPVIEW === "tree" && TREE.wf) treeFocus(""); else if (MAPPIN) mapSelect(""); else if (MAPVIEW === "tree" && TREE.open) treeClose(); else if (MAPVIEW === "tree" && TREE.focus) treeFocusTeam(""); });
 $("pane-map").addEventListener("click", async e => { const t = e.target.closest("[data-maptab]"); if (t){ e.preventDefault(); showTab(t.dataset.maptab); return; }
+  if (consClick(e)){ e.preventDefault(); return; }
   if (!e.target.closest("[data-mapgo],[data-wfcard],[data-mapopen],[data-mapclose]") && treeClick(e)){ e.preventDefault(); return; }
   if (e.target.closest("[data-mapclose]")){ e.preventDefault(); mapSelect(""); return; }
   const go = e.target.closest("[data-mapgo]"); if (go){ e.preventDefault(); mapGo(go.dataset.mapgo); return; }
   if (e.target.closest("[data-mapfiltclear]")){ e.preventDefault(); MAPFILT = ""; paintMap(); return; }
-  const g = mapNode(e); if (g){ e.preventDefault(); mapSelect(MAPPIN === g.dataset.id ? "" : g.dataset.id); return; }
+  const g = mapNode(e); if (g){ e.preventDefault(); consPick(g.dataset.id); return; }
   const b = e.target.closest("[data-mapopen]"); if (!b) return; e.preventDefault();
   await openArtifact(b.dataset.mapopen); });
 // Documents: read-only, reloaded when the run's chat or documents change; a link on an atom card opens the tab at that item.
