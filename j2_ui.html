@@ -6,19 +6,34 @@
 <title>J2 Department</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-:root{
+/* Theme: every colour of the page is a token here, a warm dark set (the default) and a warm light set (data-theme on <html>, set from
+   Run settings > Appearance). Text tokens keep 4.5:1 on --bg, --panel and --panel2; line tokens (--edge, --spoke, map strokes) 3:1. */
+:root{color-scheme:dark;
   --charter:var(--priority);--site:var(--accent);--other:var(--builder);--prd:var(--identity);--hld:var(--adaptation);--lld:var(--coordination);
-  --bg:#f1f3f2;--panel:#fff;--panel2:#eaeeec;--ink:#18201e;--muted:#5d6865;--line:#d6ddd9;--on:#fff;
-  --user:#18201e;--validator:#8a6d1d;--identity:#6b45b3;--adaptation:#3056b8;--priority:#b0680f;
-  --coordination:#1f7a55;--builder:#5d6865;--audit:#b4487e;--system:#8a6d1d;--bad:#b83a32;--ok:#2c7d4f;--accent:#0e6b61;
-  --wf0:#0f6e8c;--wf1:#8a4f12;--wf2:#5a7a12;--wf3:#9c3d5b;--wf4:#46549c;--wf5:#2f7d6d;
+  --warm1:#e0a458;--warm2:#d9785f;--warm3:#c9a96e;--purple:#a58be6;
+  --bg:#161513;--panel:#1c1b19;--panel2:#24221f;--node:#2a2622;--ink:#ece6dc;--muted:#9a9186;--line:#2e2b27;--on:#161513;--edge:#857a6c;
+  --user:#ece6dc;--validator:#e0b25c;--identity:var(--purple);--adaptation:var(--warm3);--priority:var(--warm1);
+  --coordination:#9fc08a;--builder:#9a9186;--audit:var(--warm2);--system:#e0b25c;--bad:#ef8f7a;--ok:#9fc08a;--accent:var(--purple);--vio:var(--purple);
+  --wf0:#e0a458;--wf1:#e08c72;--wf2:#9fc08a;--wf3:#c9a2e0;--wf4:#c9a96e;--wf5:#e6c36a;
+  --flowin:#e6c36a;--flowout:#c4a6ee;--team:var(--warm1);--art:var(--warm3);--deliv:var(--warm2);
+  --paper:#fff;--paperink:#111;--hit:#5a4520;--hitink:#ece6dc;--shadow:rgb(0 0 0 / .45);--scrim:rgb(0 0 0 / .45);--codebg:#11100e;--hlt:#e6c36a;--hls:#9fc08a;--hlc:#8a8174;
+  --mapbg:#191714;--e-reads:#8fa8c8;--e-makes:var(--warm1);--e-fix:var(--warm2);
+  --sky0:#24201b;--sky1:#100f0d;--skyink:#141310;--star:#f3e6c8;--orbit:#c9a96e;--spoke:#8a7a5c;--sun:#ffe3a8;--suntext:#ffe3a8;
+  --sec:#b49be8;--sectext:#d6ccf5;--bld:#9fc08a;--bldcore:#eef7e6;--fix:#d9785f;--fixcore:#f0b39f;
+  --doc:#c9a96e;--docfill:#2a2520;--eat:#f2b968;--eatfill:#3d2d16;--eattext:#ffd9a0;--badgefill:#2a2015;
   --display:"Bricolage Grotesque",Arial,sans-serif;--body:"IBM Plex Sans",Arial,sans-serif;--mono:"IBM Plex Mono",Menlo,monospace;
 }
-@media (prefers-color-scheme:dark){:root{color-scheme:dark;
-  --bg:#101413;--panel:#191f1d;--panel2:#212826;--ink:#e6ebe9;--muted:#9aa5a1;--line:#2d3633;--on:#0f1312;
-  --user:#e6ebe9;--validator:#d9b55a;--identity:#ab8cec;--adaptation:#7c9ef0;--priority:#e3a24b;
-  --coordination:#5cc596;--builder:#9aa5a1;--audit:#e58ab5;--system:#d9b55a;--bad:#f07a70;--ok:#5fc28c;--accent:#4fc2b2;
-  --wf0:#5cc3e0;--wf1:#e0a15c;--wf2:#a9cf5a;--wf3:#e58aa6;--wf4:#94a3f0;--wf5:#6fd1bd}}
+:root[data-theme=light]{color-scheme:light;
+  --warm1:#96571a;--warm2:#a8432c;--warm3:#7d6230;--purple:#6e52c4;
+  --bg:#f6f2ec;--panel:#fbf8f3;--panel2:#f2ece3;--node:#f1ebe2;--ink:#2b2620;--muted:#6b6155;--line:#e6dfd4;--on:#ffffff;--edge:#8a7f72;
+  --user:#2b2620;--validator:#80590f;--coordination:#456e33;--builder:#6b6155;--system:#80590f;--bad:#b0392c;--ok:#456e33;
+  --wf0:#96571a;--wf1:#a8432c;--wf2:#456e33;--wf3:#8a4a9c;--wf4:#7d6230;--wf5:#7a5d0c;
+  --flowin:#80590f;--flowout:#6e52c4;
+  --hit:#fbe3b0;--hitink:#2b2620;--shadow:rgb(60 40 20 / .18);--scrim:rgb(40 30 20 / .3);--codebg:#f2ece3;--hlt:#80590f;--hls:#456e33;--hlc:#6b6155;
+  --mapbg:#fbf8f3;--e-reads:#4d6a8f;
+  --sky0:#fdf9f2;--sky1:#efe6d8;--skyink:#f8f3ea;--star:#7d6230;--orbit:#7d6230;--spoke:#8a7b62;--sun:#d9922f;--suntext:#7a4a10;
+  --sec:#6e52c4;--sectext:#5a3fb0;--bld:#456e33;--bldcore:#456e33;--fix:#a8432c;--fixcore:#a8432c;
+  --doc:#7d6230;--docfill:#fbf3e4;--eat:#b86a12;--eatfill:#fbe3b0;--eattext:#7a4510;--badgefill:#fbf0dc}
 *{box-sizing:border-box}html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--body);display:flex;flex-direction:column}
 header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
@@ -34,13 +49,13 @@ button{font:500 13px var(--body);cursor:pointer}
 .code{font:500 11px var(--mono);color:var(--muted);white-space:nowrap}.st.on .code{color:var(--on);opacity:.75}
 .atom{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0;background:var(--panel)}
 .atom>summary{cursor:pointer}.atom h4{margin:8px 0 2px;font-size:12.5px}.atom p{margin:0 0 4px}
-.foldbody[hidden]{display:none}.otag{border:0;border-radius:10px;padding:1px 8px;margin:2px 4px 2px 0;color:var(--on);font:inherit;font-size:12px;cursor:pointer}.otag.on{outline:2px solid var(--ink)}.mapwrap{padding:4px 0}.maphead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}.maphead h3{margin:0 8px 0 0}.mappill{border-radius:12px;padding:2px 10px;border:1px solid var(--line);font-size:13px}.mappill.running,.mappill.waiting_on_you{border-color:var(--validator);color:var(--validator);font-weight:600}.mappill.checks{border-color:var(--ok);color:var(--ok)}.mappill.nochecks{color:var(--muted)}#dview .work.mapfit{align-self:start;max-height:100%}.mappill.checks.needsrev{border-color:var(--validator);color:var(--validator)}.mapsvg.mapvert{display:none}.legnarrow{display:none}.linecard{position:relative}.maplay{position:absolute;left:10px;bottom:10px;z-index:3;max-width:min(380px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:12px}.maplay>summary{cursor:pointer;padding:3px 10px}.maplaybody{max-height:min(300px,40vh);overflow:auto;padding:0 10px 8px}.maplaybody .maplegend{margin:4px 0 6px;font-size:12px}@media (max-width:900px){.mapsvgwrap:not([data-layout]) .mapsvg:not(.mapvert){display:none}.mapsvgwrap:not([data-layout]) .mapsvg.mapvert{display:block}}.mapsvgwrap[data-layout="v"] .mapsvg:not(.mapvert){display:none}.mapsvgwrap[data-layout="v"] .mapsvg.mapvert,.mapsvgwrap[data-layout="h"] .mapsvg:not(.mapvert){display:block}.mapsvgwrap[data-layout="h"] .mapsvg.mapvert{display:none}.mapsvg{width:100%;height:clamp(440px,64vh,760px);display:block;font:12px system-ui,sans-serif;cursor:grab;touch-action:none;user-select:none}.mapsvg:active{cursor:grabbing}.mapsvg text{fill:var(--ink)}.mapsvg .rowlab{fill:var(--muted);font-size:11px;letter-spacing:.12em}.mapsvg .sub{fill:var(--muted);font-size:11px}.mapsvg a{cursor:pointer}.mapsvg a:focus-visible rect,.mapsvg a:focus-visible circle{outline:2px solid var(--ink)}.maplegend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0;font-size:13px}.maplegend span{display:inline-flex;align-items:center;gap:6px}.mapnr{margin:8px 0;font-size:13px;color:var(--muted)}.mapcards{display:none}.mapcard{border:2px solid var(--line);border-radius:8px;padding:8px 12px;margin:0;background:var(--panel)}.mapcard.st-filed{border-style:solid}.mapcard.st-left_open{border-style:dashed}.mapcard.st-running{border-style:double;border-width:5px}.mapcard.st-fault{border-color:var(--bad);border-width:4px}.mapcard.st-waiting{border-color:var(--validator);border-width:4px}.mapdd{margin:8px 0;font-size:13px;color:var(--muted)}.mapdd summary{cursor:pointer}.maptable{width:auto;border-collapse:collapse;margin:6px 0 0;font-size:13px;color:var(--ink)}.maptable th,.maptable td{border-bottom:1px solid var(--line);padding:2px 12px 2px 0;text-align:left}.mapcard.st-waiting_on_you{border-color:var(--validator);border-width:4px}.mapcard.st-done_unchecked{border-color:var(--validator);border-width:4px;border-style:dotted}.mapcard.st-not_made{background:transparent;border-width:1px;color:var(--muted)}.mapstep{margin:4px 0 4px 16px;color:var(--muted);font-size:13px}.mapcard .sub{color:var(--muted);font-size:13px}@media (max-width:600px){.mapsvgwrap{display:none}.mapcards{display:block}}@media (max-width:600px){.legnarrow{display:block}}.artrules{margin:4px 0 0 16px;font-size:13px}.tplentry{margin:6px 0 0 12px}.tplver{margin:2px 0 0 12px}.tplmodes{margin:6px 0}.tplmodes [aria-selected="true"]{font-weight:700;text-decoration:underline}tr.tplfocus td{background:rgba(127,176,214,.15)}.tplcard table{margin-bottom:8px}.tplcard .mappill{display:inline-block;margin:2px 4px 2px 0}.artrules div{margin:1px 0}.artrow{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0}.codebox{position:relative;margin:8px 0 0}.codecopy{position:absolute;top:6px;right:10px}pre.code{max-height:520px;overflow:auto;margin:0;padding:8px 0;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:8px;counter-reset:none;white-space:pre}pre.code .cl{display:block;padding-right:12px}pre.code .ln{display:inline-block;width:3.5em;padding-right:10px;text-align:right;color:var(--muted);user-select:none;border-right:1px solid var(--line);margin-right:10px}pre.code .hlt{color:#7fb0d6}pre.code .hls{color:#c3a86b}pre.code .hlc{color:#8a8f98;font-style:italic}pre.code.plain{white-space:pre-wrap}
-.agentdrawer{position:fixed;top:0;right:0;bottom:0;width:50vw;z-index:60;overflow:auto;background:var(--panel);border-left:1px solid var(--line);box-shadow:-10px 0 30px rgba(0,0,0,.35);padding:14px 18px;box-sizing:border-box}.agentdrawer[hidden]{display:none}body.agentopen #pane-map .mappanel{display:none}@media (max-width:700px){.agentdrawer{width:100vw}}
+.foldbody[hidden]{display:none}.otag{border:0;border-radius:10px;padding:1px 8px;margin:2px 4px 2px 0;color:var(--on);font:inherit;font-size:12px;cursor:pointer}.otag.on{outline:2px solid var(--ink)}.mapwrap{padding:4px 0}.maphead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}.maphead h3{margin:0 8px 0 0}.mappill{border-radius:12px;padding:2px 10px;border:1px solid var(--line);font-size:13px}.mappill.running,.mappill.waiting_on_you{border-color:var(--validator);color:var(--validator);font-weight:600}.mappill.checks{border-color:var(--ok);color:var(--ok)}.mappill.nochecks{color:var(--muted)}#dview .work.mapfit{align-self:start;max-height:100%}.mappill.checks.needsrev{border-color:var(--validator);color:var(--validator)}.mapsvg.mapvert{display:none}.legnarrow{display:none}.linecard{position:relative}.maplay{position:absolute;left:10px;bottom:10px;z-index:3;max-width:min(380px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:12px}.maplay>summary{cursor:pointer;padding:3px 10px}.maplaybody{max-height:min(300px,40vh);overflow:auto;padding:0 10px 8px}.maplaybody .maplegend{margin:4px 0 6px;font-size:12px}@media (max-width:900px){.mapsvgwrap:not([data-layout]) .mapsvg:not(.mapvert){display:none}.mapsvgwrap:not([data-layout]) .mapsvg.mapvert{display:block}}.mapsvgwrap[data-layout="v"] .mapsvg:not(.mapvert){display:none}.mapsvgwrap[data-layout="v"] .mapsvg.mapvert,.mapsvgwrap[data-layout="h"] .mapsvg:not(.mapvert){display:block}.mapsvgwrap[data-layout="h"] .mapsvg.mapvert{display:none}.mapsvg{width:100%;height:clamp(440px,64vh,760px);display:block;font:12px system-ui,sans-serif;cursor:grab;touch-action:none;user-select:none}.mapsvg:active{cursor:grabbing}.mapsvg text{fill:var(--ink)}.mapsvg .rowlab{fill:var(--muted);font-size:11px;letter-spacing:.12em}.mapsvg .sub{fill:var(--muted);font-size:11px}.mapsvg a{cursor:pointer}.mapsvg a:focus-visible rect,.mapsvg a:focus-visible circle{outline:2px solid var(--ink)}.maplegend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0;font-size:13px}.maplegend span{display:inline-flex;align-items:center;gap:6px}.mapnr{margin:8px 0;font-size:13px;color:var(--muted)}.mapcards{display:none}.mapcard{border:2px solid var(--line);border-radius:8px;padding:8px 12px;margin:0;background:var(--panel)}.mapcard.st-filed{border-style:solid}.mapcard.st-left_open{border-style:dashed}.mapcard.st-running{border-style:double;border-width:5px}.mapcard.st-fault{border-color:var(--bad);border-width:4px}.mapcard.st-waiting{border-color:var(--validator);border-width:4px}.mapdd{margin:8px 0;font-size:13px;color:var(--muted)}.mapdd summary{cursor:pointer}.maptable{width:auto;border-collapse:collapse;margin:6px 0 0;font-size:13px;color:var(--ink)}.maptable th,.maptable td{border-bottom:1px solid var(--line);padding:2px 12px 2px 0;text-align:left}.mapcard.st-waiting_on_you{border-color:var(--validator);border-width:4px}.mapcard.st-done_unchecked{border-color:var(--validator);border-width:4px;border-style:dotted}.mapcard.st-not_made{background:transparent;border-width:1px;color:var(--muted)}.mapstep{margin:4px 0 4px 16px;color:var(--muted);font-size:13px}.mapcard .sub{color:var(--muted);font-size:13px}@media (max-width:600px){.mapsvgwrap{display:none}.mapcards{display:block}}@media (max-width:600px){.legnarrow{display:block}}.artrules{margin:4px 0 0 16px;font-size:13px}.tplentry{margin:6px 0 0 12px}.tplver{margin:2px 0 0 12px}.tplmodes{margin:6px 0}.tplmodes [aria-selected="true"]{font-weight:700;text-decoration:underline}tr.tplfocus td{background:color-mix(in srgb,var(--accent) 15%,transparent)}.tplcard table{margin-bottom:8px}.tplcard .mappill{display:inline-block;margin:2px 4px 2px 0}.artrules div{margin:1px 0}.artrow{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0}.codebox{position:relative;margin:8px 0 0}.codecopy{position:absolute;top:6px;right:10px}pre.code{max-height:520px;overflow:auto;margin:0;padding:8px 0;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--codebg);border:1px solid var(--line);border-radius:8px;counter-reset:none;white-space:pre}pre.code .cl{display:block;padding-right:12px}pre.code .ln{display:inline-block;width:3.5em;padding-right:10px;text-align:right;color:var(--muted);user-select:none;border-right:1px solid var(--line);margin-right:10px}pre.code .hlt{color:var(--hlt)}pre.code .hls{color:var(--hls)}pre.code .hlc{color:var(--hlc);font-style:italic}pre.code.plain{white-space:pre-wrap}
+.agentdrawer{position:fixed;top:0;right:0;bottom:0;width:50vw;z-index:60;overflow:auto;background:var(--panel);border-left:1px solid var(--line);box-shadow:-10px 0 30px var(--shadow);padding:14px 18px;box-sizing:border-box}.agentdrawer[hidden]{display:none}body.agentopen #pane-map .mappanel{display:none}@media (max-width:700px){.agentdrawer{width:100vw}}
 .adhead{display:flex;align-items:center;justify-content:space-between;gap:10px}.adhead h3{margin:0}.adnote{color:var(--muted);font-size:13px;margin:6px 0 10px}.adsec{margin:12px 0}.adsec h4{margin:0 0 6px}.adsmall{color:var(--muted);font-size:12px;margin-top:2px}
 .adtalk,.adcall{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0}.adtalk>summary,.adcall>summary,.adtech>summary,.adlong>summary{cursor:pointer}.admsg{border-top:1px solid var(--line);padding:6px 0}.admsg p,.adrow p{margin:4px 0}.adwhen{color:var(--muted);font-size:12px}.adrow{margin:6px 0}.adfield{margin:2px 0 2px 10px}.adtech pre{max-height:260px}
-.whobtn{border:0;background:none;padding:0;font:inherit;font-weight:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted}.artgroup{margin:0 0 10px}.artgroup>summary{cursor:pointer;list-style:revert}.artgroup>summary h3{display:inline;margin:0}.artcount{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--line);font-size:12px;text-align:center;font-weight:600}.artkids>summary{cursor:pointer}.artsub{margin:6px 0 0 18px}.artst{border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:12px}.artst.st-filed,.artst.st-sent{border-color:var(--ok);color:var(--ok)}.artst.st-failed{border-color:var(--bad);color:var(--bad)}.artst.st-skipped,.artst.st-checks,.artst.st-open{border-color:var(--validator);color:var(--validator)}.arttext{white-space:pre-wrap;max-height:420px;overflow:auto;margin:8px 0 0;font-size:13px}.artimg{max-width:100%;margin-top:8px}.artframe{width:100%;height:420px;border:1px solid var(--line);margin-top:8px;background:#fff}.runsum{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 10px}.runsum div{margin:2px 0}.ogroups{margin:6px 0 10px}.ogroups div{margin:2px 0}.dochead .code{color:var(--on);background:rgba(0,0,0,.3);border-radius:4px;padding:0 6px;font-size:12px}.docmeta{margin-left:8px}.chnote,.brief{margin:0 0 10px}.brief{border:1px solid var(--line);border-radius:8px;padding:8px 12px;white-space:pre-wrap}.chitems{padding-left:26px}.chitems li{margin:6px 0}.chsrc,.chused{color:var(--muted);font-size:13px}.cgroup{margin:4px 0}.clist{margin:2px 0 4px;padding-left:20px}.dl.hit{background:var(--hit,#fff3b0);color:#111;border-radius:4px;padding:2px 4px}.doc{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}.dochead{color:var(--on);padding:8px 12px}.docbody{padding:4px 12px 10px}.docbody h4{margin:10px 0 2px}.docjump{position:sticky;top:-16px;z-index:1;margin:-16px -16px 10px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}.docjump a{margin-right:10px}.docdiv{display:flex;gap:16px;justify-content:space-between;margin:12px 0;padding:6px 0;border-top:2px dashed var(--line);border-bottom:2px dashed var(--line);color:var(--muted);font-size:13px}.ablock{margin:4px 0}.agroup{margin:10px 0 2px;color:var(--muted)}.long>summary{cursor:pointer;color:var(--muted);display:inline}
-.apreview{display:block;width:100%;min-height:48px;max-height:260px;border:1px solid var(--line);border-radius:6px;margin:6px 0;padding:6px;background:#fff;color:#111}
-iframe.apreview{height:220px;padding:0}.linkbtn{border:0;background:none;color:var(--accent,#2a6);text-decoration:underline;cursor:pointer;padding:0;font:inherit}
+.whobtn{border:0;background:none;padding:0;font:inherit;font-weight:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted}.artgroup{margin:0 0 10px}.artgroup>summary{cursor:pointer;list-style:revert}.artgroup>summary h3{display:inline;margin:0}.artcount{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--line);font-size:12px;text-align:center;font-weight:600}.artkids>summary{cursor:pointer}.artsub{margin:6px 0 0 18px}.artst{border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:12px}.artst.st-filed,.artst.st-sent{border-color:var(--ok);color:var(--ok)}.artst.st-failed{border-color:var(--bad);color:var(--bad)}.artst.st-skipped,.artst.st-checks,.artst.st-open{border-color:var(--validator);color:var(--validator)}.arttext{white-space:pre-wrap;max-height:420px;overflow:auto;margin:8px 0 0;font-size:13px}.artimg{max-width:100%;margin-top:8px}.artframe{width:100%;height:420px;border:1px solid var(--line);margin-top:8px;background:var(--paper)}.runsum{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 10px}.runsum div{margin:2px 0}.ogroups{margin:6px 0 10px}.ogroups div{margin:2px 0}.dochead .code{color:var(--on);background:var(--scrim);border-radius:4px;padding:0 6px;font-size:12px}.docmeta{margin-left:8px}.chnote,.brief{margin:0 0 10px}.brief{border:1px solid var(--line);border-radius:8px;padding:8px 12px;white-space:pre-wrap}.chitems{padding-left:26px}.chitems li{margin:6px 0}.chsrc,.chused{color:var(--muted);font-size:13px}.cgroup{margin:4px 0}.clist{margin:2px 0 4px;padding-left:20px}.dl.hit{background:var(--hit);color:var(--hitink);border-radius:4px;padding:2px 4px}.doc{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}.dochead{color:var(--on);padding:8px 12px}.docbody{padding:4px 12px 10px}.docbody h4{margin:10px 0 2px}.docjump{position:sticky;top:-16px;z-index:1;margin:-16px -16px 10px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}.docjump a{margin-right:10px}.docdiv{display:flex;gap:16px;justify-content:space-between;margin:12px 0;padding:6px 0;border-top:2px dashed var(--line);border-bottom:2px dashed var(--line);color:var(--muted);font-size:13px}.ablock{margin:4px 0}.agroup{margin:10px 0 2px;color:var(--muted)}.long>summary{cursor:pointer;color:var(--muted);display:inline}
+.apreview{display:block;width:100%;min-height:48px;max-height:260px;border:1px solid var(--line);border-radius:6px;margin:6px 0;padding:6px;background:var(--paper);color:var(--paperink)}
+iframe.apreview{height:220px;padding:0}.linkbtn{border:0;background:none;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;font:inherit}
 .st.on{background:var(--accent);color:var(--on)}
 .st.past{color:var(--ink)}
 main{flex:1;display:grid;grid-template-columns:minmax(320px,1fr) 250px minmax(0,1.3fr);min-height:0}
@@ -75,7 +90,7 @@ textarea{flex:1;resize:none;height:56px;border:1px solid var(--line);border-radi
 .tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--accent);font-weight:600}
 .tabs select{margin:0 0 6px auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 6px;font:inherit}
 .pane{flex:1;min-height:0;overflow:auto;padding:16px}
-.pane.preview{padding:0;background:#fff}
+.pane.preview{padding:0;background:var(--paper)}
 .doclinks{display:flex;gap:8px;align-items:center;height:38px;padding:0 10px;border-bottom:1px solid var(--line);background:var(--panel);font-size:13.5px}
 .doclinks a{color:var(--ink)}.pane.preview.has-links iframe{height:calc(100% - 39px)}
 .outsel{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 6px;font:inherit}
@@ -105,7 +120,7 @@ dt{font:500 12px var(--mono);color:var(--muted);padding-top:2px}dd{margin:0}
 .mark{flex:0 0 auto;align-self:center;font:500 11px var(--mono);color:var(--muted);background:var(--panel2);border-radius:5px;padding:3px 6px}
 .msg:not(.user) .bubble{cursor:pointer}.msg:not(.user) .bubble:hover{border-color:var(--c)}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);width:min(760px,calc(100vw - 32px));max-height:86vh;padding:0}
-dialog::backdrop{background:rgb(0 0 0 / .35)}
+dialog::backdrop{background:var(--scrim)}
 .dhead{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
 .dbody{padding:12px 16px;overflow:auto}
 .dbody h3{margin-top:14px}
@@ -149,7 +164,7 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .ready .acts{display:flex;gap:8px;flex-wrap:wrap}
 .ready a,.ready button{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:8px;padding:7px 11px;font-size:13.5px;text-decoration:none}
 .oops{border:2px solid var(--bad);border-radius:12px;padding:12px;background:var(--panel)}
-.sprev{min-height:0;background:#fff}
+.sprev{min-height:0;background:var(--paper)}
 @media (max-width:900px){
   /* phone: one pane at a time; the preview only once a site exists, via the Chat | Preview toggle */
   .smain{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
@@ -159,47 +174,46 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
   .stoggle button[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
   body.sp-preview .schat{display:none}body.sp-preview .sprev{display:block}}
 /* Map: calm graph look, details in a click panel */
-:root{--flowin:#6fa8dc;--flowout:#c49bd9}      /* the two calm colours of a flow: lines into a node (reads), lines out of it (read by) */
 .mapviews{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-left:auto}.mapviews button{border:0;background:transparent;color:var(--ink);padding:2px 12px;font:inherit;font-size:13px;cursor:pointer}.mapviews button[aria-pressed="true"]{background:var(--line);font-weight:600}
 .mapsvgwrap[data-view="tree"] .mapsvg{display:none!important}.mapsvgwrap[data-view="line"] .treebox{display:none}
 .treebox{position:relative;margin:0 0 8px}.treebar{display:flex;gap:10px;align-items:center;margin:0 0 6px}.treebar .sub{color:var(--muted);font-size:12px}.treebar .linkbtn{color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:2px 10px;text-decoration:none}.treebar [hidden]{display:none}
-.treebox{container-type:inline-size}.treepanel{position:absolute;top:44px;right:10px;width:300px;max-height:calc(100% - 56px);overflow:auto;box-sizing:border-box;margin:0;z-index:5;box-shadow:0 8px 28px rgba(0,0,0,.4)}      /* inside the map card, over its right side */
+.treebox{container-type:inline-size}.treepanel{position:absolute;top:44px;right:10px;width:300px;max-height:calc(100% - 56px);overflow:auto;box-sizing:border-box;margin:0;z-index:5;box-shadow:0 8px 28px var(--shadow)}      /* inside the map card, over its right side */
 @container (max-width:640px){.treepanel{position:static;width:auto;max-height:none;margin-top:8px;box-shadow:none}}
 .treesvg .thide .tlab,.treesvg .thide .tsub{display:none}
-.treesvg{display:block;width:100%;height:clamp(440px,64vh,760px);background:#16181d;border:1px solid #2a2e35;border-radius:12px;cursor:grab;touch-action:none;font:12px system-ui,sans-serif;user-select:none}.treesvg:active{cursor:grabbing}
-.treesvg .tedge{fill:none;stroke:#8a8f98;stroke-width:1.2;opacity:.32;transition:opacity .3s}.treesvg .tedge.back{stroke-dasharray:3 3}.treesvg .tedge.hot{opacity:.95;stroke:#c9ccd1;stroke-width:1.8}
-.treesvg .tnode{cursor:pointer;transition:opacity .3s}.treesvg .tdim{opacity:.2}.treesvg .tlab{fill:#dcddde;font-size:13px;paint-order:stroke;stroke:#16181d;stroke-width:6px;stroke-linejoin:round}.treesvg .tsub{fill:#8a8f98;font-size:11px;paint-order:stroke;stroke:#16181d;stroke-width:6px;stroke-linejoin:round}.treesvg .tglyph{fill:#8a8f98}.treesvg .tglyphl{fill:none;stroke:#8a8f98;stroke-width:1.2}
-.treesvg .tnode:hover .tdot,.treesvg .tnode:focus-visible .tdot,.treesvg .tnode.sel .tdot{filter:drop-shadow(0 0 5px rgba(200,205,215,.6))}.treesvg .tnode:focus{outline:none}
+.treesvg{display:block;width:100%;height:clamp(440px,64vh,760px);background:var(--mapdots),radial-gradient(circle at 50% 45%,var(--sky0) 0%,var(--sky1) 75%);border:1px solid var(--line);border-radius:12px;cursor:grab;touch-action:none;font:12px system-ui,sans-serif;user-select:none}.treesvg:active{cursor:grabbing}
+.treesvg .tedge{fill:none;stroke:var(--edge);stroke-width:1.4;transition:opacity .3s}.treesvg .tedge.back{stroke-dasharray:3 3}.treesvg .tedge.hot{opacity:.95;stroke:var(--ink);stroke-width:1.8}
+.treesvg .tnode{cursor:pointer;transition:opacity .3s}.treesvg .tdim{opacity:.2}.treesvg .tlab{fill:var(--ink);font-size:13px;paint-order:stroke;stroke:var(--skyink);stroke-width:6px;stroke-linejoin:round}.treesvg .tsub{fill:var(--muted);font-size:11px;paint-order:stroke;stroke:var(--skyink);stroke-width:6px;stroke-linejoin:round}.treesvg .tglyph{fill:var(--muted)}.treesvg .tstage .tglyph,.treesvg .twf .tglyph{fill:var(--team)}.treesvg .tglyphl{fill:none;stroke:var(--muted);stroke-width:1.2}
+.treesvg .tnode:hover .tdot,.treesvg .tnode:focus-visible .tdot,.treesvg .tnode.sel .tdot{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--warm1) 60%,transparent))}.treesvg .tnode:focus{outline:none}
 .treesvg .tgone{display:none}
-/* solar system (the mock's look): a dark sky, faint orbits, a glowing sun; sections purple diamonds, builders green and fixes amber glowing dots, inputs blue
-   documents that glow while the focus consumes them; what the focus leaves out fades to 10% */
-.consbox{position:relative}.mapsvg.consvg{display:block;width:100%;height:clamp(440px,70vh,800px);background:radial-gradient(circle at 50% 50%,#17221e 0%,#0b0f0e 70%);border:1px solid #2c3532;border-radius:12px;cursor:grab;touch-action:none;user-select:none;font:12px system-ui,-apple-system,"Segoe UI",sans-serif}.consvg:active{cursor:grabbing}
-.consvg .csky circle{fill:#cfe;opacity:.16}.consvg .crings :is(circle,ellipse){fill:none;stroke:#9bd8b2;opacity:.06}
-.consvg .cline{fill:none;transition:opacity .35s}.consvg .cline.spoke{stroke:#fff7d6;stroke-width:1.2;opacity:.35;stroke-dasharray:3 7;animation:cflow 1.4s linear infinite}.consvg .cline.dashed{stroke-dasharray:2 4}
-.consvg .cline.makes{stroke:#b49be8;stroke-width:1.4;opacity:.7}.consvg .cline.makes.fix{stroke:#e6ad62}.consvg .cline.more{stroke:#e6ad62;stroke-dasharray:3 3}
-.consvg .cline.lit.reads,.consvg .cline.wfl.reads{stroke:#6fa8ff;stroke-width:1.5;opacity:.9;stroke-dasharray:4 5;animation:cflow .9s linear infinite}.consvg .cline.lit.makes,.consvg .cline.wfl.makes{opacity:.95;stroke-width:1.8}
-.consvg .carr.reads{fill:#6fa8ff}.consvg .carr.makes{fill:#b49be8}@keyframes cflow{to{stroke-dashoffset:-20}}
-.consvg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.consvg .clab{font-size:12px;fill:#e4e9e6}.consvg .csub{font-size:11px;fill:#8f9b96}.consvg .cname{font-size:15px;font-weight:700;fill:#fff7d6}
-.consvg .ctext text{paint-order:stroke;stroke:#0f1513;stroke-width:3px;stroke-linejoin:round}.consvg .k-section .clab{fill:#d6ccf5;font-weight:600}.consvg .k-input .clab,.consvg .k-group .clab{fill:#aab5b0}
-.consvg .cglow{fill:#fff7d6;opacity:.1}.consvg .ccore{fill:#fff7d6}.consvg .cglow.builder{fill:#9bd8b2;opacity:.15}.consvg .ccore.builder{fill:#e8fff2}.consvg .cglow.fix{fill:#e6ad62;opacity:.15}.consvg .ccore.fix{fill:#f3c98f}
-.consvg .cdia{fill:#b49be8}.consvg .k-empty .cdia{fill:none;stroke:#8f9b96;stroke-dasharray:3 2}.consvg .cwglow{fill:#9bd8b2;opacity:.13}.consvg .cwf{fill:#e8fff2}.consvg .cwglow.fix{fill:#e6ad62}.consvg .cwf.fix{fill:#f3c98f}
-.consvg .cbadge{fill:#1d1a12;stroke:#e6ad62;stroke-dasharray:3 2}.consvg .cdoc{fill:#16202b;stroke:#6fa8ff;stroke-width:1.6;stroke-linejoin:round}.consvg .chit{fill:transparent}
-.consvg .cnode{cursor:pointer;transition:opacity .35s}.consvg .cnode:focus{outline:none}.consvg .cnode:focus-visible .chit{stroke:#9bd8b2;stroke-width:1.5}
-.consvg .chalo{fill:none;stroke:#6fa8ff;stroke-width:2;opacity:0}.consvg .eat .chalo{opacity:1;animation:cpulse 1.6s ease-in-out infinite}.consvg .eat .cdoc{stroke:#9cc4ff;stroke-width:2.5;fill:#1c3352}.consvg .eat text{fill:#cfe2ff!important;font-weight:700}
-@keyframes cpulse{50%{opacity:.35}}.consvg.focusing .far{opacity:.1}.consvg.focusing .cline:not(.lit){opacity:.06}.consvg.cmoving .clines{opacity:0}
+/* solar system: a sky, faint orbits, a glowing sun; sections purple diamonds, builders sage and fixes terracotta glowing dots, inputs sand documents
+   that glow amber while the focus consumes them; what the focus leaves out fades to 10%. Every colour is a theme token, so light and dark both work */
+.consbox{position:relative}.mapsvg.consvg{display:block;width:100%;height:clamp(440px,70vh,800px);background:radial-gradient(circle at 50% 50%,var(--sky0) 0%,var(--sky1) 70%);border:1px solid var(--line);border-radius:12px;cursor:grab;touch-action:none;user-select:none;font:12px system-ui,-apple-system,"Segoe UI",sans-serif}.consvg:active{cursor:grabbing}
+.consvg .csky circle{fill:var(--star);opacity:.16}.consvg .crings :is(circle,ellipse){fill:none;stroke:var(--orbit);opacity:.1}
+.consvg .cline{fill:none;transition:opacity .35s}.consvg .cline.spoke{stroke:var(--spoke);stroke-width:1.4;stroke-dasharray:3 7;animation:cflow 1.4s linear infinite}.consvg .cline.dashed{stroke-dasharray:2 4}
+.consvg .cline.makes{stroke:var(--sec);stroke-width:1.4}.consvg .cline.makes.fix{stroke:var(--fix)}.consvg .cline.more{stroke:var(--fix);stroke-dasharray:3 3}
+.consvg .cline.lit.reads,.consvg .cline.wfl.reads{stroke:var(--eat);stroke-width:1.5;stroke-dasharray:4 5;animation:cflow .9s linear infinite}.consvg .cline.lit.makes,.consvg .cline.wfl.makes{stroke-width:1.8}
+.consvg .carr.reads{fill:var(--eat)}.consvg .carr.makes{fill:var(--sec)}@keyframes cflow{to{stroke-dashoffset:-20}}
+.consvg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.consvg .cname.small{font-size:13px}.consvg .clab{font-size:12px;fill:var(--ink)}.consvg .csub{font-size:11px;fill:var(--muted)}.consvg .cname{font-size:15px;font-weight:700;fill:var(--suntext)}
+.consvg .ctext text{paint-order:stroke;stroke:var(--skyink);stroke-width:3px;stroke-linejoin:round}.consvg .k-section .clab{fill:var(--sectext);font-weight:600}.consvg .k-input .clab,.consvg .k-group .clab{fill:var(--ink)}
+.consvg .cglow{fill:var(--sun);opacity:.14}.consvg .ccore{fill:var(--sun)}.consvg .cglow.builder{fill:var(--bld);opacity:.15}.consvg .ccore.builder{fill:var(--bldcore)}.consvg .cglow.fix{fill:var(--fix);opacity:.15}.consvg .ccore.fix{fill:var(--fixcore)}
+.consvg .cdia{fill:var(--sec)}.consvg .k-empty .cdia{fill:none;stroke:var(--muted);stroke-dasharray:3 2}.consvg .cwglow{fill:var(--bld);opacity:.13}.consvg .cwf{fill:var(--bldcore)}.consvg .cwglow.fix{fill:var(--fix)}.consvg .cwf.fix{fill:var(--fixcore)}
+.consvg .cbadge{fill:var(--badgefill);stroke:var(--fix);stroke-dasharray:3 2}.consvg .cdoc{fill:var(--docfill);stroke:var(--doc);stroke-width:1.6;stroke-linejoin:round}.consvg .chit{fill:transparent}
+.consvg .cnode{cursor:pointer;transition:opacity .35s}.consvg .cnode:focus{outline:none}.consvg .cnode:focus-visible .chit{stroke:var(--accent);stroke-width:1.5}
+.consvg .chalo{fill:none;stroke:var(--eat);stroke-width:2;opacity:0}.consvg .eat .chalo{opacity:1;animation:cpulse 1.6s ease-in-out infinite}.consvg .eat .cdoc{stroke:var(--eat);stroke-width:2.5;fill:var(--eatfill)}.consvg .eat text{fill:var(--eattext)!important;font-weight:700}
+@keyframes cpulse{50%{opacity:.35}}.consvg.focusing .far{opacity:.1}.consvg.focusing .cline:not(.lit){opacity:.25}
 @media (prefers-reduced-motion:reduce){.consvg .cline,.consvg .eat .chalo{animation:none}}
 .consvg.quiet .ctext{opacity:0}.consvg.quiet .cnode:hover .ctext,.consvg.quiet .cnode:focus-visible .ctext,.consvg.quiet.focusing .lit .ctext{opacity:1}
-.conspanel{position:absolute;right:12px;top:12px;width:270px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;background:#121816ee;border:1px solid #2f3d38;border-radius:10px;padding:10px 12px;font-size:13px;color:#e4e9e6}
-.conspanel.left{right:auto;left:12px}.conspanel.bottom{top:auto;bottom:12px}.conspanel b{display:block;font-size:14px;margin-bottom:4px}.conspanel .k{color:#8f9b96;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:6px}.conspanel .linkbtn{margin-top:8px;color:#9bd8b2}
+.conspanel{position:absolute;right:12px;top:12px;width:270px;max-height:calc(100% - 24px);overflow:auto;box-sizing:border-box;background:color-mix(in srgb,var(--panel) 93%,transparent);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--ink)}
+.conspanel.left{right:auto;left:12px}.conspanel.bottom{top:auto;bottom:12px}.conspanel b{display:block;font-size:14px;margin-bottom:4px}.conspanel .k{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:6px}.conspanel .linkbtn{margin-top:8px;color:var(--accent)}
 .cpath{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;margin:0 0 6px;font-size:13px;color:var(--muted)}.cpath b{color:var(--ink)}.cpath .linkbtn{font-size:13px;padding:1px 4px}
-.clegend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:12.5px;margin-top:8px}.clegend .ck{margin-right:-10px}.clegend .sun{color:#c9b96a}.clegend .sec{color:#b49be8}.clegend .wf{color:#4fa57a}.clegend .fix{color:#c98a2b}.clegend .doc{color:#4f86d6}
+.clegend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:12.5px;margin-top:8px}.clegend .ck{margin-right:-10px}.clegend .sun{color:var(--warm1)}.clegend .sec{color:var(--sec)}.clegend .wf{color:var(--bld)}.clegend .fix{color:var(--fix)}.clegend .doc{color:var(--doc)}
 .treesvg .tedge.hot.fin{stroke:var(--flowin);opacity:.95}.treesvg .tedge.hot.fout{stroke:var(--flowout);opacity:.95}
 .treesvg .tflow{pointer-events:none}.treesvg .tflow.fin,.treesvg .tarr.fin{fill:var(--flowin)}.treesvg .tflow.fout,.treesvg .tarr.fout{fill:var(--flowout)}
-.treesvg .tpill .tdot{filter:drop-shadow(0 0 6px rgba(200,205,215,.45))}.treesvg .tedges{transition:opacity .25s}.treesvg.tmoving .tedges{opacity:0}
-.treesvg .fedge{opacity:.6;stroke-width:1.5}.treesvg .fedge.readby{stroke-dasharray:4 3}
+.treesvg .tpill .tdot{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--warm1) 45%,transparent))}.treesvg .tedges{transition:opacity .25s}
+.treesvg .fedge{stroke-width:1.4}.treesvg .fedge.readby{stroke-dasharray:4 3}
 
 @media (prefers-reduced-motion: reduce){.treesvg .tnode,.treesvg .tedge{transition:none}}
-.mapsvg{background:var(--panel);border:1px solid var(--line);border-radius:12px}.mapsvg .rowlab{text-transform:uppercase}.mapsvg .mapnode:focus{outline:none}.mapsvg .mapnode:focus-visible circle:first-of-type{stroke-width:3}
+.mapsvg{background:var(--mapdots),radial-gradient(circle at 50% 45%,var(--sky0) 0%,var(--sky1) 75%);border:1px solid var(--line);border-radius:12px}.mapsvg .rowlab{text-transform:uppercase}.mapsvg .mapnode:focus{outline:none}.mapsvg .mapnode:focus-visible circle:first-of-type{stroke-width:3}
 .mappanel{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0;background:var(--panel)}.mappanelhead{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:4px}.mappanel .sub{color:var(--muted);font-size:13px;margin:2px 0}
 /* ---- Home: Needs you strip, Map, Chat docked right. The rail has Map, Chat and one Internals folder. */
 .needs{margin:var(--gut) var(--gut) 12px;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
@@ -207,7 +221,8 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .needbadge{font:600 11px var(--mono);border-radius:99px;padding:1px 8px;background:var(--panel2);color:var(--muted)}.needs.on .needbadge{background:var(--validator);color:var(--on)}
 .needs .none{color:var(--muted);font-size:13.5px}.needs .outcome{flex:1 1 100%;border-top:1px solid var(--line);padding-top:6px;color:var(--muted);font-size:13.5px}.wbar[hidden]{display:none}.pane .banner{margin:0 0 12px}.runset{display:flex;flex-direction:column;gap:12px;align-items:flex-start}.runset label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}.runact{display:flex;gap:14px;align-items:center}
 .needitem{display:flex;gap:10px;align-items:center;flex:1 1 100%;border-top:1px solid var(--line);padding-top:6px}.needitem span{flex:1}
-.needitem button,.mappanel .gobtn{border:1px solid var(--vio);background:color-mix(in srgb,var(--vio) 12%,transparent);color:var(--ink);border-radius:8px;padding:5px 11px}
+a{color:var(--accent)}
+.needitem button,.mappanel .gobtn,.treebar .gobtn{border:1px solid var(--vio);background:color-mix(in srgb,var(--vio) 12%,transparent);color:var(--ink);border-radius:8px;padding:5px 11px}
 .msg.flash .bubble{outline:2px solid var(--vio);outline-offset:2px}.msg:focus{outline:none}
 .railsub{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);margin-top:4px;padding-top:6px}.railsub[hidden]{display:none}
 .rail.tabs .railsub button{display:block;padding:5px 2px;border-radius:8px;font-size:11px}
@@ -224,9 +239,8 @@ body.simple #dview{display:flex;flex:0 0 auto}body.simple #dview .dcol{display:n
 .barbadge{position:absolute;top:-6px;right:-6px;min-width:16px;padding:0 4px;box-sizing:border-box;border-radius:99px;background:var(--validator);color:var(--on);font:600 11px/16px var(--mono);text-align:center}
 .barbadge[hidden],#dview:not(.railoff) .barbadge{display:none}
 #dview{position:relative}#dview.railoff{padding-left:56px}#dview.railoff>.rail.tabs{display:none}
-@media (max-width:1199px){.rail.tabs{position:fixed;top:0;bottom:0;left:0;z-index:20;flex:none;width:min(240px,86vw);box-sizing:border-box;background:var(--panel);box-shadow:0 8px 28px rgba(0,0,0,.4)}}
-#dview{--vio:#6b45b3;--serif:ui-serif,Georgia,"Times New Roman",serif;--gut:24px}
-@media (prefers-color-scheme:dark){#dview{--vio:#ab8cec}}
+@media (max-width:1199px){.rail.tabs{position:fixed;top:0;bottom:0;left:0;z-index:20;flex:none;width:min(240px,86vw);box-sizing:border-box;background:var(--panel);box-shadow:0 8px 28px var(--shadow)}}
+#dview{--serif:ui-serif,Georgia,"Times New Roman",serif;--gut:24px}
 body:not(.simple) #dview{display:flex;flex:1;min-height:0}
 #dview h1,#dview h2,#dview h3,#dview h4{font-family:var(--serif);font-weight:600}
 .rail.tabs{flex:0 0 240px;width:240px;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:4px;padding:54px 8px 10px;border-bottom:0;border-right:1px solid var(--line);overflow-y:auto}
@@ -273,7 +287,38 @@ body.simple .rail.tabs button[aria-selected="true"]{color:var(--muted);backgroun
 .scmp table{border-collapse:collapse;font-size:13px;margin:6px 0 0}.scmp td,.scmp th{border-bottom:1px solid var(--line);padding:2px 12px 2px 0;text-align:left}
 .sfoot{font-size:12.5px;margin:10px 0 0}
 @media (max-width:700px){.storyflow{display:block;overflow:visible}.sstep{margin:0 0 8px}.sstep+.sstep::before{content:"\2193";left:50%;top:-11px;transform:translateX(-50%)}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.seg button{background:none;border:0;color:var(--muted);padding:6px 14px;font:inherit}.seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--vio) 16%,transparent);color:var(--ink);font-weight:600}.seg button:focus-visible{outline:2px solid var(--vio);outline-offset:-2px}
+.treesvg .tnode,.consvg .cnode,.mapsvg .mapnode{-webkit-tap-highlight-color:transparent}
+.mapreset{display:block;margin:8px auto 0;padding:3px 14px;border:1px solid var(--line);border-radius:99px;background:var(--panel);color:var(--muted);font-size:12px}
+.mapreset:not(:disabled):hover,.mapreset:focus-visible{color:var(--ink);border-color:var(--accent)}.mapreset:disabled{opacity:.55;cursor:default}
+.dlhit,.dlhit>td{background:color-mix(in srgb,var(--accent) 14%,transparent)!important}.dlhit{outline:2px solid var(--accent);outline-offset:-2px}
+.artgroup{margin:0 0 16px}#dview .arthead,.arthead{font:600 11px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}.artcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.artcard .artrow{display:flex;align-items:center;gap:12px;padding:10px 14px;margin:0;border:0;border-bottom:1px solid var(--line);border-radius:0}.artcard>.artrow:last-child{border-bottom:0}.artdot{width:9px;height:9px;border-radius:2px;flex:none}
+.artwho{min-width:0;display:flex;flex-direction:column}.artby{color:var(--muted);font-size:13px}.artr{margin-left:auto;display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.arttag{border-radius:99px;padding:1px 8px;font-size:11.5px;border:1px solid var(--line)}.arttag.ok{color:var(--ok);border-color:var(--ok)}.arttag.warn{color:var(--validator);border-color:var(--validator)}.arttag.bad{color:var(--bad);border-color:var(--bad)}
+.artsub{margin:0 0 0 22px;border-left:1px solid var(--line)}.artsub .artrow{padding:7px 12px}.artfold>summary{cursor:pointer;color:var(--muted);font-size:13px;padding:8px 14px;border-bottom:1px solid var(--line)}
+.artopen,.artcard .arttext,.artcard .artimg,.artcard .artframe,.artcard .codebox{display:block;margin:0 14px 12px}.artnone{padding:10px 14px;margin:0}
+.artshots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:0 14px 14px}.artshot{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;color:var(--muted);background:var(--panel2);text-align:left}
+.artshot img{display:block;width:100%;height:80px;object-fit:cover;object-position:top;border-radius:5px;margin-bottom:6px;background:var(--node)}.artshot[aria-expanded="true"]{border-color:var(--accent)}
+.runset .appear{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+/* the maps' sky (every view, as the sun's): a warm radial gradient and faint scattered dots, from the theme's tokens */
+:root{--mapdots:radial-gradient(circle at 13px 17px,color-mix(in srgb,var(--star) 22%,transparent) .8px,transparent 1.3px) 0 0/53px 47px,radial-gradient(circle at 31px 7px,color-mix(in srgb,var(--star) 16%,transparent) .6px,transparent 1.1px) 0 0/71px 61px}
+/* edges, every map view: one style (edgeMount draws them): a soft 1.4px curve with a gradient from source to target and a rounded arrowhead at the target;
+   reads blue, makes amber, fixes terracotta, a read-back loop dashed; 2.4px at full strength on hover or focus while the others fade to a quarter */
+svg path[data-edge]{fill:none;stroke-width:1.4px!important;stroke-linecap:round;stroke-dasharray:none!important;animation:none!important;transition:opacity .25s,stroke-width .25s}
+svg path[data-edge].loop{stroke-dasharray:4 4!important}
+svg.ehot path[data-edge]:not(.hot),svg path[data-edge].dim{opacity:.25!important}
+svg path[data-edge].hot,svg.focusing path[data-edge].lit{opacity:1!important;stroke-width:2.4px!important}
+.earr{stroke-width:1;stroke-linejoin:round}.earr.e-reads{fill:var(--e-reads);stroke:var(--e-reads)}.earr.e-makes{fill:var(--e-makes);stroke:var(--e-makes)}.earr.e-fix{fill:var(--e-fix);stroke:var(--e-fix)}
+/* idle drift (Motion): a pixel or so, each node on its own phase; the spring keeps the slot */
+@keyframes mdrift{0%,100%{translate:0 0}33%{translate:1px -.6px}66%{translate:-.7px .8px}}
+.treesvg .tnodes>.tnode,.consvg .cnodes>.cnode,.mapsvg .mapnode{animation:mdrift 9s ease-in-out infinite}.treesvg .tnodes>.tnode:nth-child(3n+1),.consvg .cnodes>.cnode:nth-child(3n+1),.mapsvg .mapnode:nth-child(3n+1){animation-delay:-3s}
+.treesvg .tnodes>.tnode:nth-child(3n+2),.consvg .cnodes>.cnode:nth-child(3n+2),.mapsvg .mapnode:nth-child(3n+2){animation-delay:-6s}
+.nodrift .tnode,.nodrift .cnode,.nodrift .mapnode{animation:none!important}
+@media (prefers-reduced-motion:reduce){.treesvg .tnodes>.tnode,.consvg .cnodes>.cnode,.mapsvg .mapnode{animation:none}}
 </style>
+<script>/* the viewer's Appearance before the first paint (Run settings sets it): light, dark or system; dark by default */
+try { var tp = localStorage.getItem("j2theme"); document.documentElement.dataset.theme = tp === "light" ? "light" : tp === "system" && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; } catch (e) { document.documentElement.dataset.theme = "dark"; }</script>
 </head>
 <body class="simple">
 <div id="sview">
@@ -308,7 +353,6 @@ body.simple .rail.tabs button[aria-selected="true"]{color:var(--muted);backgroun
     <button role="tab" data-tab="artifacts" aria-selected="false">Artifacts</button>
     <button role="tab" id="tab-board" data-tab="board" aria-selected="false" hidden>Board</button>
     <button role="tab" id="tab-library" data-tab="library" aria-selected="false" hidden>Library</button>
-    <button role="tab" data-tab="style" aria-selected="false">Style guide</button>
     <button role="tab" data-tab="lessons" aria-selected="false">Lessons</button>
     <button role="tab" data-tab="playbooks" aria-selected="false">Playbooks</button>
     <button role="tab" data-tab="report" aria-selected="false">Report</button>
@@ -341,6 +385,7 @@ body.simple .rail.tabs button[aria-selected="true"]{color:var(--muted);backgroun
     <div class="pane" id="pane-report" hidden><div class="banner" id="banner" hidden></div><div id="reportbody"></div></div>
     <div class="pane" id="pane-runsettings" hidden>
       <div class="runset">
+        <div class="appear" id="appear">Appearance <span class="seg" role="group" aria-label="Appearance"><button type="button" data-themepick="light" aria-pressed="false">Light</button><button type="button" data-themepick="dark" aria-pressed="true">Dark</button><button type="button" data-themepick="system" aria-pressed="false">System</button></span></div>
         <label>What to build <select id="outsel" class="outsel" aria-label="What to build"></select></label>
         <label>Saved runs <select id="runsel" class="ghost" aria-label="Open a saved run"><option value="">Live run</option></select></label>
         <div class="runact"><button class="ghost" id="reset">New run</button> <a href="?view=simple" class="slink" id="to-simple">Back to simple view</a></div>
@@ -842,7 +887,7 @@ function renderWorkflows(s){ return renderPlanView(s) + renderWorkflowsTable(s);
 function renderWorkflowsTable(s){
   const pct = Math.min(100, s.spent / s.budget * 100);
   const tags = Object.fromEntries(s.workflows.map(w => [w.id, outTags(s, w)])), shown = s.workflows.filter(w => (!OTAG || tags[w.id].some(t => t.type === OTAG)) && (!WFSTEP.length || WFSTEP.includes(w.id)));
-  const rows = shown.map(w => `<tr><td>${w.id}</td><td style="color:${col(w.id)}"><b>${esc(w.agent || who(w.id)[0])}</b><br><span class="empty">section ${esc(w.section || "")}${w.revises ? " (rewrites " + esc(w.revises) + "'s)" : ""}</span><br>${tagsHTML(tags[w.id])}</td>
+  const rows = shown.map(w => `<tr data-wfrow="${esc(w.id)}"><td>${w.id}</td><td style="color:${col(w.id)}"><b>${esc(w.agent || who(w.id)[0])}</b><br><span class="empty">section ${esc(w.section || "")}${w.revises ? " (rewrites " + esc(w.revises) + "'s)" : ""}</span><br>${tagsHTML(tags[w.id])}</td>
     <td>${w.cost}${w.charged === false ? '<br><span class="empty">released</span>' : ""}</td>
     <td>${envCell(w)}</td><td>${w.cycle}</td><td><span class="pill ${w.status}">${w.status}${w.send_error ? ` (${esc(w.send_error)})` : ""}</span></td></tr>
     <tr><td colspan="7"><details data-key="wf-${esc(w.id)}"><summary>Open ${esc(w.id)}: ${(w.atoms || []).length} work atom(s)</summary><div class="wtags">Made: ${tagsHTML(tags[w.id])}</div>${atomCards(s, w)}</details></td></tr>`).join("");
@@ -1417,29 +1462,39 @@ function artRow(r){
     + `<span class="otag" style="background:var(${esc(r.color)})">${esc(r.tag)}</span> <span class="empty">${made} · ${dep}</span> `
     + `<button type="button" class="linkbtn" data-artopen="${esc(r.file)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button></div>${body}</div>`;
 }
-// the tree (artifacts-tree/1, /api/artifacts/tree): Plan, Specs, Deliverables, Proof, Records, each with a count and collapsible.
-// Makers, readers and statuses are the Map's (j2_map.build), so the two agree. Each row: name, made by, status, size, Open.
+// the tree (artifacts-tree/1, /api/artifacts/tree): Plan, Specs, Deliverable, Proof. One line per item: name, maker, one status tag, Open.
+// A group of children (a deliverable's sections, its versions, the run's other records) folds behind "N sections"; Verification proof shows
+// the screenshots as thumbnails. Makers, readers and statuses are the Map's (j2_map.build), so the two agree.
 const artItems = xs => (xs || []).flatMap(x => [x, ...artItems(x.children)]);
 const artFind = f => [...ARTS.deliverables, ...ARTS.records].find(x => x.file === f) || (ARTS.tree ? artItems(ARTS.tree.groups.flatMap(g => g.items)).find(x => x.file === f) : null);
-const artSize = n => n == null ? "" : n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`;
-const artMade = m => !m ? '<span class="empty">maker not recorded</span>' : m.function ? `made by ${esc(m.function)}` : `made by ${esc(m.persona)} (${esc(idRuns(m.workflows || []))})`;
-function artNode(x){
-  const kids = x.children || [], ck = x.code ? codeKey(x.code) : "", open = x.code ? ARTOPEN === "code:" + ck : x.file && ARTOPEN === x.file, big = (x.size || 0) > 2000000;
-  const body = !open ? "" : x.code ? codeView(ck, x.open === "codetext") : x.open === "image" ? `<img class="artimg" alt="${esc(x.name)}" src="${artUrl(x.file)}">`
-    : x.open === "preview" ? `<iframe class="artframe" sandbox="" title="${esc(x.name)}" src="${artUrl(x.file)}"></iframe>`
+const artMade = m => !m ? "maker not recorded" : m.function ? esc(m.function) : `${esc(m.persona)} (${esc(idRuns(m.workflows || []))})`;
+const ARTDOT = {plan: "--warm3", specs: "--warm1", deliverables: "--warm2", proof: "--warm3"};
+const artTag = w => `<span class="arttag ${/^(filed|sent|validated|audited, (all pass|0 findings))/.test(w) ? "ok" : /^(failed|fault)/.test(w) ? "bad" : "warn"}">${esc(w)}</span>`;
+function artBody(x, open, ck){
+  if (!open) return "";
+  if (x.code) return codeView(ck, x.open === "codetext");
+  if (x.file === "style.json") return `<div class="artopen">${renderStyle((typeof state !== "undefined" && state) || CTX || {})}</div>`;      // the style guide, drawn as its own swatches
+  return x.open === "image" ? `<img class="artimg" alt="${esc(x.name)}" src="${artUrl(x.file)}">` : x.open === "preview" ? `<iframe class="artframe" sandbox="" title="${esc(x.name)}" src="${artUrl(x.file)}"></iframe>`
     : `<pre class="arttext">${esc(ARTTEXT[x.file] === undefined ? "Loading..." : ARTTEXT[x.file])}</pre>`;
-  const facts = [x.output, x.version != null ? "v" + x.version : "", x.workflows ? `${x.workflows} workflow${x.workflows === 1 ? "" : "s"}` : "",
-    x.read_by != null ? `read by ${x.read_by} workflow${x.read_by === 1 ? "" : "s"}` : "", x.rewritten ? `rewritten by ${x.rewritten.by} · ${x.rewritten.name}` : "", x.note].filter(Boolean).map(esc).join(" · ");
-  const line = `<span class="artname"><b>${esc(x.name)}</b>${x.count != null ? ` <span class="artcount">${x.count}</span>` : ""}</span>`
-    + (x.count == null ? ` <span class="empty">${artMade(x.made_by)}</span> <span class="artst st-${esc(String(x.status || "").split(" ")[0])}">${esc(x.status || "")}</span>` : "")
-    + (x.count == null && auditWord(x, CTX) ? ` <span class="artaudit">${esc(auditWord(x, CTX))}</span>` : "") + (x.size != null ? ` <span class="empty">${artSize(x.size)}</span>` : "") + (facts ? ` <span class="empty">${facts}</span>` : "")
-    + (x.code ? ` <button type="button" class="linkbtn" data-artcode="${esc(ck)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`
-      : x.file ? (big ? ` <span class="empty">too large to open here</span>` : ` <button type="button" class="linkbtn" data-artopen="${esc(x.file)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`) : "");
-  if (!kids.length) return `<div class="artrow artleaf" data-art="${esc(x.file || x.name)}">${line}${body}</div>`;
-  return `<details class="artrow artkids" data-key="art-${esc(x.file || x.node || x.name)}"${x.collapsed ? "" : " open"}><summary>${line}</summary>${body}<div class="artsub">${kids.map(artNode).join("")}</div></details>`;
 }
-const renderArtTree = t => t.groups.map(g => `<details class="artgroup" data-key="artg-${esc(g.id)}"${g.collapsed ? "" : " open"}><summary><h3>${esc(g.label)} <span class="artcount">${g.count}</span></h3></summary>`
-  + (g.items.length ? g.items.map(artNode).join("") : `<p class="empty">${g.id === "specs" ? "No spec files in this run." : "Nothing recorded yet."}</p>`) + `</details>`).join("");
+function artNode(x, g){
+  const kids = x.children || [];
+  if (x.shots){ const on = kids.find(k => ARTOPEN === k.file);      // Verification proof: the screenshots as thumbnails, one opens below
+    return `<div class="artrow" data-art="${esc(x.name)}"><span class="artdot" style="background:var(${ARTDOT[g]})"></span><div class="artwho"><b>${esc(x.name)}</b><span class="artby">Screenshots taken while checking the result</span></div>`
+      + `<span class="artr">${plural(x.count, "screenshot")}</span></div><div class="artshots">${kids.map(k => `<button type="button" class="artshot" data-artopen="${esc(k.file)}" aria-expanded="${ARTOPEN === k.file}"><img loading="lazy" alt="" src="${artUrl(k.file)}"><span>${esc(k.name)}</span></button>`).join("")}</div>`
+      + (on ? `<div class="artopen"><img class="artimg" alt="${esc(on.name)}" src="${artUrl(on.file)}"></div>` : ""); }
+  if (x.count != null) return `<details class="artfold" data-key="art-${esc(x.name)}-${esc(g)}"${x.collapsed ? "" : " open"}><summary>${plural(x.count, x.name.toLowerCase().replace(/s$/, ""))}</summary>`
+    + `<div class="artsub">${kids.map(k => artNode(k, g)).join("")}</div></details>`;
+  const ck = x.code ? codeKey(x.code) : "", open = x.code ? ARTOPEN === "code:" + ck : !!x.file && ARTOPEN === x.file, big = (x.size || 0) > 2000000;
+  const by = [artMade(x.made_by), ...[x.output, x.version != null ? "v" + x.version : "", x.workflows ? plural(x.workflows, "workflow") : "", x.read_by != null ? `read by ${x.read_by}` : "",
+    x.rewritten ? `rewritten by ${x.rewritten.by} · ${x.rewritten.name}` : "", x.note].filter(Boolean).map(esc)].join(" · ");
+  const btn = x.code ? `<button type="button" class="linkbtn" data-artcode="${esc(ck)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`
+    : x.file ? (big ? `<span class="empty">too large to open here</span>` : `<button type="button" class="linkbtn" data-artopen="${esc(x.file)}" aria-expanded="${open}">${open ? "Close" : "Open"}</button>`) : "";
+  return `<div class="artrow" data-art="${esc(x.file || x.name)}"${x.node ? ` data-node="${esc(x.node)}"` : ""}${x.code && x.code.section ? ` data-sec="${esc(x.code.deck)}|${esc(x.code.section)}"` : ""}><span class="artdot" style="background:var(${ARTDOT[g]})"></span><div class="artwho"><b>${esc(x.name)}</b><span class="artby">${by}</span></div>`
+    + `<span class="artr">${artTag(auditWord(x, CTX) || x.status || "")}${btn}</span></div>` + artBody(x, open, ck) + (kids.length ? `<div class="artsub">${kids.map(k => artNode(k, g)).join("")}</div>` : "");
+}
+const renderArtTree = t => t.groups.map(g => `<section class="artgroup" data-group="${esc(g.id)}"><h3 class="arthead">${esc(g.label)} <span class="artcount">${g.count}</span></h3><div class="artcard">`
+  + (g.items.length ? g.items.map(x => artNode(x, g.id)).join("") : `<p class="empty artnone">${g.id === "specs" ? "No spec files in this run." : "Nothing recorded yet."}</p>`) + `</div></section>`).join("");
 const renderArtifacts = () => {
   if (ARTS.tree && (ARTS.tree.groups || []).length) return renderArtTree(ARTS.tree);
   const part = (title, rows, none) => `<h3>${title}</h3>` + (rows.length ? rows.map(artRow).join("") : `<p class="empty">${none}</p>`);
@@ -1598,7 +1653,7 @@ function mapTip(m, n){
 let MAPLAY = (() => { try { return localStorage.getItem("j2maplay") === "1"; } catch (e) { return false; } })();      // the Line view's legend overlay: open or closed, per viewer
 let MAPVIEW = (() => { const q = new URLSearchParams(location.search).get("mapview"); if (q === "line" || q === "tree") return q;
   try { const v = localStorage.getItem("j2mapview"); return v === "line" ? "line" : "tree"; } catch (e) { return "tree"; } })();
-const TREE = {open: "", wf: "", focus: "", c: null, zoom: null};      // the open stage, the workflow picked in its circle, where the stage sits when open, pan and zoom
+const TREE = {focus: "", zoom: null};      // the focused team, pan and zoom (an opened team is a solar system: CONS)
 let MAPTREE = null;      // the last tree layout (tests read it): nodes with label boxes, the crossing count
 const TROW = 100, TGAP = 24, TPAD = 36;
 const treeR = n => Math.round((8 + 3.2 * Math.sqrt(n || 0)) * 10) / 10;      // a dot's size from its workflow count
@@ -1627,7 +1682,6 @@ function tRoute(P, Q, straight, out, boxes, drawn){
   for (const r of tries){ last = last || r; if (free(r)){ if (clean(r)) return Object.assign(r, {clear: true}); keep = keep || r; } }
   return Object.assign(keep || last, {clear: !!keep, first: tries[0].pts});
 }
-const treeTrim = (t, n) => { t = String(t ?? ""); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
 function treeCross(p, q){ const o = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
   for (let i = 0; i < p.length - 1; i++) for (let j = 0; j < q.length - 1; j++){ const a = p[i], b = p[i + 1], c = q[j], d = q[j + 1];
     if (o(a, b, c) * o(a, b, d) < -1e-6 && o(c, d, a) * o(c, d, b) < -1e-6) return true; } return false; }
@@ -1666,7 +1720,7 @@ function treeLayout(m){
   edges.filter(e => (e.kind === "step" || e.kind === "handoff") && by[e.to] && by[e.to].kind === "engine" && stepStage[e.to]).forEach(e => {
     if (e.from === "work:charter") planned.add(stepStage[e.to]);
     else if (isDeck(e.from) && stageOf[e.from] !== stepStage[e.to]) (stageReads[stepStage[e.to]] = stageReads[stepStage[e.to]] || new Set()).add(e.from); });
-  const label = n => n.kind === "stage" ? n.label : treeTrim(n.label, 28);
+  const label = n => n.label;      // never cut: a label's width follows its words
   const sub = n => n.kind === "stage" ? `${n.workflows.length} workflow${n.workflows.length === 1 ? "" : "s"}` : n.id === "work:charter" ? "the plan"
     : n.tag === "Send" ? (sendWord(n) || MAPS[n.status] || "") : [n.output && n.output !== n.label ? n.output : "", n.version != null ? "v" + n.version : "", MAPS[n.status]].filter(Boolean).join(" · ");      // a spec's stage output is its second line
   const T = [], row = {};
@@ -1819,8 +1873,6 @@ const FOC = {pillH: 46, stack: 38, gap: 24, pad: 60, minW: 720, minH: 480};
 const wfNum = id => +String(id).replace(/\D/g, "") || 0;
 const rayRect = (hw, hh, a) => { const c = Math.cos(a), s = Math.sin(a), t = Math.min(c ? hw / Math.abs(c) : 1e9, s ? hh / Math.abs(s) : 1e9); return {x: t * c, y: t * s}; };      // where a ray from a box's middle leaves it
 const fanAt = (i, k, step, cap) => (i - (k - 1) / 2) * Math.min(step, cap / Math.max(1, k - 1));      // k evenly spaced angles round a direction
-function treeWfView(m, w){ const by = mapById(m), b = by[w.box], st = treeWfStatus(m, w), word = (b && b.tag === "Send" && sendWord(b)) || MAPS[st] || w.status || "";
-  const label = `${w.id} · ${treeTrim(w.name, 20)}`; return {id: w.id, kind: "wf", st, word, label, sub: word, lw: Math.round(Math.max(label.length * 7.4, word.length * 6.3)), r: 7, w}; }
 // the frame round a drawing: its boxes and 60 round them (at least 720 x 480), the drawing in the middle, every other node on the border, evenly, in the order
 // of its angle round where the focus sat (so they move outward from where they were); nothing there can touch the drawing
 function treeFrame(N, others, c, mid){
@@ -1844,86 +1896,53 @@ function treeTeamIO(L, g){
   const up = [...new Set(ins.map(a => madeBy[a]).filter(s => s && s !== g.id))], down = [...new Set(L.links.filter(l => l.kind === "reads" && outs.includes(l.from)).map(l => l.to).filter(s => s !== g.id))];
   return {ins, outs, up: up.filter(s => !down.includes(s)), down};
 }
-function treeFocusOf(m, L, kind, id, c){      // kind: "stage" (a team in the Tree) or "wf" (a workflow of a team)
-  c = c || {x: L.W / 2, y: L.H / 2};
-  const wfs = m.workflows || [], named = Object.fromEntries(wfs.map(x => [x.id, x])), byNum = (a, b) => wfNum(a) - wfNum(b), by = mapById(m);
-  let center, ins = [], outs = [], left = [], right = [], g;
-  if (kind === "wf"){ const w = named[id]; if (!w) return null; g = Object.values(L.stages).find(s => s.workflows.includes(id)) || null; const mine = new Set(g ? g.workflows : []), v = treeWfView(m, w);
-    center = {id, kind: "wf", label: v.label, sub: `${v.word} · ${g ? g.label : "not in a team"}`, st: v.st};
-    const virt = r => ({id: "wf:" + r, kind: "deck", label: treeTrim(r + " · " + (named[r] ? named[r].name : r), 28), sub: "not on the map", status: "not_made", r: 11, w: 190, n: {id: "wf:" + r, kind: "work", label: r, status: "not_made", detail: "not on the map", tag: ""}});
-    (w.reads || []).filter(r => !mine.has(r) || !named[r]).forEach(r => { const b = named[r] && named[r].box, t = b && L.at[b] ? L.at[b] : virt(r); let a = ins.find(x => x.id === t.id); if (!a) ins.push(a = {id: t.id, t, by: []}); a.by.push(r); });
-    ins.sort((a, b) => byNum(a.by[0], b.by[0]));
-    outs = [...new Set([...(w.out || []), ...(w.box ? [w.box] : [])])].filter(o => L.at[o] && !ins.some(x => x.id === o)).map(o => ({id: o, t: L.at[o], by: []}));
-    left = (w.reads || []).filter(r => mine.has(r) && named[r]).sort(byNum).map(r => Object.assign(treeWfView(m, named[r]), {side: -1}));
-    right = wfs.filter(x => mine.has(x.id) && x.id !== id && (x.reads || []).includes(id) && !(w.reads || []).includes(x.id)).map(x => x.id).sort(byNum).map(r => Object.assign(treeWfView(m, named[r]), {side: 1}));
-  } else { g = L.stages[id]; if (!g) return null; const io = treeTeamIO(L, g), teamV = s => { const t = L.at[s]; return {id: s, kind: "stage", st: t.status, label: t.label, sub: t.sub, lw: Math.round(Math.max(t.label.length * 7.4, t.sub.length * 6.3)), r: 9, t}; };
-    center = {id, kind: "stage", label: g.label, sub: `${g.workflows.length} workflow${g.workflows.length === 1 ? "" : "s"} · ${MAPW[g.status] || ""}`, st: g.status};
-    ins = io.ins.filter(a => L.at[a]).map(a => ({id: a, t: L.at[a], by: []})); outs = io.outs.filter(a => L.at[a]).map(a => ({id: a, t: L.at[a], by: []}));
-    left = io.up.filter(s => L.at[s]).map(s => Object.assign(teamV(s), {side: -1})); right = io.down.filter(s => L.at[s]).map(s => Object.assign(teamV(s), {side: 1})); }
-  const cell = (list, up) => list.map(a => { const r = Math.min(15, a.t.r), cw = Math.max(a.t.w, 2 * r + 8); return Object.assign(a, {r, cw, up}); }), rowW = row => row.reduce((s, a) => s + a.cw, 0) + Math.max(0, row.length - 1) * FOC.gap;
-  const rowIn = cell(ins, true), rowOut = cell(outs, false), pw = Math.round(Math.max(180, center.label.length * 7.4, center.sub.length * 6.3) + 28), ph = FOC.pillH;
-  const half = Math.max(pw / 2 + 100, rowW(rowIn) / 2, rowW(rowOut) / 2), colX = half + 40 + 8;
-  const hs = (Math.max(left.length, right.length, 1) - 1) * FOC.stack + 30, rmax = Math.max(0, ...rowIn.map(a => a.r), ...rowOut.map(a => a.r)), DY = Math.max(150, hs / 2 + rmax + 60);
-  const N = [], E = [], put = (row, y) => { let x = -rowW(row) / 2; row.forEach(a => { a.x = x + a.cw / 2; a.y = y; x += a.cw + FOC.gap; }); };
-  put(rowIn, -DY); put(rowOut, DY);
-  const art = (a, role) => { const t = a.t, r = a.r, dot = [a.x - r, a.y - r, a.x + r, a.y + r], lab = a.up ? [a.x - a.cw / 2, a.y - r - 33, a.x + a.cw / 2, a.y - r - 4] : [a.x - a.cw / 2, a.y + r + 4, a.x + a.cw / 2, a.y + r + 33];
-    N.push({id: a.id, kind: t.kind, role, x: a.x, y: a.y, r, label: t.label, sub: t.sub, status: t.status, lside: a.up ? "up" : "down", dot, lbox: lab, box: [Math.min(dot[0], lab[0]), Math.min(dot[1], lab[1]), Math.max(dot[2], lab[2]), Math.max(dot[3], lab[3])]}); };
-  rowIn.forEach(a => art(a, "in")); rowOut.forEach(a => art(a, "out"));
-  const peer = (p, i, n) => { const x = p.side * colX, y = (i - (n - 1) / 2) * FOC.stack, r = p.r, lb = p.side < 0 ? [x - r - 6 - p.lw, y - 13, x - r - 6, y + 16] : [x + r + 6, y - 13, x + r + 6 + p.lw, y + 16];
-    N.push({id: p.id, kind: p.kind, role: p.side < 0 ? "peer-in" : "peer-out", x, y, r, label: p.label, sub: p.sub, status: p.st, lside: p.side < 0 ? "left" : "right", dot: [x - r, y - r, x + r, y + r], lbox: lb, box: [Math.min(x - r, lb[0]), y - 13, Math.max(x + r, lb[2]), y + 16]}); };
-  left.forEach((p, i) => peer(p, i, left.length)); right.forEach((p, i) => peer(p, i, right.length));
-  const pb = [-pw / 2, -ph / 2, pw / 2, ph / 2];
-  N.push({id, kind, role: "focus", x: 0, y: 0, r: 0, label: center.label, sub: center.sub, status: center.st, lside: "in", pw, ph, dot: pb, lbox: pb, box: pb});
-  const prevAt = o => o === (g && g.id) ? c : L.at[o] ? L.at[o] : null, shown = new Set(N.map(n => n.id)), items = g ? treeWfItems(m, g) : [];
-  const others = [...L.nodes.filter(t => !shown.has(t.id)).map(t => ({id: t.id, kind: t.kind, r: t.r, p: prevAt(t.id) || c, ring: false})),
-    ...(kind === "wf" && g ? g.workflows : []).filter(o => !shown.has(o)).map(o => { const i = items.findIndex(x => x.id === o), a = 2 * Math.PI * i / Math.max(1, items.length) - Math.PI / 2; return {id: o, kind: "wf", r: 7, p: {x: c.x + Math.cos(a), y: c.y + Math.sin(a)}, ring: true}; })];
-  const fr = treeFrame(N, others, c), at = Object.fromEntries(N.map(n => [n.id, n])), F = at[id], ox = F.x, oy = F.y;
-  const ray = (a, side, i, k) => { const ang = ({top: -Math.PI / 2, bottom: Math.PI / 2, left: Math.PI, right: 0})[side] + fanAt(i, k, 0.42, 1.1) * (side === "left" ? -1 : 1) * (side === "bottom" ? -1 : 1); const o = rayRect(pw / 2, ph / 2, ang); return {x: ox + o.x, y: oy + o.y}; };
-  const edge = (from, to, k, P, Q, tip) => { const r = tLine(P, Q); E.push({from, to, kind: k, d: r.d, pts: r.pts, tip}); };
-  rowIn.forEach((a, i) => edge(a.id, id, "reads", {x: at[a.id].x, y: at[a.id].y + a.r}, ray(a, "top", i, rowIn.length), `${center.label} reads ${a.t.label}${a.by.length ? " (" + a.by.join(", ") + ")" : ""}`));
-  rowOut.forEach((a, i) => edge(id, a.id, "made", ray(a, "bottom", i, rowOut.length), {x: at[a.id].x, y: at[a.id].y - a.r}, `${center.label} made ${a.t.label}`));
-  left.forEach((p, i) => { const n = at[p.id]; edge(p.id, id, "reads", {x: n.x + n.r, y: n.y}, ray(n, "left", i, left.length), kind === "wf" ? `${center.label} reads ${p.label}` : `${center.label} reads what ${p.label} made`); });
-  right.forEach((p, i) => { const n = at[p.id]; edge(id, p.id, "readby", ray(n, "right", i, right.length), {x: n.x - n.r, y: n.y}, kind === "wf" ? `${p.label} reads ${center.label}` : `${p.label} reads what ${center.label} made`); });
-  return {kind, id, mode: "focus", stage: g && g.id, W: fr.W, H: fr.H, nodes: N, edges: E, others, pos: fr.pos, expect: {ins: ins.map(a => a.id), outs: outs.map(a => a.id), left: left.map(p => p.id), right: right.map(p => p.id)}};
-}
-// the workflows of a team, with what the circle draws for each
-function treeWfItems(m, g){ const ws = m.workflows || []; return [...g.workflows].sort((a, b) => wfNum(a) - wfNum(b)).map(id => { const w = ws.find(x => x.id === id) || {id, name: id, status: null, box: null, reads: [], checks: {passed: 0, run: 0}}; return treeWfView(m, w); }); }
-// the open team (nothing focused): the team in the middle, its workflows, what it reads and what it made on an ellipse round it, evenly spaced; what it reads
-// on the left, what it made on the right; the ellipse grows until no label, shape or line meets another
-function treeOvalOf(m, L, id, c){
+// a team focused in the Tree, in rows from the top: the teams that made what it reads, what it reads, the team, what it made, the teams that read that.
+// Every line runs team -> artifact (made) or artifact -> team (reads); a team that both made what it reads and reads what it made stands on the left.
+function treeFocusOf(m, L, id, c){
   c = c || {x: L.W / 2, y: L.H / 2}; const g = L.stages[id]; if (!g) return null;
-  const io = treeTeamIO(L, g), items = treeWfItems(m, g), h = Math.ceil(items.length / 2), pw = Math.round(Math.max(180, g.label.length * 7.4, 150) + 28), ph = FOC.pillH;
-  const mk = (a, role) => { const t = L.at[a], r = Math.min(15, t.r); return {id: a, kind: t.kind, role, r, label: t.label, sub: t.sub, status: t.status, t, lw: Math.round(Math.max(t.label.length * 7.4, t.sub.length * 6.3))}; };
-  const seq = [...items.slice(0, h).map(v => Object.assign(v, {role: "wf"})), ...io.outs.filter(a => L.at[a]).map(a => mk(a, "out")), ...items.slice(h).map(v => Object.assign(v, {role: "wf"})), ...io.ins.filter(a => L.at[a]).map(a => mk(a, "in"))];
-  const n = seq.length, step = 2 * Math.PI / Math.max(n, 1), grp = r => seq.map((x, i) => x.role === r ? i : -1).filter(i => i >= 0), outsAt = grp("out"), insAt = grp("in");
-  const rot = outsAt.length ? -((outsAt[0] + outsAt[outsAt.length - 1]) / 2 + .5) * step - Math.PI / 2 : insAt.length ? Math.PI - ((insAt[0] + insAt[insAt.length - 1]) / 2 + .5) * step - Math.PI / 2 : 0;      // what it made centred on the right
-  const meets = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-  for (let k = 1, grow = 0; grow < 40; grow++, k *= 1.06){
-    const R0 = Math.max(100, n * 9) * k, rx = R0 * 1.35, ry = R0 * .8, N = [];
-    seq.forEach((x, i) => { const a = -Math.PI / 2 + (i + .5) * step + rot, px = rx * Math.cos(a), py = ry * Math.sin(a), right = Math.cos(a) >= -1e-9, r = x.r, lw = x.lw;
-      const lb = right ? [px + r + 6, py - 13, px + r + 6 + lw, py + 16] : [px - r - 6 - lw, py - 13, px - r - 6, py + 16];
-      N.push({id: x.id, kind: x.kind, role: x.role, x: px, y: py, r, a, label: x.label, sub: x.sub, status: x.role === "wf" ? x.st : x.status, lside: right ? "right" : "left", dot: [px - r, py - r, px + r, py + r], lbox: lb, box: [Math.min(px - r, lb[0]), py - 13, Math.max(px + r, lb[2]), py + 16]}); });
-    const pb = [-pw / 2, -ph / 2, pw / 2, ph / 2], E = [], at = Object.fromEntries(N.map(q => [q.id, q]));
-    N.forEach(q => { const d = Math.hypot(q.x, q.y) || 1, o = rayRect(pw / 2, ph / 2, Math.atan2(q.y, q.x)), P = {x: q.x - q.x / d * q.r, y: q.y - q.y / d * q.r}, Q = {x: o.x, y: o.y}; const rr = q.role === "out" ? tLine(Q, P) : tLine(P, Q);
-      E.push({from: q.role === "out" ? id : q.id, to: q.role === "out" ? q.id : id, kind: q.role === "wf" ? "spoke" : q.role === "out" ? "made" : "reads", wf: q.role === "wf" ? q.id : null, d: rr.d, pts: rr.pts, tip: q.role === "wf" ? `${g.label}: ${q.label}` : q.role === "out" ? `${g.label} made ${q.label}` : `${g.label} reads ${q.label}`}); });
-    const boxes = [...N.map(q => q.box), pb]; let ok = true;
-    for (let i = 0; i < boxes.length && ok; i++) for (let j = i + 1; j < boxes.length && ok; j++) if (meets(boxes[i], boxes[j])) ok = false;
-    for (const e of E) { if (!ok) break; for (const q of N){ if (q.id === e.from || q.id === e.to) continue; if (tHit(e.pts, q.box)) ok = false; } }
-    if (ok || grow === 39){
-      N.push({id, kind: "stage", role: "focus", x: 0, y: 0, r: 0, label: g.label, sub: `${g.workflows.length} workflow${g.workflows.length === 1 ? "" : "s"}`, status: g.status, lside: "in", pw, ph, dot: pb, lbox: pb, box: pb});
-      const shown = new Set(N.map(q => q.id)), others = L.nodes.filter(t => !shown.has(t.id)).map(t => ({id: t.id, kind: t.kind, r: t.r, p: L.at[t.id] || c, ring: false}));
-      const fr = treeFrame(N, others, c), dx = N[N.length - 1].x, dy = N[N.length - 1].y;      // (the frame moved the nodes: the lines move with them)
-      const sx = dx, sy = dy; E.forEach(e => { const r = e.pts.map(p => ({x: p[0] + sx, y: p[1] + sy})), P = r[0], Q = r[r.length - 1], l = tLine(P, Q); e.d = l.d; e.pts = l.pts; });
-      return {kind: "stage", id, mode: "oval", stage: id, W: fr.W, H: fr.H, nodes: N, edges: E, others, pos: fr.pos, expect: {ins: io.ins.filter(a => L.at[a]), outs: io.outs.filter(a => L.at[a]), wfs: items.map(v => v.id)}};
-    }
-  }
+  const io = treeTeamIO(L, g), madeBy = {}, readBy = {}, X = a => (L.at[a] || {x: 0}).x;
+  L.links.forEach(l => { if (l.kind === "made") madeBy[l.to] = l.from; if (l.kind === "reads") (readBy[l.from] = readBy[l.from] || []).push(l.to); });
+  const ups = {}, downs = {}, ins = io.ins.filter(a => L.at[a]), outs = io.outs.filter(a => L.at[a]).sort((a, b) => X(a) - X(b));
+  ins.forEach(a => { const t = madeBy[a]; if (t && t !== id && L.at[t]) (ups[t] = ups[t] || []).push(a); });
+  outs.forEach(a => (readBy[a] || []).forEach(t => { if (t !== id && L.at[t] && !(downs[t] || []).includes(a)) (downs[t] = downs[t] || []).push(a); }));
+  const both = Object.keys(ups).filter(t => downs[t]).sort((a, b) => X(a) - X(b)), makers = Object.keys(ups).filter(t => !downs[t]).sort((a, b) => X(a) - X(b)), readers = Object.keys(downs).filter(t => !ups[t]);
+  const rank = a => { const t = madeBy[a], i = makers.indexOf(t); return i < 0 ? makers.length + (both.includes(t) ? 0 : 1) : i; };
+  ins.sort((a, b) => rank(a) - rank(b) || X(a) - X(b));
+  const lw = t => Math.round(Math.max(String(t.label).length * 7.4, String(t.sub || "").length * 6.3)), vw = (t, r) => 2 * r + 8 + lw(t);
+  const cell = (ids, role) => ids.map(a => { const t = L.at[a], r = t.kind === "stage" ? 9 : Math.min(15, t.r); return {id: a, t, r, role, cw: vw(t, r)}; });
+  const rowIn = cell(ins, "in"), rowOut = cell(outs, "out"), rowUp = cell(makers, "maker"), rowDown = cell(readers, "reader"), side = cell(both, "peer");
+  const pw = Math.round(Math.max(180, g.label.length * 7.4, 150) + 28), ph = FOC.pillH, D = Math.max(120, ph / 2 + 80);
+  const pack = (row, y, want) => { let x = -row.reduce((s, a) => s + a.cw, 0) / 2 - Math.max(0, row.length - 1) * FOC.gap / 2;      // left to right, each as near its wanted x as the one before allows
+    row.forEach(a => { a.x0 = want ? Math.max(x, want(a) - a.r) : x; a.x = a.x0 + a.r; a.y = y; x = a.x0 + a.cw + FOC.gap; }); };
+  pack(rowIn, -D); pack(rowOut, D);
+  const mean = (list, row) => list.length ? list.reduce((s, q) => s + row.find(a => a.id === q).x, 0) / list.length : 0;
+  pack(rowUp, -2 * D, a => mean(ups[a.id], rowIn)); pack(rowDown, 2 * D, a => mean(downs[a.id], rowOut));
+  const colX = Math.min(...[...rowIn, ...rowOut, {x: -pw / 2, r: 0}].map(a => a.x - a.r)) - 60;
+  side.forEach((p, i) => { p.x = colX - lw(p.t) - p.r - 6; p.y = (i - (side.length - 1) / 2) * FOC.stack; });
+  const N = [], E = [], put = a => { const t = a.t, r = a.r, lb = [a.x + r + 6, a.y - 13, a.x + r + 6 + lw(t), a.y + 16];
+    N.push({id: a.id, kind: t.kind, role: a.role, x: a.x, y: a.y, r, label: t.label, sub: t.sub, status: t.status, lside: "right", dot: [a.x - r, a.y - r, a.x + r, a.y + r], lbox: lb, box: [a.x - r, Math.min(a.y - r, lb[1]), lb[2], Math.max(a.y + r, lb[3])]}); };
+  [...rowUp, ...rowIn, ...rowOut, ...rowDown, ...side].forEach(put);
+  const pb = [-pw / 2, -ph / 2, pw / 2, ph / 2];
+  N.push({id, kind: "stage", role: "focus", x: 0, y: 0, r: 0, label: g.label, sub: `${g.workflows.length} workflow${g.workflows.length === 1 ? "" : "s"} · ${MAPW[g.status] || ""}`, status: g.status, lside: "in", pw, ph, dot: pb, lbox: pb, box: pb});
+  const shown = new Set(N.map(n => n.id)), others = L.nodes.filter(t => !shown.has(t.id)).map(t => ({id: t.id, kind: t.kind, r: t.r, p: t.id === id ? c : L.at[t.id] || c, ring: false}));
+  const fr = treeFrame(N, others, c), at = Object.fromEntries(N.map(n => [n.id, n])), F = at[id], ox = F.x, oy = F.y;
+  const ray = (side_, i, k) => { const ang = (side_ === "top" ? -Math.PI / 2 : Math.PI / 2) + fanAt(i, k, 0.42, 1.1) * (side_ === "top" ? 1 : -1); const o = rayRect(pw / 2, ph / 2, ang); return {x: ox + o.x, y: oy + o.y}; };
+  const top = n => ({x: n.x, y: n.y - n.r}), bot = n => ({x: n.x, y: n.y + n.r}), mid = (n, dx) => ({x: n.x + dx * n.r, y: n.y});
+  const edge = (from, to, k, P, Q, tip) => { const r = tLine(P, Q); E.push({from, to, kind: k, d: r.d, pts: r.pts, tip}); };
+  const name = x => at[x].label;
+  rowIn.forEach((a, i) => edge(a.id, id, "reads", bot(at[a.id]), ray("top", i, rowIn.length), `${g.label} reads ${name(a.id)}`));
+  rowOut.forEach((a, i) => edge(id, a.id, "made", ray("bottom", i, rowOut.length), top(at[a.id]), `${g.label} made ${name(a.id)}`));
+  rowUp.forEach(p => ups[p.id].forEach(a => edge(p.id, a, "made", bot(at[p.id]), top(at[a]), `${name(p.id)} made ${name(a)}`)));
+  rowDown.forEach(p => downs[p.id].forEach(a => edge(a, p.id, "reads", bot(at[a]), top(at[p.id]), `${name(p.id)} reads ${name(a)}`)));
+  side.forEach(p => { ups[p.id].forEach(a => edge(p.id, a, "made", mid(at[p.id], 1), mid(at[a], -1), `${name(p.id)} made ${name(a)}`)); downs[p.id].forEach(a => edge(a, p.id, "reads", mid(at[a], -1), mid(at[p.id], 1), `${name(p.id)} reads ${name(a)}`)); });
+  return {kind: "stage", id, mode: "focus", stage: id, W: fr.W, H: fr.H, nodes: N, edges: E, others, pos: fr.pos, expect: {ins, outs, makers: [...makers, ...both], readers: [...readers, ...both]}};
 }
-const treeFocusAll = m => { const L = mapTree(m), o = {stages: {}, wfs: {}, ovals: {}};
-  Object.keys(L.stages).forEach(id => { o.stages[id] = treeFocusOf(m, L, "stage", id, null); o.ovals[id] = treeOvalOf(m, L, id, null); }); (m.workflows || []).forEach(w => { o.wfs[w.id] = treeFocusOf(m, L, "wf", w.id, null); }); return o; };
+const treeFocusAll = m => { const L = mapTree(m), o = {stages: {}}; Object.keys(L.stages).forEach(id => { o.stages[id] = treeFocusOf(m, L, id, null); }); return o; };
+const treeFill = t => t.kind === "stage" ? "var(--node)" : t.kind === "charter" ? "color-mix(in srgb, var(--art) 45%, var(--node))"      // warm kinds: sand artifacts and Charter, the terracotta deliverable
+  : !t.n.tag || ["Spec", "Style", "Send"].includes(t.n.tag) ? "color-mix(in srgb, var(--art) 28%, var(--node))" : "color-mix(in srgb, var(--deliv) 50%, var(--node))";
 function treeHtml(m, other){      // other: the panel of a deliverable picked on the tree (only one panel shows at a time)
-  const L = mapTree(m), by = mapById(m), open = L.at[TREE.open] && L.at[TREE.open].kind === "stage" ? TREE.open : "";
-  const items = open ? treeWfItems(m, L.stages[open]) : [], pick = items.find(x => x.id === TREE.wf), fteam = !open && L.at[TREE.focus] && L.at[TREE.focus].kind === "stage" ? TREE.focus : "";
-  const c0 = L.at[open || fteam] || null, F = pick ? treeFocusOf(m, L, "wf", pick.id, c0) : open ? treeOvalOf(m, L, open, c0) : fteam ? treeFocusOf(m, L, "stage", fteam, c0) : null;
+  const L = mapTree(m), by = mapById(m), open = "", fteam = L.at[TREE.focus] && L.at[TREE.focus].kind === "stage" ? TREE.focus : "";
+  const F = fteam ? treeFocusOf(m, L, fteam, L.at[fteam]) : null;
   const byId = F ? Object.fromEntries(F.nodes.map(n => [n.id, n])) : {}, P = id => F && F.pos[id] ? F.pos[id] : L.at[id], hide = id => F && !byId[id] ? " tdim thide" : "";      // a focus keeps the words of what it shows only
   MAPTREE = {nodes: L.nodes.map(t => ({id: t.id, kind: t.kind, row: t.row, x: t.x, y: t.y, r: t.r, label: t.label, sub: t.sub, box: t.box, tag: t.n.tag, workflows: t.kind === "stage" ? t.n.workflows : t.n.workflows || []})),
     links: L.links.map(l => ({from: l.from, to: l.to, kind: l.kind, side: !!l.side, tip: l.tip, d: l.d, clear: l.clear})), crossings: L.crossings, pairs: L.pairs, W: L.W, H: L.H, open, focus: F};
@@ -1932,51 +1951,213 @@ function treeHtml(m, other){      // other: the panel of a deliverable picked on
     if (sd === "up") return `<text class="tlab" y="${tRd(-(r + 20))}" text-anchor="middle">${t(n.label)}</text><text class="tsub" y="${tRd(-(r + 6))}" text-anchor="middle">${t(n.sub)}</text>`;
     if (sd === "left" || sd === "right"){ const x = tRd((sd === "left" ? -1 : 1) * (r + 8)), a = sd === "left" ? "end" : "start"; return `<text class="tlab" x="${x}" y="-2" text-anchor="${a}">${t(n.label)}</text><text class="tsub" x="${x}" y="11" text-anchor="${a}">${t(n.sub)}</text>`; }
     return null; };
-  const pillBody = (n, k) => `<rect class="tdot" x="${-n.pw / 2}" y="${-n.ph / 2}" width="${n.pw}" height="${n.ph}" rx="12" fill="#1d2026" stroke="${k.stroke}" stroke-width="${Math.max(2, k.width)}"${k.dash}/>`
+  const pillBody = (n, k) => `<rect class="tdot" x="${-n.pw / 2}" y="${-n.ph / 2}" width="${n.pw}" height="${n.ph}" rx="12" fill="var(--node)" stroke="${k.stroke}" stroke-width="${Math.max(2, k.width)}"${k.dash}/>`
     + `<text class="tlab" y="-3" text-anchor="middle">${mapWords(n.label)}</text><text class="tsub" y="13" text-anchor="middle">${mapWords(n.sub)}</text>`;
   const edge = l => `<path class="tedge ${l.kind}${F || TREE.focus ? " tgone" : ""}" data-from="${esc(l.from)}" data-to="${esc(l.to)}" d="${l.d}"><title>${mapWords(l.kind === "back" ? l.tip : l.kind === "reads" ? `${(by[l.to] || {}).label} reads ${(by[l.from] || {}).label}` : l.kind === "made" ? `${L.at[l.from].label} made ${(by[l.to] || {}).label}` : `the Charter to ${L.at[l.to].label}`)}</title></path>`;
   const dot = t => { const k = look(t.status), p = P(t.id), nf = byId[t.id], pill = nf && nf.role === "focus", aria = `${t.label}: ${t.sub}${t.kind === "stage" ? ", focus it" : ", details"}`;
     const r = nf && !pill ? nf.r : t.r;      // a shape in a focus may be drawn smaller than in the Tree
     const glyph = pill ? "" : t.kind === "stage" ? [0, 72, 144, 216, 288].map(a => { const q = a * Math.PI / 180 - Math.PI / 2; return `<circle cx="${tRd(r * .5 * Math.cos(q))}" cy="${tRd(r * .5 * Math.sin(q))}" r="${tRd(Math.max(1.6, r * .15))}" class="tglyph"/>`; }).join("")
       : t.kind === "charter" ? `<circle r="${tRd(Math.max(2.6, r * .26))}" class="tglyph"/>` : t.n.tag === "Send" ? `<path class="tglyphl" d="M${tRd(-r * 1.2)} ${tRd(-r * .75)} L0 ${tRd(r * .1)} L${tRd(r * 1.2)} ${tRd(-r * .75)}"/>` : "";
-    const fill = t.status === "filed" ? "color-mix(in srgb, var(--ok) 22%, #1d2026)" : "#1d2026", ln = `stroke="${k.stroke}" stroke-width="${Math.max(1.6, k.width)}"${k.dash}`;
+    const fill = treeFill(t), ring = t.kind === "stage" && !/^(fault|waiting|waiting_on_you|done_unchecked)$/.test(t.status) ? "var(--team)" : k.stroke;      // the kind is the fill (a team's is its amber ring); the status stays on the outline
+    const ln = `stroke="${ring}" stroke-width="${Math.max(1.6, k.width)}"${k.dash}`;
     const body = pill ? pillBody(nf, k) : t.kind === "stage" || t.kind === "charter" ? `<circle class="tdot" r="${r}" fill="${fill}" ${ln}/>`      // a team or the Charter: a circle
       : t.n.tag === "Send" ? `<rect class="tdot" x="${tRd(-r * 1.2)}" y="${tRd(-r * .8)}" width="${tRd(r * 2.4)}" height="${tRd(r * 1.6)}" rx="3" fill="${fill}" ${ln}/>`      // an action: an envelope
       : `<rect class="tdot" x="${-r}" y="${-r}" width="${2 * r}" height="${2 * r}" rx="${tRd(r * .3)}" fill="${fill}" ${ln}/>`;      // an artifact: a rounded square
     const text = pill ? "" : lab(nf, r) || `<text class="tlab" y="${tRd(r + 17)}" text-anchor="middle">${mapWords(t.label)}</text><text class="tsub" y="${tRd(r + 31)}" text-anchor="middle">${mapWords(t.sub)}</text>`;
-    return `<g class="tnode t${t.kind}${hide(t.id)}${t.id === open ? " open" : ""}${t.id === MAPPIN ? " sel" : ""}${nf ? " tfit" : ""}${pill ? " tpill" : ""}${t.id === fteam ? " tfocusteam" : ""}" data-id="${esc(t.id)}" data-k="${esc(t.id)}" data-ax="${tRd(p.x)}" data-ay="${tRd(p.y)}" data-kind="${t.kind}" data-x="${t.x}" data-y="${t.y}" transform="translate(${tRd(p.x)},${tRd(p.y)})" tabindex="0" role="button" aria-label="${mapWords(aria)}"${t.kind === "stage" ? ` aria-expanded="${t.id === open}"` : ""}>`
+    return `<g class="tnode t${t.kind}${hide(t.id)}${t.id === MAPPIN ? " sel" : ""}${nf ? " tfit" : ""}${pill ? " tpill" : ""}${t.id === fteam ? " tfocusteam" : ""}" data-id="${esc(t.id)}" data-k="${esc(t.id)}" data-ax="${tRd(p.x)}" data-ay="${tRd(p.y)}" data-kind="${t.kind}" data-x="${t.x}" data-y="${t.y}" transform="translate(${tRd(p.x)},${tRd(p.y)})" tabindex="0" role="button" aria-label="${mapWords(aria)}">`
       + `<title>${mapWords(t.kind === "stage" ? `${t.label} · ${t.sub} · ${MAPW[t.status] || ""}` : mapTip(m, t.n))}</title>`
       + `${body}${glyph}` + mapBadge(t.status, tRd(r * .8), tRd(-r * .8)) + text + `</g>`; };
-  // the workflows (a team's circle, a focused workflow, its team-mates), and the faded ones on the border
-  const wfEl = (n, faded) => { const it = items.find(x => x.id === n.id) || {st: n.status, w: {name: n.id}}, k = look(faded ? n.st || "idle" : n.status), pill = n.role === "focus", name = (it.w || {}).name || "";
-    const p = F.pos[n.id], aria = `${n.id} ${name}: ${n.sub || ""}, ${pill ? "focused, press Enter to return" : "focus it"}`;
-    const body = pill ? pillBody(n, k) : `<circle class="tdot" r="7" fill="#1d2026" stroke="${k.stroke}" stroke-width="${Math.max(1.6, k.width)}"${k.dash}/>` + [0, 72, 144, 216, 288].map(a => { const q = a * Math.PI / 180 - Math.PI / 2; return `<circle cx="${tRd(3.1 * Math.cos(q))}" cy="${tRd(3.1 * Math.sin(q))}" r="1" class="tglyph"/>`; }).join("") + (faded ? "" : lab(n, 7));
-    return `<g class="tnode twf${TREE.wf === n.id ? " sel" : ""}${faded ? " tdim thide" : " tfit"}${pill ? " tpill" : ""}" data-wf="${esc(n.id)}" data-k="${esc(n.id)}" data-ax="${tRd(p.x)}" data-ay="${tRd(p.y)}" transform="translate(${tRd(p.x)},${tRd(p.y)})" tabindex="0" role="button" aria-label="${mapWords(aria)}">${body}</g>`; };
-  const wfHtml = F ? `<g class="tring">` + F.nodes.filter(n => n.kind === "wf").map(n => wfEl(n, false)).join("") + F.others.filter(o => o.kind === "wf").map(o => wfEl(Object.assign({}, o, {st: (items.find(x => x.id === o.id) || {}).st}), true)).join("") + `</g>` : "";
   const fedges = F ? F.edges.map(e => `<path class="tedge fedge ${e.kind}" data-from="${esc(e.from)}" data-to="${esc(e.to)}"${e.wf ? ` data-wf="${esc(e.wf)}"` : ""} d="${e.d}"><title>${mapWords(e.tip)}</title></path>`).join("") : "";
   const z = TREE.zoom, VW = F ? F.W : L.W, VH = F ? F.H : L.H;
   const svg = `<svg class="treesvg${F ? " tfocused" : ""}" viewBox="0 0 ${VW} ${VH}" data-w="${VW}" data-h="${VH}" data-crossings="${L.crossings}" role="group" aria-label="Map, tree view: the Charter, the teams and what each made">`
-    + `<g class="tview"${z ? ` transform="translate(${tRd(z.x)},${tRd(z.y)}) scale(${z.k})"` : ""}><g class="tedges">${L.links.map(edge).join("")}${fedges}</g><g class="tnodes">${L.nodes.map(dot).join("")}${wfHtml}</g><g class="tflows"></g></g>`
+    + `<g class="tview"${z ? ` transform="translate(${tRd(z.x)},${tRd(z.y)}) scale(${z.k})"` : ""}><g class="tedges">${L.links.map(edge).join("")}${fedges}</g><g class="tnodes">${L.nodes.map(dot).join("")}</g><g class="tflows"></g></g>`
     + `<defs>${["fin", "fout"].map(k => `<marker id="tarr-${k}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="tarr ${k}" d="M0 0 L8 4 L0 8 z"/></marker>`).join("")}</defs></svg>`;
-  const ws = pick && !TREE.nopanel && pick.w, readers = ws ? (m.workflows || []).filter(w => (w.reads || []).includes(ws.id)).map(w => w.id) : [], box = ws && by[ws.box];
-  const panel = ws ? `<aside class="mappanel treepanel" data-wfpanel="${esc(ws.id)}" aria-label="Details of ${esc(ws.id)}"><div class="mappanelhead"><b>${mapWords(ws.id)} · ${mapWords(ws.name)}</b><button type="button" class="linkbtn" data-treewfclose>Close (Esc)</button></div>`
-    + [`status: ${mapWords(pick.word && pick.word !== MAPS[pick.st] ? pick.word : MAPW[pick.st] || pick.st)}${ws.status ? " (workflow " + mapWords(ws.status) + ")" : ""}`, `delivers: ${box ? mapWords(box.label) : "not recorded"}`,
-       `reads: ${(ws.reads || []).length ? ws.reads.map(x => mapWords(x)).join(", ") : "nothing recorded"}`, `read by: ${readers.length ? readers.map(x => mapWords(x)).join(", ") : "nothing recorded"}`,
-       ws.checks && ws.checks.run ? `checks: ${ws.checks.passed} of ${ws.checks.run} passed` : "checks: none recorded"].map(x => `<div class="sub">${x}</div>`).join("")
-    + `<div class="sub"><button type="button" class="gobtn" data-wfcard="${esc(ws.id)}">Open</button> <button type="button" class="linkbtn" data-agent="${esc(ws.id)}">See conversation and thinking</button>${box ? ` <button type="button" class="linkbtn" data-mapgo="${esc(box.id)}">${mapWords(mapGoLabel(box))}</button>` : ""}</div></aside>` : "";
-  const tid = open || fteam, g = tid && L.stages[tid], made = g ? g.steps.map(id => mapStepTo(m, by[id])).filter(Boolean) : [];
+  const tid = fteam, g = tid && L.stages[tid], made = g ? g.steps.map(id => mapStepTo(m, by[id])).filter(Boolean) : [];
   const bar = `<div class="treebar"><button type="button" class="linkbtn" data-treefit>Fit</button><button type="button" class="linkbtn" data-treeback${tid ? "" : " hidden"}>Back</button>`
-    + `<span class="sub">${pick ? `${mapWords(pick.id)} focused: what it read above, what it made below, the team's workflows beside it. Esc, Back or empty space returns to the team; a click on it opens its details.`
-      : open ? `${mapWords(L.at[open].label)}: ${L.stages[open].workflows.length} workflow${L.stages[open].workflows.length === 1 ? "" : "s"}, what it reads on the left and made on the right. Click a workflow to focus it. Esc, Back or a click on empty space returns.`
-      : fteam ? `${mapWords(L.at[fteam].label)} focused: what it reads above, what it made below, the teams beside it. Click it again to open its workflows; Esc, Back or empty space returns.` : "Click a team to focus it. Drag to pan, scroll or pinch to zoom."}</span></div>`;
-  const stagePanel = g && !pick ? `<aside class="mappanel treepanel" data-stagepanel="${esc(tid)}" aria-label="Details of ${esc(g.label)}"><div class="mappanelhead"><b>${mapWords(g.label)}</b><button type="button" class="linkbtn" data-treeback>Close (Esc)</button></div>`
+    + `<span class="sub">${fteam ? `${mapWords(L.at[fteam].label)} focused: what it reads above it and the teams that made that, what it made below it and the teams that read that. Click it again to open the team; Esc, Back or empty space returns.` : "Click a team to focus it. Drag to pan, scroll or pinch to zoom."}</span></div>`;
+  const stagePanel = g ? `<aside class="mappanel treepanel" data-stagepanel="${esc(tid)}" aria-label="Details of ${esc(g.label)}"><div class="mappanelhead"><b>${mapWords(g.label)}</b><button type="button" class="linkbtn" data-treeback>Close (Esc)</button></div>`
     + [`${g.workflows.length} workflow${g.workflows.length === 1 ? "" : "s"}: ${g.workflows.map(x => mapWords(x)).join(", ")}`, `made: ${made.map(x => mapWords(x.label)).join(", ") || "not recorded"}`, MAPW[g.status] || ""].filter(Boolean).map(x => `<div class="sub">${x}</div>`).join("")
-    + `<div class="sub">${fteam ? `<button type="button" class="gobtn" data-treeopen="${esc(fteam)}">Open its workflows</button> ` : ""}${open ? `<button type="button" class="linkbtn" data-mapgo="${esc(g.steps[0])}">${mapWords(mapGoLabel(by[g.steps[0]]))}</button> Click a workflow in the circle to focus it.` : ""}</div></aside>` : "";
-  return `<div class="treebox">${bar}${svg}${panel || (other || "").replace('class="mappanel"', 'class="mappanel treepanel"') || stagePanel}</div>`;
+    + `<div class="sub"><button type="button" class="gobtn" data-treeopen="${esc(fteam)}">Open its workflows</button></div></aside>` : "";
+  return `<div class="treebox">${bar}${svg}${(other || "").replace('class="mappanel"', 'class="mappanel treepanel"') || stagePanel}</div>`;
 }
 // Tree view at run time: pan and zoom (d3-zoom), the 300 ms move of a stage to the middle and back, and the clicks. renderMap draws
 // the state in TREE; these only animate between two drawn states and then repaint.
-function paintMap(){ paint($("pane-map"), renderMap(MAP)); treeMount(); treeAvoid(); lineMount(); consPlace(); }
+// ---- Edges, every map view (Tree, Line, a team, a sun): one style, worked out on the drawn page so every view is the same. Each edge is one smooth bend, a cubic
+// from border to border: its bow grows with its length (a short edge is nearly straight) and turns to whichever side clears every node and every label; the edges
+// into one node come in at even angles; a rounded arrowhead (about 6px) sits at the target's border; reads blue, makes amber, fixes terracotta, with a light
+// gradient from source to target; an edge with one running back the other way (a read-back loop) is dashed.
+const EDGEV = [["treesvg", ".tnodes > .tnode", ".tedge"], ["consvg", ".cnodes > .cnode", ".cline"], ["mapsvg", ".mapnode", ".mapedge, .mapln"]];
+let EDGEUID = 0;
+function edgeKind(svg, e){
+  const c = e.classList;
+  if (c.contains("fix") || c.contains("more")) return "fix";
+  if (c.contains("made") || c.contains("makes") || c.contains("spoke") || c.contains("given")) return "makes";
+  if (c.contains("mapedge") || c.contains("mapln")){ const by = mapById(MAP), a = by[e.dataset.from], b = by[e.dataset.to]; if (a && a.kind === "engine" && b && b.kind !== "engine") return "makes"; }
+  return "reads";
+}
+function edgeMount(svg){      // once a drawing: the arrowheads, then the routes (edgeRoute again after a node is dropped somewhere new)
+  if (!svg || svg.__edged || !svg.getClientRects().length || !svg.getBBox) return; const v = EDGEV.find(x => svg.classList.contains(x[0])); if (!v) return; svg.__edged = ++EDGEUID;
+  let defs = svg.querySelector(":scope > defs"); if (!defs){ defs = document.createElementNS("http://www.w3.org/2000/svg", "defs"); svg.insertBefore(defs, svg.firstChild); }
+  defs.insertAdjacentHTML("beforeend", ["reads", "makes", "fix"].map(k => `<marker id="ea-${k}-${svg.__edged}" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto"><path class="earr e-${k}" d="M1.4 1.4 L7.2 4 L1.4 6.6 Q2.4 4 1.4 1.4 Z"/></marker>`).join(""));
+  edgeRoute(svg);
+}
+function edgeRoute(svg){
+  const v = EDGEV.find(x => svg.classList.contains(x[0])), uid = svg.__edged, quiet = svg.classList.contains("quiet"), shown = el => el.getClientRects().length > 0;
+  const off = el => { const m = /translate\(([-\d.e]+)[ ,]+([-\d.e]+)\)/.exec(el.getAttribute("transform") || ""); return m ? [+m[1], +m[2]] : [0, 0]; };
+  const bb = (el, o) => { const b = el.getBBox(); return [b.x + o[0], b.y + o[1], b.x + b.width + o[0], b.y + b.height + o[1]]; };
+  const nodes = {};
+  svg.querySelectorAll(v[1]).forEach(g => { const o = off(g), sh = [...g.querySelectorAll(".tdot, .ccore, .cdia, .cwf, .cdoc, .cbadge, .shape")].filter(shown).map(x => bb(x, o)); if (!sh.length) return;
+    const b = [Math.min(...sh.map(q => q[0])), Math.min(...sh.map(q => q[1])), Math.max(...sh.map(q => q[2])), Math.max(...sh.map(q => q[3]))];
+    const texts = quiet ? [] : [...g.querySelectorAll("text")].filter(t => shown(t) && t.textContent.trim()).map(t => bb(t, o));
+    const u = texts.reduce((q, t) => [Math.min(q[0], t[0]), Math.min(q[1], t[1]), Math.max(q[2], t[2]), Math.max(q[3], t[3])], b);      // the node with its words
+    nodes[g.dataset.cid || g.dataset.id] = {b, u, c: [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], hw: (b[2] - b[0]) / 2, hh: (b[3] - b[1]) / 2, round: !!g.querySelector("circle.tdot, .ccore, .cwf, circle.shape, .cbadge"), texts}; });
+  const obst = Object.entries(nodes).flatMap(([id, n]) => [[id, n.b], ...n.texts.map(t => [id, t])]);
+  const leave = (n, th, gap) => { const c = Math.cos(th), s = Math.sin(th), t = Math.min(c > 0 ? (n.u[2] - n.c[0]) / c : c < 0 ? (n.u[0] - n.c[0]) / c : 1e9, s > 0 ? (n.u[3] - n.c[1]) / s : s < 0 ? (n.u[1] - n.c[1]) / s : 1e9) + gap; return [n.c[0] + c * t, n.c[1] + s * t]; };      // out past its own words
+  const edge = (n, th, gap) => { const r = n.round ? Math.max(n.hw, n.hh) : null, o = r ? {x: r * Math.cos(th), y: r * Math.sin(th)} : rayRect(n.hw, n.hh, th); return [n.c[0] + o.x + gap * Math.cos(th), n.c[1] + o.y + gap * Math.sin(th)]; };
+  const es = [...svg.querySelectorAll(v[2])].filter(shown).map(e => ({e, from: e.dataset.from, to: e.dataset.to, a: nodes[e.dataset.from], b: nodes[e.dataset.to]})).filter(x => x.a && x.b && x.a !== x.b);
+  const pairs = new Set(es.map(x => x.from + "\u0001" + x.to));
+  // fan-in: the edges into one node come in at least 16° apart, round the way they would come by themselves
+  const into = {}; es.forEach(x => { x.th = Math.atan2(x.a.c[1] - x.b.c[1], x.a.c[0] - x.b.c[0]); (into[x.to] = into[x.to] || []).push(x); });
+  Object.values(into).forEach(list => { if (list.length < 2) return; list.sort((p, q) => p.th - q.th); const D = Math.min(16 * Math.PI / 180, 2 * Math.PI / list.length), want = list.map(x => x.th);
+    for (let i = 1; i < list.length; i++) list[i].th = Math.max(list[i].th, list[i - 1].th + D); const shift = (list[list.length - 1].th - want[want.length - 1] + list[0].th - want[0]) / 2; list.forEach(x => { x.th -= shift; }); });
+  const cubic = (P, c1, c2, Q, k) => [...Array(k + 1)].map((_, i) => { const u = i / k, w = 1 - u; return [w * w * w * P[0] + 3 * w * w * u * c1[0] + 3 * w * u * u * c2[0] + u * u * u * Q[0], w * w * w * P[1] + 3 * w * w * u * c1[1] + 3 * w * u * u * c2[1] + u * u * u * Q[1]]; });
+  const hits = pts => pts.slice(2, -2).reduce((s, [x, y]) => s + obst.filter(([, b]) => x > b[0] - 1.5 && x < b[2] + 1.5 && y > b[1] - 1.5 && y < b[3] + 1.5).length, 0);      // with a little room round every box
+  const defs = svg.querySelector(":scope > defs"); let html = "";
+  es.forEach((x, i) => {
+    const A = x.a.c, B = x.b.c, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, side = x.from < x.to ? 1 : -1;
+    let best = null;
+    // the plainest first: the bow alone, then a turned arrival, then a turned departure (round a label under the node it leaves)
+    const tries = []; [0, 1].forEach(w => [0, 0.6, -0.6, 1.2, -1.2, 1.7, -1.7].forEach((ds, i) => [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1, 1.6, -1.6, 2.1, -2.1, 2.6, -2.6].forEach((dt, j) => [0.1, -0.1, 0.2, -0.2, 0.32, -0.32, 0.04, -0.04, 0.5, -0.5, 0.75, -0.75].forEach((f, k) => [1 / 3, 0.6, 0.9, 1.3].forEach((g, l) => tries.push([w * 100 + i + j + k / 4 + l * 2, w, ds, dt, f, g]))))));
+    tries.sort((p, q) => p[0] - q[0]);      // leaving past its own words only when nothing from its border is clear; round a label at the far end by a wider arrival
+    for (const [, w, ds, dt, f, g] of tries){
+      const h = f * side * L, th = x.th + dt, Q = edge(x.b, th, 2), c2 = [Q[0] + Math.cos(th) * L * g, Q[1] + Math.sin(th) * L * g];
+      const ts = Math.atan2(dy + ny * h * 3, dx + nx * h * 3) + ds, P = w ? leave(x.a, ts, 3) : edge(x.a, ts, 1.5), c1 = [P[0] + Math.cos(ts) * L * g, P[1] + Math.sin(ts) * L * g], pts = cubic(P, c1, c2, Q, Math.min(400, Math.max(24, Math.ceil((Math.hypot(c1[0] - P[0], c1[1] - P[1]) + Math.hypot(c2[0] - c1[0], c2[1] - c1[1]) + Math.hypot(Q[0] - c2[0], Q[1] - c2[1])) / 3)))), n = hits(pts);      // a point every 3px or so
+      if (!best || n < best.n) best = {n, P, c1, c2, Q}; if (!n) break; }
+    const r = q => q.map(tRd), {P, c1, c2, Q} = best, kind = edgeKind(svg, x.e), id = x.e.dataset.grad || `eg-${uid}-${i}`, gr = x.e.dataset.grad && defs.querySelector(`#${id}`);
+    x.e.setAttribute("d", `M${r(P).join(" ")} C${r(c1).join(" ")} ${r(c2).join(" ")} ${r(Q).join(" ")}`); x.e.dataset.grad = id;
+    if (gr) [["x1", P[0]], ["y1", P[1]], ["x2", Q[0]], ["y2", Q[1]]].forEach(([k, val]) => gr.setAttribute(k, tRd(val)));      // a route again: its gradient follows
+    else html += `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${tRd(P[0])}" y1="${tRd(P[1])}" x2="${tRd(Q[0])}" y2="${tRd(Q[1])}"><stop offset="0" style="stop-color:var(--e-${kind});stop-opacity:.82"/><stop offset="1" style="stop-color:var(--e-${kind})"/></linearGradient>`;
+    x.e.style.stroke = `url(#${id})`; x.e.setAttribute("marker-end", `url(#ea-${kind}-${uid})`); x.e.dataset.edge = kind; x.e.classList.add("e-" + kind);
+    x.e.classList.toggle("loop", x.e.classList.contains("back") || pairs.has(x.to + "\u0001" + x.from)); x.e.dataset.clear = best.n ? "0" : "1"; });
+  if (html) defs.insertAdjacentHTML("beforeend", html);
+}
+// ---- Motion, every map view (Tree, Line, a team, a sun). Each node is held to its place by a spring (d3-force: a strong forceX / forceY to it), never a free
+// layout: its place is its computed slot, or where the viewer dropped it. A drag moves only that node, its lines and words following live; let go, it stays there
+// (pinned, kept per viewer, run and view) and the lines route again round the new picture; "Reset layout" glides every node home and forgets the pins. Hover pulls
+// its neighbours in a little and eases the rest away (not while dragging); a new view or focus springs each node in from where it stood, with a small overshoot;
+// at rest the nodes drift by about a pixel (CSS). Settled, every node sits exactly on its place. Reduced motion: no drift, no overshoot, no glide, all at once.
+const MOTION = {k: 0.18, decay: 0.4, near: 6, away: 3, frames: []},      // spring and friction: about 5% overshoot, settled in about 30 frames
+  MVIEWS = [{svg: "treesvg", node: ".tnodes > .tnode", edge: ".tedge", abs: true, cls: "tmoving"}, {svg: "consvg", node: ".cnodes > .cnode", edge: ".cline", abs: true, cls: "cmoving"},
+    {svg: "mapsvg", node: ".mapnode", edge: ".mapedge, .mapln", abs: false, cls: "mmoving"}];
+function motionPath(d){      // a path's points (absolute commands), each as the token positions of its x and y (-1 for the one H or V leaves alone)
+  const t = String(d || "").match(/[A-Za-z]|-?\d*\.?\d+(?:e-?\d+)?/g) || [], pts = []; let c = "", n = 0;
+  t.forEach((x, i) => { if (/^[A-Za-z]$/.test(x)){ c = x.toUpperCase(); n = 0; return; } const per = c === "A" ? 7 : c === "H" || c === "V" ? 1 : 2, j = n++ % per;
+    if (c === "H") pts.push([i, -1]); else if (c === "V") pts.push([-1, i]); else if (c === "A" ? j === 5 : j === 0) pts.push([i, i + 1]); });
+  return {t, pts};
+}
+const motionD = (P, a, b) => { const t = P.t.slice(), m = P.pts.length - 1;      // the path with its start moved by a, its end by b and every point between by its share
+  P.pts.forEach(([i, j], q) => { const u = m > 0 ? q / m : 0; if (i >= 0) t[i] = tRd(+t[i] + a[0] + (b[0] - a[0]) * u); if (j >= 0) t[j] = tRd(+t[j] + a[1] + (b[1] - a[1]) * u); });
+  return t.join(" ").replace(/ ?([A-Za-z]) ?/g, "$1"); };
+const motionKey = svg => { const v = svg.classList.contains("treesvg") ? "tree" + (TREE.focus ? ":" + TREE.focus : "") : svg.classList.contains("consvg") ? `c:${svg.dataset.kind}:${svg.dataset.cons}`
+  : "line:" + (svg.classList.contains("mapvert") ? "v" : "h"); return `j2pos:${(typeof viewRun !== "undefined" && viewRun) || "live"}:${v}`; };      // per viewer, run and view
+function motionPins(svg){ try { return JSON.parse(localStorage.getItem(motionKey(svg)) || "{}") || {}; } catch (e) { return {}; } }
+function motionSave(M){ const pins = Object.fromEntries(M.nodes.filter(n => n.px != null).map(n => [n.id, [tRd(n.px), tRd(n.py)]]));
+  try { if (Object.keys(pins).length) localStorage.setItem(motionKey(M.svg), JSON.stringify(pins)); else localStorage.removeItem(motionKey(M.svg)); } catch (e) {} motionButton(M); }
+const motionHome = n => [n.px != null ? n.px : n.hx, n.py != null ? n.py : n.hy];      // its place: where it was dropped, else its slot
+function motionOf(svg){
+  if (svg.__m) return svg.__m; const v = MVIEWS.find(x => svg.classList.contains(x.svg)); if (!v || typeof d3 === "undefined" || !d3.forceSimulation || !svg.getClientRects().length) return null; edgeMount(svg);
+  const nodes = [...svg.querySelectorAll(v.node)].map(el => { const s = v.svg === "treesvg" ? [+el.dataset.ax, +el.dataset.ay] : v.abs ? [+el.dataset.x, +el.dataset.y] : (b => [b.x + b.width / 2, b.y + b.height / 2])(el.getBBox());      // the slot (a Line node: its middle)
+    return {el, id: el.dataset.cid || el.dataset.id, hx: s[0], hy: s[1], ex: s[0], ey: s[1], x: s[0], y: s[1], tx: s[0], ty: s[1]}; });      // ex, ey: where it stood when its lines were routed
+  const by = Object.fromEntries(nodes.map(n => [n.id, n])), nb = {};
+  const edges = [...svg.querySelectorAll(v.edge)].filter(e => by[e.dataset.from] || by[e.dataset.to]).map(e => { [[e.dataset.from, e.dataset.to], [e.dataset.to, e.dataset.from]].forEach(([a, b]) => { (nb[a] = nb[a] || new Set()).add(b); });
+    return {el: e, d0: e.getAttribute("d"), P: motionPath(e.getAttribute("d")), a: by[e.dataset.from], b: by[e.dataset.to]}; });
+  const sim = d3.forceSimulation(nodes).alphaDecay(0).velocityDecay(MOTION.decay).force("x", d3.forceX(n => n.tx).strength(MOTION.k)).force("y", d3.forceY(n => n.ty).strength(MOTION.k)).stop();
+  const M = svg.__m = {svg, v, nodes, by, nb, edges, sim, ticks: 0};
+  const pins = motionPins(svg); let any = false;
+  Object.entries(pins).forEach(([id, p]) => { const n = by[id]; if (n && Array.isArray(p)){ n.px = n.x = n.tx = +p[0]; n.py = n.y = n.ty = +p[1]; any = true; } });
+  if (any){ motionDraw(M); motionRoute(M); }
+  nodes.forEach(n => d3.select(n.el).call(d3.drag().clickDistance(4).touchable(() => true).subject(() => ({x: n.x, y: n.y}))      // a move of more than 4px is a drag: no click, no focus; a finger too
+    .on("start", e => { const se = e.sourceEvent; if (se && se.type === "mousedown") se.preventDefault(); M.drag = {n, x: n.x, y: n.y, moved: false};
+      M.loop = false; M.nodes.forEach(m => { [m.tx, m.ty] = motionHome(m); if (m !== n){ m.x = m.tx; m.y = m.ty; m.vx = m.vy = 0; } }); motionDraw(M); })      // the others stand still on their places
+    .on("drag", e => { const d = M.drag; if (!d) return; if (!d.moved && Math.hypot(e.x - d.x, e.y - d.y) <= 4) return; d.moved = true; M.loop = false; n.x = n.tx = e.x; n.y = n.ty = e.y; motionDraw(M); })
+    .on("end", () => { const d = M.drag; M.drag = null; if (!d || !d.moved) return; n.px = n.tx = n.x; n.py = n.ty = n.y; n.vx = n.vy = 0; motionDraw(M); motionRoute(M); motionSave(M); })));
+  nodes.forEach(n => n.el.style.removeProperty("-webkit-tap-highlight-color"));      // (d3 writes it inline; the stylesheet has it)
+  motionButton(M);
+  return M;
+}
+function motionRoute(M){      // the lines routed again round the nodes where they now stand
+  edgeRoute(M.svg); M.edges.forEach(e => { e.d0 = e.el.getAttribute("d"); e.P = motionPath(e.d0); }); M.nodes.forEach(n => { n.ex = n.x; n.ey = n.y; });
+}
+function motionButton(M){ const b = M.svg.closest(".mapsvgwrap, .consbox") && motionResetBtn(M.svg); if (b) b.disabled = !M.nodes.some(n => n.px != null); }
+function motionResetBtn(svg){      // "Reset layout", under the drawing, middle; one for the view on show
+  const box = svg.closest(".consbox") || svg.closest(".mapsvgwrap"); if (!box) return null; let b = box.parentElement.querySelector(":scope > .mapreset");
+  if (!b){ b = document.createElement("button"); b.type = "button"; b.className = "mapreset"; b.dataset.mapreset = ""; b.textContent = "Reset layout"; b.title = "Put every node back where the map placed it"; box.insertAdjacentElement("afterend", b); }
+  return b;
+}
+function motionReset(svg){      // every node home in 300 ms (at once with reduced motion), the saved places forgotten
+  const M = svg && motionOf(svg); if (!M) return; M.loop = false; const from = M.nodes.map(n => [n.x, n.y]);
+  M.nodes.forEach(n => { delete n.px; delete n.py; n.tx = n.hx; n.ty = n.hy; n.vx = n.vy = 0; }); motionSave(M);
+  const done = () => { M.nodes.forEach(n => { n.x = n.hx; n.y = n.hy; }); motionDraw(M); motionRoute(M); M.svg.dataset.settled = "1"; M.svg.classList.remove(M.v.cls); };
+  if (treeReduce()) return done();
+  const id = M.glide = (M.glide || 0) + 1, t0 = performance.now(); M.svg.dataset.settled = "0"; M.svg.classList.add(M.v.cls);
+  const step = () => { if (M.glide !== id || !M.svg.isConnected) return; const u = Math.min(1, (performance.now() - t0) / 300), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    M.nodes.forEach((n, i) => { n.x = from[i][0] + (n.hx - from[i][0]) * e; n.y = from[i][1] + (n.hy - from[i][1]) * e; }); motionDraw(M); if (u < 1) motionNext(step); else done(); };
+  motionNext(step);
+}
+const motionNext = f => { let ran = false; const go = () => { if (!ran){ ran = true; f(); } }; requestAnimationFrame(go); setTimeout(go, 20); };      // the next frame, or 20 ms where a tab draws none
+function motionDraw(M){
+  M.nodes.forEach(n => { const x = tRd(n.x), y = tRd(n.y);
+    if (M.v.abs) n.el.setAttribute("transform", `translate(${x},${y})`); else if (x === tRd(n.hx) && y === tRd(n.hy)) n.el.removeAttribute("transform"); else n.el.setAttribute("transform", `translate(${tRd(n.x - n.hx)},${tRd(n.y - n.hy)})`); });
+  M.edges.forEach(e => { const o = q => q ? [q.x - q.ex, q.y - q.ey] : [0, 0], a = o(e.a), b = o(e.b); e.el.setAttribute("d", Math.max(...a.map(Math.abs), ...b.map(Math.abs)) < 0.05 ? e.d0 : motionD(e.P, a, b)); });
+}
+function motionTick(M){      // one frame: the spring steps, the nodes and their lines are drawn; the frame's own time is kept (MOTION.frames)
+  const t0 = performance.now(); M.ticks++; M.sim.tick(); motionDraw(M);
+  M.nodes.forEach(n => { n.still = Math.hypot(n.vx, n.vy) < 0.05 ? (n.still || 0) + 1 : 0; });      // still for five frames (not the top of a swing): then exactly on the slots
+  if (M.nodes.every(n => (Math.hypot(n.x - n.tx, n.y - n.ty) < 0.5 && n.still > 0 || n.still >= 5)) || M.ticks > 400) motionRest(M);
+  MOTION.frames.push(performance.now() - t0); if (MOTION.frames.length > 600) MOTION.frames.shift();
+}
+function motionLoop(M){      // the frames: on the display's own beat, or every 20 ms where a tab draws none
+  if (M.loop) return; M.loop = true;
+  const next = () => { let ran = false; const go = () => { if (ran || !M.loop) return; ran = true; if (!M.svg.isConnected) { M.loop = false; return; } motionTick(M); if (M.loop) next(); };
+    requestAnimationFrame(go); setTimeout(go, 20); };
+  next();
+}
+function motionRest(M){      // settled: every node exactly on its target (its slot, unless a hover holds it), the drawing as laid out
+  M.loop = false; M.nodes.forEach(n => { n.x = n.tx; n.y = n.ty; n.vx = n.vy = 0; }); motionDraw(M);
+  M.svg.classList.remove(M.v.cls); M.svg.dataset.settled = "1"; if (M.v.svg === "treesvg") TREE.moving = false;
+}
+function motionGo(M){
+  M.ticks = 0; M.svg.dataset.settled = "0";
+  if (treeReduce()) return motionRest(M);      // reduced motion: at once
+  M.svg.classList.add(M.v.cls); if (M.v.svg === "treesvg") TREE.moving = true; M.sim.alpha(1); M.sim.force("x").x(n => n.tx); M.sim.force("y").y(n => n.ty); motionLoop(M);      // (forceX keeps its targets until told again)
+}
+function motionFrom(svg, prev, from){      // a new view or focus: each node springs in from where it stood, a new one from the node clicked (or out from the middle)
+  const M = svg && motionOf(svg); if (!M) return; prev = prev || {};
+  const o = prev[from] || null, mx = M.nodes.reduce((s, n) => s + motionHome(n)[0], 0) / Math.max(1, M.nodes.length), my = M.nodes.reduce((s, n) => s + motionHome(n)[1], 0) / Math.max(1, M.nodes.length);
+  M.nodes.forEach(n => { [n.tx, n.ty] = motionHome(n); });
+  if (!treeReduce()) M.nodes.forEach(n => { const p = prev[n.id] || prev[String(n.id).replace(/^wf:/, "")] || o || [mx + (n.tx - mx) * 0.85, my + (n.ty - my) * 0.85]; n.x = p[0]; n.y = p[1]; });
+  motionGo(M);
+}
+function motionHover(svg, id){      // its neighbours lean in, the rest ease away; "" lets them all go back
+  const M = svg && motionOf(svg); if (!M || treeReduce() || (id && M.drag)) return; const h = M.by[id], near = (h && M.nb[id]) || new Set(), H = h && motionHome(h);
+  M.nodes.forEach(n => { [n.tx, n.ty] = motionHome(n); if (!h || n === h) return; const dx = H[0] - n.tx, dy = H[1] - n.ty, d = Math.hypot(dx, dy) || 1, f = near.has(n.id) ? MOTION.near : -MOTION.away;
+    n.tx += dx / d * f; n.ty += dy / d * f; });
+  motionGo(M);
+}
+function motionHoverEvt(e, on){ if (!/^mouse/.test(e.type)) return; const g = e.target.closest && e.target.closest(".tnodes > .tnode, .cnodes > .cnode, .mapnode"); if (!g) return;
+  if (!on && e.relatedTarget && g.contains(e.relatedTarget)) return; motionHover(g.ownerSVGElement, on ? g.dataset.cid || g.dataset.id : ""); }
+function motionMount(){ $("pane-map").querySelectorAll && $("pane-map").querySelectorAll(".treesvg, .consvg, .mapsvg").forEach(motionOf); }
+function motionInertia(zoom, svg){      // a pan keeps going after the pointer lets go, slowing to a stop (not with reduced motion)
+  let last = null, vel = [0, 0];
+  zoom.on("start.inertia", e => { if (!e.sourceEvent) return; svg.__coast = (svg.__coast || 0) + 1; last = null; vel = [0, 0]; })
+    .on("zoom.inertia", e => { const s = e.sourceEvent; if (!s || !/move/.test(s.type)) return; const t = performance.now(); if (last){ const dt = Math.max(1, t - last.t); vel = [(e.transform.x - last.x) / dt, (e.transform.y - last.y) / dt]; } last = {x: e.transform.x, y: e.transform.y, t}; })
+    .on("end.inertia", e => { if (!e.sourceEvent || treeReduce() || !last || performance.now() - last.t > 80 || Math.hypot(...vel) < 0.05) return;
+      const id = ++svg.__coast; let [vx, vy] = vel, t = performance.now();
+      const step = now => { if (svg.__coast !== id || !svg.isConnected) return; const dt = Math.max(1, now - t), k = d3.zoomTransform(svg).k; t = now; const f = Math.pow(0.94, dt / 16); vx *= f; vy *= f;
+        if (Math.hypot(vx, vy) < 0.01) return; zoom.translateBy(d3.select(svg), vx * dt / k, vy * dt / k); requestAnimationFrame(step); };
+      requestAnimationFrame(step); });
+}
+function paintMap(){ paint($("pane-map"), renderMap(MAP)); treeMount(); treeAvoid(); lineMount(); consPlace(); motionMount(); }
 // Line view: the same pan and zoom as the Tree, in screen pixels (the viewBox is the card's size, so the labels stay vector and crisp). Fit scales the drawing's
 // content box to the card with a margin; when that would make a label smaller than 11px, it holds 11px and the side that overflows pans instead. Zoom is 0.25x to 4x of the fit.
 const LINE = {zoom: {}}, LINEM = 12, LINEMIN = 11, LINEBOT = 44,      // LINEBOT: the legend chip sits in the bottom-left corner; the fit leaves its strip clear
@@ -1984,10 +2165,10 @@ const LINE = {zoom: {}}, LINEM = 12, LINEMIN = 11, LINEBOT = 44,      // LINEBOT
 const lineSvgs = () => [...$("pane-map").querySelectorAll(".mapsvgwrap[data-view=line] .mapsvg, .consvg")];      // a constellation pans and zooms as the Line view
 function lineFitOf(svg){
   const g = svg.querySelector(".lview"), cw = svg.clientWidth, ch = svg.clientHeight, M = LINEM, tf = g.getAttribute("transform");
-  g.removeAttribute("transform"); let b = (g.querySelector(".cnodes") || g).getBBox();      // a solar system: its nodes, not its sky      // text metrics shift a fraction of a pixel with the scale: always measure at 1
+  g.removeAttribute("transform"); svg.classList.add("nodrift"); let b = (g.querySelector(".cnodes") || g).getBBox();      // a solar system: its nodes, not its sky; measured without the drift      // text metrics shift a fraction of a pixel with the scale: always measure at 1
   const lit = svg.classList.contains("focusing") ? [...g.querySelectorAll(".cnode.lit, .cline.lit")].map(x => x.getBBox()) : [];      // a constellation's focus: fit what it lights
   if (lit.length){ const x0 = Math.min(...lit.map(r => r.x)), y0 = Math.min(...lit.map(r => r.y)); b = {x: x0, y: y0, width: Math.max(...lit.map(r => r.x + r.width)) - x0, height: Math.max(...lit.map(r => r.y + r.height)) - y0}; }
-  if (tf) g.setAttribute("transform", tf);
+  if (tf) g.setAttribute("transform", tf); svg.classList.remove("nodrift");
   const f = Math.min(...[...g.querySelectorAll("text")].map(t => parseFloat(getComputedStyle(t).fontSize)).filter(x => x > 0), 12);
   const bot = svg.classList.contains("consvg") ? M : LINEBOT, kw = (cw - 2 * M) / b.width, kc = Math.min(kw, (ch - M - bot) / b.height), kmin = LINEMIN / f, all = kc >= kmin, k = all ? kc : Math.max(kw, kmin);      // never under 11px: the side that overflows pans
   const ox = b.width * k > cw - 2 * M, oy = b.height * k > ch - M - bot;
@@ -2000,12 +2181,12 @@ function lineShow(svg, t){      // draw transform t; the readout is the zoom of 
   const z = document.querySelector("[data-linez]"); if (z) z.textContent = Math.round(t.k / svg.__fit.k * 100) + "%";
 }
 function lineMountOne(svg, refit){
-  const cw = svg.clientWidth, ch = svg.clientHeight; if (!cw || !ch || typeof d3 === "undefined" || !d3.zoom) return;
+  const cw = svg.clientWidth, ch = svg.clientHeight; if (!cw || !ch || typeof d3 === "undefined" || !d3.zoom) return; edgeMount(svg);
   const key = lineKey(svg), size = cw + "x" + ch; svg.setAttribute("viewBox", `0 0 ${cw} ${ch}`); svg.__size = size;
   const fit = svg.__fit = lineFitOf(svg); svg.dataset.fit = fit.all ? "all" : "pan"; svg.dataset.fontpx = Math.round(fit.k * fit.f * 100) / 100;
   if (!svg.__zoom_b){
     svg.__zoom_b = d3.zoom().scaleExtent([0.25, 4]).clickDistance(4).on("zoom", e => { LINE.zoom[key] = {k: e.transform.k, x: e.transform.x, y: e.transform.y, size: svg.__size}; lineShow(svg, e.transform); });
-    d3.select(svg).call(svg.__zoom_b).on("dblclick.zoom", null);
+    motionInertia(svg.__zoom_b, svg); d3.select(svg).call(svg.__zoom_b).on("dblclick.zoom", null);
   }
   svg.__zoom_b.scaleExtent([0.25 * fit.k, 4 * fit.k]);
   const z = LINE.zoom[key], t = !refit && z && z.size === size ? z : fit;
@@ -2023,11 +2204,19 @@ function lineFit(){ lineSvgs().forEach(s => lineMountOne(s, true)); }
 const treeReduce = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const treeSvg = () => $("pane-map").querySelector && $("pane-map").querySelector(".treesvg");
 function treeMount(){
-  const svg = treeSvg(); if (!svg || svg.__zoom_on || typeof d3 === "undefined" || !d3.zoom) return; svg.__zoom_on = true;
+  const svg = treeSvg(); if (!svg || svg.__zoom_on || typeof d3 === "undefined" || !d3.zoom) return; svg.__zoom_on = true; edgeMount(svg);
   const view = svg.querySelector(".tview");
   const zoom = d3.zoom().scaleExtent([0.25, 4]).clickDistance(4).on("zoom", e => { view.setAttribute("transform", e.transform.toString()); if (svg === treeSvg()) TREE.zoom = {k: e.transform.k, x: e.transform.x, y: e.transform.y}; });
-  svg.__zoom_b = zoom; const s = d3.select(svg).call(zoom).on("dblclick.zoom", null);
+  svg.__zoom_b = zoom; motionInertia(zoom, svg); const s = d3.select(svg).call(zoom).on("dblclick.zoom", null);
   if (TREE.zoom) s.property("__zoom", d3.zoomIdentity.translate(TREE.zoom.x, TREE.zoom.y).scale(TREE.zoom.k));      // keep the pan and zoom across a repaint, without an event
+  else { const t = treeFloor(svg); if (t.k !== 1){ s.property("__zoom", t); view.setAttribute("transform", t.toString()); TREE.zoom = {k: t.k, x: t.x, y: t.y}; } }
+}
+// the drawing at no less than one unit a pixel, so no label is under 11px: centred on the focused team, else on the top middle; what overflows pans
+function treeFloor(svg){
+  const VW = +svg.dataset.w, VH = +svg.dataset.h, cw = svg.clientWidth, ch = svg.clientHeight; if (!cw || !ch || !VW || !VH) return d3.zoomIdentity;
+  const c = Math.min(cw / VW, ch / VH); if (c >= 1) return d3.zoomIdentity;
+  const k = 1 / c, pill = svg.querySelector(".tpill");
+  return pill ? d3.zoomIdentity.translate(VW / 2 - +pill.dataset.ax * k, VH / 2 - +pill.dataset.ay * k).scale(k) : d3.zoomIdentity.translate(VW / 2 * (1 - k), VH / 2 - ch / c / 2 + 16).scale(k);
 }
 // a panel open over the map: pan (and zoom out if it must) so the open stage's circle, words included, sits clear to the left of the
 // panel; when the panel or the stage closes, the view goes back to where it was
@@ -2065,70 +2254,51 @@ function treeZoomTo(svg, t){
     set(d3.zoomIdentity.translate(m(a.x, t.x), m(a.y, t.y)).scale(m(a.k, t.k))); if (e < 1) requestAnimationFrame(frame); else end(); };
   requestAnimationFrame(frame);
 }
-function treeFit(){ const svg = treeSvg(); TREE.zoom = null; delete TREE.before; if (!svg || !svg.__zoom_b) return paintMap(); treeZoomTo(svg, d3.zoomIdentity); }
+function treeFit(){ const svg = treeSvg(); TREE.zoom = null; delete TREE.before; if (!svg || !svg.__zoom_b) return paintMap(); treeZoomTo(svg, treeFloor(svg)); }
 // every change of what the Tree shows goes through treeGo: the new drawing is painted, then every node glides from where it was to where it now stands
 // (300 ms, eased; the lines fade in once they land); with reduced motion the new drawing is just there. A node that was not drawn before grows out of the
 // node that was clicked.
 function treeSpots(svg){ const pos = {}; svg.querySelectorAll("[data-k]").forEach(el => { pos[el.dataset.k] = {x: +el.dataset.ax, y: +el.dataset.ay}; }); return {pos, vb: [+svg.dataset.w, +svg.dataset.h]}; }
 function treeGo(fn, key){
   const svg = treeSvg(), prev = svg && svg.querySelector("[data-k]") ? treeSpots(svg) : null;
-  fn(); TREE.nopanel = false; MAPPIN = ""; TREE.zoom = null; delete TREE.before; paintMap();
-  if (prev && !treeReduce()) treeGlide(prev, key);
+  fn(); MAPPIN = ""; TREE.zoom = null; delete TREE.before; paintMap();
+  if (prev) motionFrom(treeSvg(), Object.fromEntries(Object.entries(prev.pos).map(([k, p]) => [k, [p.x, p.y]])), key);
   const s2 = treeSvg(), n = s2 && key && [...s2.querySelectorAll("[data-k]")].find(x => x.dataset.k === key); if (n && n.focus) n.focus();
 }
-const treeFocus = id => treeGo(() => { TREE.wf = id; }, id || TREE.wf);      // a workflow of the open team ("": back to the circle)
-const treeFocusTeam = id => treeGo(() => { TREE.focus = id; TREE.open = ""; TREE.wf = ""; }, id || TREE.focus);      // a team in the Tree ("": back to the Tree)
-const treeOpen = id => treeGo(() => { TREE.open = id; TREE.wf = ""; TREE.focus = ""; }, id);
-const treeClose = () => { const id = TREE.open; treeGo(() => { TREE.open = ""; TREE.wf = ""; TREE.focus = ""; }, id); };
-function treeGlide(prev, key){
-  const svg = treeSvg(); if (!svg) return;
-  const els = [...svg.querySelectorAll("[data-k]")], vb = [+svg.dataset.w, +svg.dataset.h];
-  const at = el => ({x: +el.dataset.ax, y: +el.dataset.ay}), origin = prev.pos[key] || {x: prev.vb[0] / 2, y: prev.vb[1] / 2};
-  const put = (el, p) => el.setAttribute("transform", `translate(${tRd(p.x)},${tRd(p.y)})`), id = TREE.glide = (TREE.glide || 0) + 1;
-  const from = els.map(el => prev.pos[el.dataset.k] || origin), fresh = els.map(el => !prev.pos[el.dataset.k]);
-  const live = () => TREE.glide === id && svg === treeSvg(), ease = typeof d3 !== "undefined" && d3.easeCubicInOut ? d3.easeCubicInOut : t => t, t0 = performance.now();
-  svg.classList.add("tmoving"); TREE.moving = true; svg.setAttribute("viewBox", `0 0 ${prev.vb[0]} ${prev.vb[1]}`); els.forEach((el, i) => { put(el, from[i]); if (fresh[i]) el.style.opacity = 0; });
-  let over = false; const end = () => { if (over) return; over = true; if (live()){ els.forEach(el => { put(el, at(el)); el.style.opacity = ""; }); svg.setAttribute("viewBox", `0 0 ${vb[0]} ${vb[1]}`); svg.classList.remove("tmoving"); TREE.moving = false; } };
-  setTimeout(end, 450);      // a tab that draws no frames still lands on the end state
-  const frame = now => { if (over) return; if (!live()){ over = true; return; } const t = Math.max(0, Math.min(1, (now - t0) / 300)), e = ease(t), m = (a, b) => a + (b - a) * e;
-    els.forEach((el, i) => { const q = at(el); put(el, {x: m(from[i].x, q.x), y: m(from[i].y, q.y)}); if (fresh[i]) el.style.opacity = e; });
-    svg.setAttribute("viewBox", `0 0 ${tRd(m(prev.vb[0], vb[0]))} ${tRd(m(prev.vb[1], vb[1]))}`); if (t < 1) requestAnimationFrame(frame); else end(); };
-  requestAnimationFrame(frame);
-}
+const treeFocusTeam = id => treeGo(() => { TREE.focus = id; }, id || TREE.focus);      // a team in the Tree ("": back to the Tree)
+const treeOpen = id => consGo([{id, kind: "team"}]);      // the open team: its own solar system (Back returns to the team focused in the Tree)
 // one entry for a click or Enter on the tree: true when the tree handled it
 function treeClick(e){
-  const v = e.target.closest("[data-mapview]"); if (v){ MAPVIEW = v.dataset.mapview; try { localStorage.setItem("j2mapview", MAPVIEW); } catch (x) {} paintMap(); return true; }
+  const v = e.target.closest("[data-mapview]"); if (v){ MAPVIEW = v.dataset.mapview; try { localStorage.setItem("j2mapview", MAPVIEW); } catch (x) {} paintMap(); $("pane-map").querySelectorAll(".treesvg, .mapsvg").forEach(x => motionFrom(x, null, null)); return true; }      // the view springs open
   if (e.target.closest("[data-treefit]")){ treeFit(); return true; }
   if (e.target.closest("[data-linefit]")){ lineFit(); return true; }
   const lz = e.target.closest("[data-linezoom]"); if (lz){ lineZoomBy(+lz.dataset.linezoom); return true; }
-  if (e.target.closest("[data-treeback]")){ if (TREE.wf) treeFocus(""); else if (TREE.open) treeClose(); else treeFocusTeam(""); return true; }
+  if (e.target.closest("[data-treeback]")){ treeFocusTeam(""); return true; }
   const o = e.target.closest("[data-treeopen]"); if (o){ treeOpen(o.dataset.treeopen); return true; }
-  if (e.target.closest("[data-treewfclose]")){ treeFocus(""); return true; }
-  const w = e.target.closest(".twf"); if (w){ if (TREE.wf === w.dataset.wf){ TREE.nopanel = false; paintMap(); } else treeFocus(w.dataset.wf); return true; }      // the focused workflow stays focused, its details open
   const n = e.target.closest(".tnode"); if (n){ const id = n.dataset.id;      // a second click on the focused team opens it; only Esc, Back and empty space clear
-    if (n.dataset.kind === "stage"){ if (TREE.focus === id) treeOpen(id); else if (TREE.open !== id) treeFocusTeam(id); } else { if (TREE.wf) TREE.wf = ""; consPick(id); } return true; }
-  if (e.target.closest(".treesvg")){ if (TREE.wf) treeFocus(""); else if (TREE.open) treeClose(); else if (TREE.focus) treeFocusTeam(""); else if (MAPPIN) mapSelect(""); return true; }      // empty space
+    if (n.dataset.kind === "stage"){ if (TREE.focus === id) treeOpen(id); else treeFocusTeam(id); } else consPick(id); return true; }
+  if (e.target.closest(".treesvg")){ if (TREE.focus) treeFocusTeam(""); else if (MAPPIN) mapSelect(""); return true; }      // empty space
   return false;
 }
 // hover or focus: the node's lines (or a circle workflow's links) brighten and dots flow along them, producer to consumer, in about 1.5 s;
 // lines into it ("reads") and out of it ("read by") in two colours. Nothing moves at rest; with reduced motion, arrowheads instead.
 function treeFlow(svg, id){
   svg.querySelectorAll(".tflow").forEach(x => x.remove());
-  svg.querySelectorAll(".tedge.hot").forEach(x => { x.classList.remove("hot", "fin", "fout"); x.removeAttribute("marker-end"); });
+  svg.querySelectorAll(".tedge.hot").forEach(x => { x.classList.remove("hot", "fin", "fout"); }); svg.classList.toggle("ehot", !!id);
   if (!id) return;
   const es = [...svg.querySelectorAll(".tedge:not(.tgone)")].filter(x => x.dataset.from === id || x.dataset.to === id).map(x => [x, x.dataset.to === id ? "fin" : "fout"]);
   const layer = svg.querySelector(".tflows"), NS = "http://www.w3.org/2000/svg";
   es.forEach(([x, k]) => { x.classList.add("hot", k);
-    if (treeReduce() || !layer) return x.setAttribute("marker-end", `url(#tarr-${k})`);
+    if (treeReduce() || !layer) return;      // (every edge has its arrowhead)
     const c = document.createElementNS(NS, "circle"), a = document.createElementNS(NS, "animateMotion");
     c.setAttribute("class", "tflow " + k); c.setAttribute("r", "2.8"); c.dataset.from = x.dataset.from; c.dataset.to = x.dataset.to;
     a.setAttribute("dur", "1.5s"); a.setAttribute("repeatCount", "indefinite"); a.setAttribute("path", x.getAttribute("d"));
     c.appendChild(a); layer.appendChild(c); });
 }
-function treeHover(e, on){ const svg = treeSvg(), el = svg && e.target.closest && (e.target.closest(".twf") || e.target.closest(".tnodes > .tnode"));
+function treeHover(e, on){ const svg = treeSvg(), el = svg && e.target.closest && e.target.closest(".tnodes > .tnode");
   if (!el) return false;
   if (!on && e.relatedTarget && el.contains(e.relatedTarget)) return true;      // moving inside the same dot
-  treeFlow(svg, on ? el.dataset.wf || el.dataset.id : ""); return true; }
+  treeFlow(svg, on ? el.dataset.id : ""); return true; }
 // Agent view (agent/1, /api/agent): who one agent talked to and how it decided, from the run's own chat.jsonl and calls.jsonl.
 // A drawer over the right half of the page (full screen on phones); the Map underneath is unchanged. Plain words by default;
 // prompts, system text and raw output only under "Show technical details".
@@ -2183,7 +2353,7 @@ function renderAgent(v){
   return head + summary + talks + think;
 }
 async function openAgent(id){
-  if (MAPPIN || TREE.wf){ MAPPIN = ""; TREE.nopanel = !!TREE.wf; paintMap(); }      // one panel at a time: the drawer replaces the map's details panel (a focused workflow stays focused)
+  if (MAPPIN){ MAPPIN = ""; paintMap(); }      // one panel at a time: the drawer replaces the map's details panel
   document.body.classList.add("agentopen");
   const d = $("agentdrawer"); AGENTVIEW = {who: id, found: false, loading: true};
   d.innerHTML = `<div class="adhead"><h3>${esc(agentName(id, {}))}</h3><button type="button" class="linkbtn" data-agentclose>Close (Esc)</button></div><p class="empty">Loading…</p>`; d.hidden = false;
@@ -2500,7 +2670,7 @@ function renderMap(m){
     return r.filter(Boolean).map(x => `<div class="sub">${x}</div>`).join("");
   };
   const sn = by[sel], link = n => n.kind === "function" && n.tab ? `<a href="#" data-maptab="${esc(n.tab)}">Open the ${mapWords(mapFn(n))} view</a>` : n.file ? `<a href="#" data-mapopen="${esc(n.file)}">Open ${mapWords(n.label)}</a>` : "";
-  const panel = sn ? `<aside class="mappanel" data-panel="${esc(sn.id)}" aria-label="Details of ${esc(sn.kind === "function" ? mapFn(sn) : name(sn.id))}"><div class="mappanelhead"><b>${mapWords(sn.kind === "function" ? mapFn(sn) : name(sn.id))}</b><button type="button" class="linkbtn" data-mapclose>Close (Esc)</button></div>${panelRows(sn)}<div class="sub"><button type="button" class="gobtn" data-mapgo="${esc(sn.id)}">${mapGoLabel(sn)}</button> ${link(sn)}${sn.kind === "function" ? ` <button type="button" class="linkbtn" data-agent="${esc(sn.id.slice(3))}">See conversation and thinking</button>` : ""}</div></aside>` : "";
+  const panel = sn ? `<aside class="mappanel" data-panel="${esc(sn.id)}" aria-label="Details of ${esc(sn.kind === "function" ? mapFn(sn) : name(sn.id))}"><div class="mappanelhead"><b>${mapWords(sn.kind === "function" ? mapFn(sn) : name(sn.id))}</b><button type="button" class="linkbtn" data-mapclose>Close (Esc)</button></div>${panelRows(sn)}<div class="sub"><button type="button" class="gobtn" data-mapgo="${esc(sn.id)}">${mapGoLabel(sn)}</button> ${link(sn)}${sn.kind === "function" ? ` <button type="button" class="linkbtn" data-agent="${esc(sn.id.slice(3))}">See conversation and thinking</button>` : ""}${sn.kind === "work" ? ` <button type="button" class="linkbtn" data-openart="${esc(sn.id)}">Open in Artifacts</button>` : ""}</div></aside>` : "";
   // under the drawing: messages between functions when there are too many lines to draw, and who made each step
   const table = (cap, hd, rows, open) => `<details class="mapdd"${open ? " open" : ""}><summary>${mapWords(cap)}</summary><table class="maptable"><thead><tr>${hd.map(h => `<th>${mapWords(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${mapWords(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></details>`;
   const filt = by[MAPFILT] && by[MAPFILT].kind === "function" ? MAPFILT : "", ffs = filt ? ff.filter(e => e.from === filt || e.to === filt) : ff, cols = filt ? fns.filter(f => f.id === filt) : fns;
@@ -2600,19 +2770,41 @@ const mapSvg = () => $("pane-map").querySelector && $("pane-map").querySelector(
 // hover only. Pan, zoom and Fit are the Line view's.
 const CONS = {id: "", kind: "art", path: [], focus: "", fan: {}, grp: {}}, CONS_MAX = {wf: 3, inputs: 12, labels: 100};
 const consTw = (t, px) => String(t || "").length * px;      // a label's width: px a character (6.9 at 12px, 6.3 at 11px)
-const consSec = t => treeTrim(/ section$/.test(t || "") ? t : `${t || ""} section`, 22);
+const consSec = t => / section$/.test(t || "") ? t : `${t || ""} section`;
+const consWrap = (t, n) => { t = String(t || ""); if (t.length <= n) return [t]; const ws = t.split(" "); let best = null;      // never cut: one line, or two split at the space nearest the middle
+  for (let i = 1; i < ws.length; i++){ const a = ws.slice(0, i).join(" "), b = ws.slice(i).join(" "), w = Math.max(a.length, b.length); if (!best || w < best[2]) best = [a, b, w]; } return best ? [best[0], best[1]] : [t]; };
+const consWfLines = (id, name, ran) => { const one = `${id} · ${name}`, l = one.length <= 26 ? [one] : [id, ...consWrap(name, 26)]; return ran === false ? {lines: [...l, "did not run"], sub: l.length} : {lines: l, sub: l.length}; };
 const consParent = id => /^sec:/.test(id) ? id.split(":").slice(1, -1).join(":") : "";      // a section's file: sec:<file id>:<key>
 const meetsBox = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-function consBlock(x, y, a, lines, gap){      // a two-line label beyond (x, y) on angle a: beside it on the left and right, over or under it at the top and bottom
-  const w = Math.max(consTw(lines[0], 6.9), consTw(lines[1] || "", 6.3)), h = lines[1] ? 28 : 14, c = Math.cos(a), s = Math.sin(a);
-  const anchor = c > 0.35 ? "start" : c < -0.35 ? "end" : "middle", X = anchor === "middle" ? x : x + Math.sign(c) * gap, Y = anchor === "middle" ? y + Math.sign(s || 1) * gap : y;
-  const x0 = anchor === "start" ? X : anchor === "end" ? X - w : X - w / 2, y0 = anchor !== "middle" ? Y - h / 2 : s < 0 ? Y - h : Y;
-  return {x: X, anchor, y0, w, h, box: [x0 - 2, y0 - 1, x0 + w + 2, y0 + h + 1], lines};
+function consBlock(x, y, a, lines, gap, sub = 1, slide = 0){      // a label beyond (x, y) on angle a: beside it on the left and right, over or under it at the top and bottom
+  // (centred, or with slide -1 / 1 ending / starting at the shape); lines from sub on are small
+  const w = Math.max(...lines.map((l, i) => consTw(l, i >= sub ? 6.3 : 6.9))), h = 14 * lines.length, c = Math.cos(a), s = Math.sin(a), vert = Math.abs(c) <= 0.35;
+  const anchor = !vert ? (c > 0 ? "start" : "end") : slide < 0 ? "end" : slide > 0 ? "start" : "middle", X = !vert ? x + Math.sign(c) * gap : x - slide * 8, Y = vert ? y + Math.sign(s || 1) * gap : y;
+  const x0 = anchor === "start" ? X : anchor === "end" ? X - w : X - w / 2, y0 = !vert ? Y - h / 2 : s < 0 ? Y - h : Y;
+  return {x: X, anchor, y0, w, h, box: [x0 - 2, y0 - 1, x0 + w + 2, y0 + h + 1], lines, sub};
+}
+// labels beside their own shapes: each tries angles round its shape (its own direction first) and steps out until it meets no shape, no line and no
+// label placed before it, and stays nearer its own shape than any other; false when one finds no place (the caller grows the ring)
+const consNear = (b, n) => Math.hypot(Math.max(b[0] - n.x, 0, n.x - b[2]), Math.max(b[1] - n.y, 0, n.y - b[3]));
+const consCuts = (pts, b) => pts.some((p, i) => { if (!i) return false; const q = pts[i - 1], k = Math.max(2, Math.ceil(Math.hypot(p[0] - q[0], p[1] - q[1]) / 3));      // a point every 3px
+  if (Math.max(p[0], q[0]) <= b[0] || Math.min(p[0], q[0]) >= b[2] || Math.max(p[1], q[1]) <= b[1] || Math.min(p[1], q[1]) >= b[3]) return false;
+  for (let j = 0; j <= k; j++){ const x = q[0] + (p[0] - q[0]) * j / k, y = q[1] + (p[1] - q[1]) * j / k; if (x > b[0] && x < b[2] && y > b[1] && y < b[3]) return true; } return false; });
+function consFitLabels(items, nodes, shapes, lines){
+  const placed = [];
+  for (const it of items){ const n = it.n; let L = null;
+    const angs = [...[0, 1, -1, 2, -2, 3, -3, 4].map(d => it.a + d * Math.PI / 4), Math.PI / 2, -Math.PI / 2];      // round its own direction, then straight under and over
+    search: for (const g of [6, 12, 20]) for (const a of angs) for (const sl of [0, -1, 1]){ const c = consBlock(n.x, n.y, a, it.lines, n.size + 3 + g, it.sub, sl), b = c.box;
+      if (sl && Math.abs(Math.cos(a)) > 0.35) continue;      // a slide only moves a label over or under its shape
+      if (shapes.some(q => meetsBox(q, b)) || placed.some(q => meetsBox(q, b)) || lines.some(l => consCuts(l.pts, b))) continue;
+      const own = consNear(b, n); if (nodes.some(o => o !== n && consNear(b, o) <= own)) continue;
+      L = c; break search; }
+    if (!L) return false; n.label = L; placed.push(L.box); }
+  return true;
 }
 // every artifact and section, and every workflow across the run's constellations: what it read, what it made (its section, or the artifact it made whole)
-function consIndex(m){
-  if (m.__cix) return m.__cix;
-  const ix = {art: {}, wf: {}}, team = {};
+function consIndex(m){      // cached per constellations object: a reloaded or updated map (MAP is refilled in place) gets a new one
+  if (m.__cix && m.__cix.of === m.constellations) return m.__cix;
+  const ix = {art: {}, wf: {}, of: m.constellations}, team = {};
   Object.values(m.constellations || {}).forEach(C => {
     ix.art[C.id] = {id: C.id, label: C.label, kind: "file"};
     C.slots.forEach(s => { if (s.section) ix.art[s.section] = {id: s.section, label: s.label, kind: "section", file: C.label}; });
@@ -2624,23 +2816,26 @@ function consIndex(m){
   Object.values(ix.art).forEach(a => { a.team = team[a.id] || ""; });
   return Object.defineProperty(m, "__cix", {value: ix, enumerable: false, configurable: true}).__cix;
 }
-function consOf(m, id, st){      // an artifact as the sun
+function consOf(m, id, st){      // an artifact as the sun; the layout is worked out once (per expanded badge and team group), a focus only lights it
   st = st || CONS;
   const C = (m.constellations || {})[id]; if (!C) return null;
+  const ix = consIndex(m), lay = ix.lay = ix.lay || {}, key = `${id}|${JSON.stringify(st.fan || {})}|${JSON.stringify(st.grp || {})}`;
+  const G = lay[key] || (lay[key] = consLay(C, st));
+  return Object.assign({}, G, consFocus(G, st.focus, consSeg(70, G.at[C.id].lab)));
+}
+function consLay(C, st){
   const W = C.workflows, nodes = [], at = {}, add = n => (nodes.push(n), at[n.id] = n), slots = C.slots, stand = {};      // stand: workflow -> the node drawn for it (itself or its section's badge)
-  const sub = `${slots.filter(s => s.section).length} sections · ${Object.keys(W).length} workflows`, lw = Math.max(consTw(treeTrim(C.label, 24), 8.6), consTw(sub, 6.3)) / 2 + 4;
-  add({id: C.id, kind: "centre", x: 0, y: 0, r: 70, size: 11, label: treeTrim(C.label, 24), sub, full: C.label, lab: [-lw, 32, lw, 64]});
-  const items = slots.map(s => {      // the nodes of one ring position, and its label
+  const sub = `${slots.filter(s => s.section).length} sections · ${Object.keys(W).length} workflows`, lw = Math.max(consTw(C.label, 8.6), consTw(sub, 6.3)) / 2 + 4;
+  add({id: C.id, kind: "centre", x: 0, y: 0, r: 70, size: 11, label: C.label, sub, full: C.label, lab: [-lw, 32, lw, 69]});
+  const items = slots.map(s => {      // the nodes of one ring position: the section's diamond (or an empty slot), its builder, its fixes (or their badge), each with its own label
     const key = s.section || "slot:" + s.builder, b = s.builder, own = [];
-    if (s.section || s.empty) own.push({id: key, kind: s.section ? "section" : "empty", rad: 0, size: 8, slot: s});
+    if (s.section || s.empty) own.push({id: key, kind: s.section ? "section" : "empty", rad: 0, size: 8, slot: s, lines: s.section ? consWrap(consSec(s.label), 22) : ["no recorded output"], sub: 9});
     const bump = own.length ? 44 : 0; stand[b] = b;
-    own.push({id: b, kind: "wf", role: "builder", rad: bump, size: 6, slot: s});
+    own.push({id: b, kind: "wf", role: "builder", rad: bump, size: 6, slot: s, ...consWfLines(b, W[b].name, W[b].ran)});
     const many = 1 + s.fixes.length > CONS_MAX.wf && !st.fan[key];
-    if (many){ const bid = "fan:" + key; s.fixes.forEach(f => { stand[f] = bid; }); own.push({id: bid, kind: "badge", rad: bump, side: 1, size: 9, slot: s, n: s.fixes.length, label: `+${s.fixes.length} fixes`}); }
-    else s.fixes.forEach((f, j) => { stand[f] = f; own.push({id: f, kind: "wf", role: "fix", rad: bump, side: j + 1, size: 6, slot: s}); });
-    const fx = s.fixes.length ? (many ? ` · +${s.fixes.length} fixes` : ` · fix ${s.fixes.join(", ")}`) : "", wl = treeTrim(`${b} · ${W[b].name}`, 22);
-    const lines = s.section ? [consSec(s.label), b + fx] : [wl, s.empty ? "no recorded output" : W[b].ran ? fx.slice(3) : "did not run" + fx];
-    return {nodes: own, lines, full: [s.label, `built by ${b} · ${W[b].name}`, s.fixes.length ? `fixed by ${s.fixes.join(", ")}` : "", s.empty ? "no recorded output" : ""].filter(Boolean).join(" · ")};
+    if (many){ const bid = "fan:" + key; s.fixes.forEach(f => { stand[f] = bid; }); own.push({id: bid, kind: "badge", rad: bump, side: 1, size: 9, slot: s, n: s.fixes.length, btext: `+${s.fixes.length} fixes`, lines: [`${s.fixes.length} fixes`, "click to show them"], sub: 1}); }
+    else s.fixes.forEach((f, j) => { stand[f] = f; own.push({id: f, kind: "wf", role: "fix", rad: bump, side: j + 1, size: 6, slot: s, ...consWfLines(f, W[f].name, W[f].ran)}); });
+    return {nodes: own, full: [s.label, `built by ${b} · ${W[b].name}`, s.fixes.length ? `fixed by ${s.fixes.join(", ")}` : "", s.empty ? "no recorded output" : ""].filter(Boolean).join(" · ")};
   });
   // the inputs: what the workflows read from outside the artifact; over the limit, one node per team (an expanded team shows its own)
   const used = (C.inputs || []).filter(a => Object.values(W).some(f => f.reads.includes(a.id))), inputs = [], inAt = {};
@@ -2649,41 +2844,38 @@ function consOf(m, id, st){      // an artifact as the sun
     else { const gid = "grp:" + t; inputs.push({id: gid, kind: "group", team: t, n: mem.length, members: mem.map(a => a.id)}); mem.forEach(a => { inAt[a.id] = gid; }); } });
   else used.forEach(a => { inputs.push({id: a.id, kind: "input", a, team: a.team}); inAt[a.id] = a.id; });
   const quiet = 1 + items.reduce((k, it) => k + it.nodes.length, 0) + inputs.length > CONS_MAX.labels;      // labels on hover only: the rings make room for the shapes alone
-  // geometry: the first ring grows until no shape or label meets another; then the outer ring (an ellipse) grows past all of it until its own are clear
+  // geometry: the ring grows until every label sits beside its own shape, clear of every shape, line and label; then the outer ring (an ellipse) grows past all of it
   const N = items.length, ang = i => -Math.PI / 2 + 2 * Math.PI * i / Math.max(1, N), nbox = n => [n.x - n.size - 3, n.y - n.size - 3, n.x + n.size + 3, n.y + n.size + 3];
-  const cbox = [Math.min(-44, at[C.id].lab[0]), -44, Math.max(44, at[C.id].lab[2]), 66];      // the sun: its glow, name and count
-  let R1 = Math.max(130, 20 * N / Math.PI), tries = 0;
+  const cbox = [Math.min(-44, at[C.id].lab[0]), -44, Math.max(44, at[C.id].lab[2]), 71], seg = consSeg(70, at[C.id].lab), c0 = at[C.id], all = items.flatMap(it => it.nodes);      // cbox: the sun's glow, name and count
+  const restOf = () => { const rest = []; items.forEach(it => { const d = it.nodes.find(n => n.kind === "section" || n.kind === "empty");
+    if (d) rest.push(seg(d, c0, "spoke", d.kind === "empty" ? "dashed" : ""));
+    it.nodes.filter(n => n.kind === "wf" || n.kind === "badge").forEach(n => { if (d && d.kind !== "empty") rest.push(seg(n, d, "makes", n.kind === "badge" ? "more" : n.role === "fix" ? "fix" : ""));
+      else if (!d) rest.push(seg(n, c0, "makes", n.role === "fix" ? "fix" : "")); }); }); return rest; };
+  const order = [...all.filter(n => n.kind === "section" || n.kind === "empty"), ...all.filter(n => n.kind === "wf" || n.kind === "badge")];
+  let R1 = Math.max(130, 20 * N / Math.PI), tries = 0, rest = [];
   for (;; R1 += 8){
-    const boxes = [];
-    items.forEach((it, i) => { const a = ang(i);
-      it.nodes.forEach(n => { const r = R1 + n.rad, da = n.side ? n.side * 22 / r : 0; n.x = tRd(r * Math.cos(a + da)); n.y = tRd(r * Math.sin(a + da)); n.box = nbox(n); });
-      const out = Math.max(...it.nodes.map(n => n.rad)) + R1; let g = 12, L;      // the label clears its own ring position's shapes
-      do { L = consBlock(out * Math.cos(a), out * Math.sin(a), a, it.lines, g); g += 4; } while (g < 80 && it.nodes.some(n => meetsBox(n.box, L.box)));
-      it.label = L; if (!quiet) boxes.push({i, b: L.box}); it.nodes.forEach(n => boxes.push({i, b: n.box})); });
-    const clash = boxes.some((p, j) => meetsBox(p.b, cbox) || boxes.some((q, k) => k > j && p.i !== q.i && meetsBox(p.b, q.b)));
-    if (!clash || ++tries > 300) break;
+    items.forEach((it, i) => { const a = ang(i), sp = Math.max(30, 0.3 * 2 * Math.PI * R1 / Math.max(1, N) / Math.max(1, it.nodes.filter(n => n.side).length));      // fixes spread with the room the ring gives their slot
+      it.nodes.forEach(n => { const r = R1 + n.rad, da = n.side ? n.side * sp / r : 0; n.a = a; n.x = tRd(r * Math.cos(a + da)); n.y = tRd(r * Math.sin(a + da)); n.box = nbox(n); }); });
+    rest = restOf(); const shapes = [cbox, ...all.map(n => n.box)];
+    const clear = !shapes.some((p, j) => shapes.some((q, k) => k > j && meetsBox(p, q)));
+    if (clear && (quiet || consFitLabels(order.map(n => ({n, a: n.kind === "section" || n.kind === "empty" ? n.a + Math.PI / 2 : n.a, lines: n.lines, sub: n.sub})), [c0, ...all], shapes, rest))) break;
+    if (++tries > 300) break;
   }
-  const lb = it => quiet ? [] : [it.label.box], held = [cbox, ...items.flatMap(it => [...lb(it), ...it.nodes.map(n => n.box)])];
+  order.forEach(n => { if (!(n.label && n.label.box)) n.label = consBlock(n.x, n.y, n.kind === "section" || n.kind === "empty" ? n.a + Math.PI / 2 : n.a, n.lines, n.size + 9, n.sub); });      // shown on hover only (or the fit gave up)
+  const held = [cbox, ...all.flatMap(n => [n.box, ...(quiet ? [] : [n.label.box])])];
   const M = inputs.length, top = Math.ceil(M / 2), D = Math.PI / 180;      // inputs on two arcs, over and under the ring (labels sit centred there), clockwise from the top left
   const iang = i => i < top ? (-150 + 120 * (i + 0.5) / top) * D : (150 - 120 * (i - top + 0.5) / (M - top)) * D;
   let RX = Math.max(...held.flatMap(b => [Math.abs(b[0]), Math.abs(b[2])])) + 22, RY = Math.max(...held.flatMap(b => [Math.abs(b[1]), Math.abs(b[3])])) + 22; tries = 0;
-  const ilines = n => n.kind === "group" ? [`${treeTrim(n.team, 16)} · ${n.n}`, "inputs, click to list"] : [treeTrim(n.a.label, 20), n.a.section ? `in ${treeTrim(n.a.file, 15)}` : treeTrim(n.team, 18)];
+  const ilines = n => n.kind === "group" ? {l: [`${n.team} · ${n.n}`, "inputs, click to list"], s: 1} : (w => ({l: [...w, n.a.section ? `in ${n.a.file}` : n.team], s: w.length}))(consWrap(n.a.label, 22));
   for (;; RX += 8, RY += 8){
-    inputs.forEach((n, i) => { const a = iang(i); n.size = 10; n.x = tRd(RX * Math.cos(a)); n.y = tRd(RY * Math.sin(a)); n.box = nbox(n); n.label = consBlock(n.x, n.y, a, ilines(n), 14); });
+    inputs.forEach((n, i) => { const a = iang(i), q = ilines(n); n.size = 10; n.x = tRd(RX * Math.cos(a)); n.y = tRd(RY * Math.sin(a)); n.box = nbox(n); n.label = consBlock(n.x, n.y, a, q.l, 14, q.s); });
     const own = inputs.flatMap(n => [n.box, quiet ? n.box : n.label.box]);
     const clash = own.some((p, j) => own.some((q, k) => k > j && (k >> 1) !== (j >> 1) && meetsBox(p, q))) || own.some(p => held.some(q => meetsBox(p, q)));
     if (!clash || ++tries > 300) break;
   }
-  items.forEach(it => it.nodes.forEach(n => add(Object.assign(n, {label: it.label, full: it.full, lead: n === it.nodes[0]}))));
-  inputs.forEach(n => add(Object.assign(n, {full: n.kind === "group" ? `${n.team}: ${n.members.map(x => ((C.inputs || []).find(a => a.id === x) || {}).label).join(", ")}` : `${n.a.label} · ${n.label.lines[1]}`})));
-  const seg = consSeg(70, at[C.id].lab), c0 = at[C.id], rest = [];
-  items.forEach(it => { const d = it.nodes.find(n => n.kind === "section" || n.kind === "empty");
-    if (d) rest.push(seg(d, c0, "spoke", d.kind === "empty" ? "dashed" : ""));
-    it.nodes.filter(n => n.kind === "wf" || n.kind === "badge").forEach(n => { if (d && d.kind !== "empty") rest.push(seg(n, d, "makes", n.kind === "badge" ? "more" : n.role === "fix" ? "fix" : ""));
-      else if (!d) rest.push(seg(n, c0, "makes", n.role === "fix" ? "fix" : "")); }); });
-  const G = {id, kind: "art", label: C.label, nodes, at, rest, stand, inAt, quiet, C, rings: [R1, R1 + 44, [RX, RY]]};
-  Object.assign(G, consFocus(G, st.focus, seg));
-  return consExt(G, cbox);
+  items.forEach(it => it.nodes.forEach(n => add(Object.assign(n, {full: it.full}))));
+  inputs.forEach(n => add(Object.assign(n, {full: n.kind === "group" ? `${n.team}: ${n.members.map(x => ((C.inputs || []).find(a => a.id === x) || {}).label).join(", ")}` : `${n.a.label} · ${n.label.lines[n.label.lines.length - 1]}`})));
+  return consExt({id: C.id, kind: "art", label: C.label, nodes, at, rest, stand, inAt, quiet, C, rings: [R1, R1 + 44, [RX, RY]]}, cbox);
 }
 function consSeg(cr, lab){      // a line between two nodes, clear of both shapes and of the sun's name (lab); a focus line that would cross the sun bows round it
   return (a, b, k, cls) => { const ax = a.x, ay = a.y, dx = b.x - ax, dy = b.y - ay, L = Math.hypot(dx, dy) || 1, ra = a.kind === "centre" ? 30 : a.size + 3, rb = b.kind === "centre" ? 30 : b.size + 4;
@@ -2698,29 +2890,93 @@ function consSeg(cr, lab){      // a line between two nodes, clear of both shape
     return {from: a.id, to: b.id, kind: k, cls, d: `M${P.x} ${P.y} Q${cx} ${cy} ${Q.x} ${Q.y}`, pts}; };
 }
 function consExt(G, cbox){
-  const all = [cbox, ...G.nodes.flatMap(n => [n.box, !G.quiet && n.label && n.label.box && (n.lead || n.kind !== "wf") ? n.label.box : null].filter(Boolean))];
+  const all = [cbox, ...G.nodes.flatMap(n => [n.box, !G.quiet && n.label && n.label.box ? n.label.box : null].filter(Boolean))];
   G.ext = [Math.min(...all.map(b => b[0])), Math.min(...all.map(b => b[1])), Math.max(...all.map(b => b[2])), Math.max(...all.map(b => b[3]))];
   return G;
 }
 // a workflow as the sun: what it read on the left, what it made on the right (artifacts and sections only)
 function consWfOf(m, wid){
   const ix = consIndex(m), w = ix.wf[wid]; if (!w) return null;
-  const nodes = [], at = {}, add = n => (nodes.push(n), at[n.id] = n), name = treeTrim(`${wid} · ${w.name}`, 26), sub = `read ${w.reads.length} · made ${w.outs.length}`, lw = Math.max(consTw(name, 8.6), consTw(sub, 6.3)) / 2 + 4;
-  const lab = [-lw, 28, lw, 60], cbox = [Math.min(-34, -lw), -34, Math.max(34, lw), 62];
+  const nodes = [], at = {}, add = n => (nodes.push(n), at[n.id] = n), name = `${wid} · ${w.name}`, sub = `read ${w.reads.length} · made ${w.outs.length}`, lw = Math.max(consTw(name, 8.6), consTw(sub, 6.3)) / 2 + 4;
+  const lab = [-lw, 28, lw, 65], cbox = [Math.min(-34, -lw), -34, Math.max(34, lw), 67];
   add({id: "wf:" + wid, wf: wid, kind: "centre", role: w.role, x: 0, y: 0, r: 64, size: 11, label: name, sub, full: `${wid} · ${w.name}`, lab});
   const side = (ids, sgn) => ids.map((a, i) => { const x = ix.art[a], n = ids.length, span = Math.min(150, (n - 1) * 26) * Math.PI / 180, ang = (sgn < 0 ? Math.PI : 0) + (n > 1 ? -span / 2 + span * i / (n - 1) : 0) * (sgn < 0 ? -1 : 1);
+    const top = consWrap(x.kind === "section" ? consSec(x.label) : x.label, 22);
     return {id: sgn > 0 && w.reads.includes(a) ? a + "#made" : a, art: a, kind: x.kind === "section" ? "section" : "input", side: sgn < 0 ? "L" : "R", ang, size: x.kind === "section" ? 8 : 10, a: x,
-      lines: [treeTrim(x.kind === "section" ? consSec(x.label) : x.label, 24), x.kind === "section" ? `in ${treeTrim(x.file, 16)}` : treeTrim(x.team || (sgn < 0 ? "read" : "made"), 18)], full: x.label + (x.file ? ` · in ${x.file}` : "")}; });
+      lines: [...top, x.kind === "section" ? `in ${x.file}` : x.team || (sgn < 0 ? "read" : "made")], sub: top.length, full: x.label + (x.file ? ` · in ${x.file}` : "")}; });
   const L = side(w.reads, -1), Rr = side(w.outs, 1), all = [...L, ...Rr];
   let R = 150, tries = 0;
   for (;; R += 8){
-    all.forEach(n => { n.x = tRd(R * Math.cos(n.ang)); n.y = tRd(R * Math.sin(n.ang)); n.box = [n.x - n.size - 3, n.y - n.size - 3, n.x + n.size + 3, n.y + n.size + 3]; n.label = consBlock(n.x, n.y, n.ang, n.lines, 14); });
+    all.forEach(n => { n.x = tRd(R * Math.cos(n.ang)); n.y = tRd(R * Math.sin(n.ang)); n.box = [n.x - n.size - 3, n.y - n.size - 3, n.x + n.size + 3, n.y + n.size + 3]; n.label = consBlock(n.x, n.y, n.ang, n.lines, 14, n.sub); });
     const bs = all.flatMap(n => [n.box, n.label.box]);
     if (!(bs.some((p, j) => meetsBox(p, cbox) || bs.some((q, k) => k > j && (k >> 1) !== (j >> 1) && meetsBox(p, q)))) || ++tries > 300) break;
   }
   all.forEach(add);
   const seg = consSeg(64, lab), c = nodes[0], rest = [...L.map(n => seg(n, c, "reads", "wfl")), ...Rr.map(n => seg(c, n, "makes", "wfl"))];
   return consExt({id: wid, kind: "wf", label: `${wid} · ${w.name}`, nodes, at, rest, lines: [], lit: new Set(), eat: new Set(), focus: "", quiet: false, rings: [R], left: w.reads, right: w.outs, W: w}, cbox);
+}
+// a team as a solar system (the open team; no team node): each artifact it made is a star, the one most of its workflows built in the middle and the
+// others outside the orbit; its workflows orbit the star they built (builders and fixes as in the sun view); what it read from other teams sits on the
+// outer ring as documents. A click on a workflow lights what it read, a second opens its sun; a click on a star opens that artifact's sun.
+function consTeamOf(m, sid, st){
+  st = st || CONS; const L = mapTree(m), g = L.stages[sid]; if (!g) return null;
+  const ix = consIndex(m), lay = ix.lay = ix.lay || {}, key = "team|" + sid + "|" + JSON.stringify([m.nodes.length, m.edges.length]);
+  const G = lay[key] || (lay[key] = consTeamLay(m, L, g, ix));
+  return Object.assign({}, G, consTeamFocus(G, st.focus));
+}
+function consTeamLay(m, L, g, ix){
+  const named = Object.fromEntries((m.workflows || []).map(w => [w.id, w])), io = treeTeamIO(L, g), top = a => consParent(a) || a, madeBy = {};
+  L.links.forEach(l => { if (l.kind === "made") madeBy[l.to] = l.from; });
+  const info = w => ix.wf[w] || {id: w, name: (named[w] || {}).name || w, role: "builder", reads: [], outs: []};
+  const wfs = [...g.workflows].sort((a, b) => wfNum(a) - wfNum(b)), built = {}, count = {};
+  wfs.forEach(w => { built[w] = [...new Set(info(w).outs.map(top))]; built[w].forEach(a => { count[a] = (count[a] || 0) + 1; }); });
+  io.outs.forEach(a => { if (!(a in count)) count[a] = 0; });
+  const lab = a => (ix.art[a] || L.at[a] || {label: a}).label, stars = Object.keys(count).sort((a, b) => count[b] - count[a] || (lab(a) < lab(b) ? -1 : 1)), main = stars[0], mine = new Set(stars);
+  const inputs = []; wfs.forEach(w => info(w).reads.forEach(a => { if (!mine.has(top(a)) && !inputs.includes(a)) inputs.push(a); }));
+  io.ins.forEach(a => { if (!mine.has(a) && !inputs.includes(a) && L.at[a]) inputs.push(a); });      // the Tree's reads too (the Charter's plan)
+  const nodes = [], at = {}, add = n => (nodes.push(n), at[n.id] = n), many = a => `${count[a]} workflow${count[a] === 1 ? "" : "s"}`;
+  const c0 = add(main ? {id: main, art: main, kind: "centre", x: 0, y: 0, size: 11, label: lab(main), sub: many(main), full: `${lab(main)}: open its sun`}
+    : {id: "none:" + g.id, kind: "centre", x: 0, y: 0, size: 11, label: "no artifact recorded", sub: g.label, full: `${g.label} made no recorded artifact`});
+  const lw = Math.max(consTw(c0.label, 8.6), consTw(c0.sub, 6.3)) / 2 + 4; c0.lab = [-lw, 32, lw, 69]; const cbox = [Math.min(-44, -lw), -44, Math.max(44, lw), 71];
+  const home = w => [...built[w]].sort((a, b) => stars.indexOf(a) - stars.indexOf(b))[0] || main;
+  const W = wfs.map(w => { const f = info(w); return {id: w, kind: "wf", role: f.role === "fix" ? "fix" : "builder", size: 6, star: home(w), built: built[w], reads: f.reads, name: f.name, ...consWfLines(w, f.name, f.ran), full: `${w} · ${f.name}`}; });
+  const others = stars.slice(1).map(a => ({id: a, art: a, kind: "star", size: 7, label: lab(a), sub: many(a), full: `${lab(a)}: open its sun`}));
+  const orbit = W.filter(w => w.star === main), outer = W.filter(w => w.star !== main);
+  const nbox = n => [n.x - n.size - 3, n.y - n.size - 3, n.x + n.size + 3, n.y + n.size + 3], seg = consSeg(70, c0.lab), ang = i => -Math.PI / 2 + 2 * Math.PI * i / Math.max(1, orbit.length);
+  const restOf = () => W.flatMap(w => w.built.filter(a => at[a] || others.some(o => o.id === a)).map(a => seg(w, a === main ? c0 : others.find(o => o.id === a), "makes", w.role === "fix" ? "fix" : "")));
+  let R = Math.max(150, orbit.length * 26 / Math.PI * 1.2), tries = 0, rest = [];
+  for (;; R += 8){
+    orbit.forEach((w, i) => { w.a = ang(i); w.x = tRd(R * Math.cos(w.a)); w.y = tRd(R * Math.sin(w.a)); w.box = nbox(w); });
+    const near = {}; others.forEach((o, j) => { const b = orbit.find(w => w.built.includes(o.id)), base = b ? b.a : ang(j + 0.5), k = near[base] = (near[base] || 0) + 1;
+      o.a = base + 0.32 * k; o.x = tRd((R + 150) * Math.cos(o.a)); o.y = tRd((R + 150) * Math.sin(o.a));
+      const w2 = Math.max(consTw(o.label, 7.6), consTw(o.sub, 6.3)) / 2 + 2; o.lab = [o.x - w2, o.y + 28, o.x + w2, o.y + 60]; o.box = [Math.min(o.x - 27, o.lab[0]), o.y - 27, Math.max(o.x + 27, o.lab[2]), o.lab[3]];
+      const mem = outer.filter(w => w.star === o.id); mem.forEach((w, i) => { w.a = o.a - Math.PI / 2 + Math.PI * (i + 0.5) / mem.length; w.x = tRd(o.x + 70 * Math.cos(w.a)); w.y = tRd(o.y + 70 * Math.sin(w.a)); w.box = nbox(w); }); });
+    rest = restOf(); const shapes = [cbox, ...W.map(w => w.box), ...others.map(o => o.box)];
+    const clear = !shapes.some((p, j) => shapes.some((q, k) => k > j && meetsBox(p, q))) && !rest.some(l => others.some(o => l.to !== o.id && consCuts(l.pts, o.box)));
+    if (clear && consFitLabels(W.map(w => ({n: w, a: w.a, lines: w.lines, sub: w.sub})), [c0, ...others, ...W], shapes, rest)) break;
+    if (++tries > 300) break;
+  }
+  W.forEach(w => { if (!(w.label && w.label.box)) w.label = consBlock(w.x, w.y, w.a, w.lines, w.size + 9, w.sub); });
+  const held = [cbox, ...others.map(o => o.box), ...W.flatMap(w => [w.box, w.label.box])];
+  const I = inputs.map(a => { const x = ix.art[a], t = x ? (x.kind === "section" ? `in ${x.file}` : x.team) : (L.at[madeBy[a]] || {label: ""}).label, w = consWrap(lab(a), 22);
+    return {id: a, art: a, kind: "input", size: 10, lines: [...w, t || "from another team"], sub: w.length, full: `${lab(a)} · ${t || "from another team"}`}; });
+  const M = I.length, half = Math.ceil(M / 2), D = Math.PI / 180, iang = i => i < half ? (-150 + 120 * (i + 0.5) / half) * D : (150 - 120 * (i - half + 0.5) / (M - half)) * D;
+  let RX = Math.max(...held.flatMap(b => [Math.abs(b[0]), Math.abs(b[2])])) + 22, RY = Math.max(...held.flatMap(b => [Math.abs(b[1]), Math.abs(b[3])])) + 22; tries = 0;
+  for (;; RX += 8, RY += 8){
+    I.forEach((n, i) => { const a = iang(i); n.x = tRd(RX * Math.cos(a)); n.y = tRd(RY * Math.sin(a)); n.box = nbox(n); n.label = consBlock(n.x, n.y, a, n.lines, 14, n.sub); });
+    const own = I.flatMap(n => [n.box, n.label.box]);
+    if (!(own.some((p, j) => own.some((q, k) => k > j && (k >> 1) !== (j >> 1) && meetsBox(p, q))) || own.some(p => held.some(q => meetsBox(p, q)))) || ++tries > 300) break;
+  }
+  [...others, ...W, ...I].forEach(add);
+  return consExt({id: g.id, kind: "team", label: g.label, nodes, at, rest, quiet: false, rings: [R, [RX, RY]], wfs: W, stars, inputs, main, lab, c0lab: c0.lab}, cbox);
+}
+function consTeamFocus(G, f){      // a workflow: what it read (an input, or the team's own star that holds the section) and what it built; an input: who read it
+  const out = {focus: "", lit: new Set(), eat: new Set(), lines: []}, n = f && G.at[f]; if (!n || (n.kind !== "wf" && n.kind !== "input")) return out;
+  const seg = consSeg(70, G.c0lab), line = (a, b, k) => { if (a && b && a !== b) out.lines.push(seg(a, b, k, "lit")); }, src = a => G.at[a] || G.at[consParent(a)];
+  out.focus = f; out.lit.add(f);
+  if (n.kind === "wf"){ n.reads.forEach(a => { const s = src(a); if (s){ out.lit.add(s.id); out.eat.add(s.id); line(s, n, "reads"); } }); n.built.forEach(a => { if (G.at[a]){ out.lit.add(a); line(n, G.at[a], "makes"); } }); }
+  else { out.eat.add(f); G.wfs.filter(w => w.reads.includes(f)).forEach(w => { out.lit.add(w.id); line(n, w, "reads"); }); }
+  return out;
 }
 // a focus: the lines it lights, the nodes it keeps, the artifacts it consumes (input: who used it and what they built; section: its builder and fixes
 // and what they read; a workflow or a badge: everything it read and its section)
@@ -2738,51 +2994,64 @@ function consFocus(G, f, seg){
   else if (n.kind === "section" || n.kind === "empty"){ const s = n.slot; [s.builder, ...s.fixes].forEach(w => { out.lit.add(G.stand[w]); if (n.kind === "section") line(G.stand[w], f, "makes"); using(w); }); }
   return out;
 }
-const consSun = m => CONS.kind === "wf" ? consWfOf(m, CONS.id) : consOf(m, CONS.id);
+const consSun = m => CONS.kind === "wf" ? consWfOf(m, CONS.id) : CONS.kind === "team" ? consTeamOf(m, CONS.id) : consOf(m, CONS.id);
 function consHtml(m, G){
   const t = x => mapWords(x), lit = id => G.focus ? (G.lit.has(id) ? " lit" : " far") : "", eat = id => G.eat.has(id) ? " eat" : "", e = G.ext, wide = Math.max(e[2] - e[0], e[3] - e[1]);
-  const text = (n, L) => L.lines.map((s, i) => `<text class="${i ? "csub" : "clab"}" x="${tRd(L.x - n.x)}" y="${tRd(L.y0 - n.y + 11 + i * 14)}" text-anchor="${L.anchor}">${t(s)}</text>`).join("");
+  const text = (n, L) => L.lines.map((s, i) => `<text class="${i >= (L.sub ?? 1) ? "csub" : "clab"}" x="${tRd(L.x - n.x)}" y="${tRd(L.y0 - n.y + 11 + i * 14)}" text-anchor="${L.anchor}">${t(s)}</text>`).join("");
   const doc = (dx, dy) => `<path class="cdoc" d="M${-7 + dx} ${-9 + dy} h9 l5 5 v13 h-14 Z M${2 + dx} ${-9 + dy} v5 h5"/>`;
   const shape = n => {
     if (n.kind === "centre") return n.wf ? `<circle class="cglow ${n.role}" r="30"/><circle class="cglow ${n.role}" r="18"/><circle class="ccore ${n.role}" r="10"/><text class="cname" y="40" text-anchor="middle">${t(n.label)}</text><text class="csub" y="56" text-anchor="middle">${t(n.sub)}</text>`
       : `<circle class="cglow" r="40"/><circle class="cglow" r="22"/><circle class="ccore" r="11"/><text class="cname" y="44" text-anchor="middle">${t(n.label)}</text><text class="csub" y="60" text-anchor="middle">${t(n.sub)}</text>`;
     if (n.kind === "section" || n.kind === "empty") return `<rect class="chalo" x="-15" y="-15" width="30" height="30" rx="8"/><path class="cdia" d="M0 -8 L8 0 L0 8 L-8 0 Z"/>`;
+    if (n.kind === "star") return `<circle class="cglow" r="26"/><circle class="cglow" r="14"/><circle class="ccore" r="7"/><text class="cname small" y="${tRd(n.lab[1] - n.y + 13)}" text-anchor="middle">${t(n.label)}</text><text class="csub" y="${tRd(n.lab[1] - n.y + 28)}" text-anchor="middle">${t(n.sub)}</text>`;
     if (n.kind === "wf") return `<circle class="cwglow ${n.role}" r="12"/><circle class="cwf ${n.role}" r="5.5"/>`;
     if (n.kind === "badge") return `<circle class="cbadge" r="9"/><text class="csub" y="4" text-anchor="middle">+${n.n}</text>`;
     return `<rect class="chalo" x="-15" y="-15" width="30" height="30" rx="8"/>` + (n.kind === "group" ? doc(-3, -3) + doc(1, 1) : doc(0, 0)); };
-  const aria = n => n.kind === "centre" ? `${n.full}: the sun` : n.kind === "badge" ? `${n.label} on ${n.slot.label || n.slot.builder}: show them` : n.kind === "group" ? `${n.full}: list them`
-    : n.kind === "wf" ? `${n.id} ${G.C.workflows[n.id].name}: make it the sun` : G.kind === "wf" ? `${n.full}: make it the sun` : `${n.full}: focus it`;
-  const showLab = n => n.label && n.label.lines && (n.lead || n.kind === "input" || n.kind === "group" || G.kind === "wf");
+  const aria = n => n.kind === "centre" ? `${n.full}: the sun` : n.kind === "badge" ? `${n.btext} on ${n.slot.label || n.slot.builder}: show them` : n.kind === "group" ? `${n.full}: list them`
+    : n.kind === "wf" ? (G.kind === "team" ? `${n.full}: light what it read; again to make it the sun` : `${n.id} ${G.C.workflows[n.id].name}: make it the sun`) : n.kind === "star" ? n.full : G.kind === "wf" ? `${n.full}: make it the sun` : `${n.full}: focus it`;
+  const showLab = n => n.label && n.label.lines;
   const body = G.nodes.map(n => `<g class="cnode k-${n.kind}${n.role ? " " + n.role : ""}${lit(n.id)}${eat(n.id)}" data-cid="${esc(n.id)}" data-x="${n.x}" data-y="${n.y}" transform="translate(${n.x},${n.y})" tabindex="0" role="button" aria-label="${esc(t(aria(n)))}"><title>${t(n.full || n.label || n.id)}</title>`
     + `<circle class="chit" r="${Math.max(14, (n.size || 8) + 6)}"/>` + shape(n) + (showLab(n) ? `<g class="ctext">${text(n, n.label)}</g>` : "") + `</g>`).join("");
   const lines = G.rest.concat(G.lines).map(l => `<path class="cline ${l.kind} ${l.cls}" data-from="${esc(l.from)}" data-to="${esc(l.to)}" d="${l.d}"${l.cls === "lit" || l.cls === "wfl" ? ` marker-end="url(#carr-${l.kind})"` : ""}/>`).join("");
   const sky = [...Array(180)].map((_, i) => `<circle cx="${tRd(e[0] - wide * .2 + ((i * 137.5) % 1000) / 1000 * (e[2] - e[0] + wide * .4))}" cy="${tRd(e[1] - wide * .2 + ((i * 89.3) % 1000) / 1000 * (e[3] - e[1] + wide * .4))}" r="${i % 6 ? .6 : 1.1}"/>`).join("");      // a fixed starfield
   const rings = G.rings.map(r => Array.isArray(r) ? `<ellipse rx="${tRd(r[0])}" ry="${tRd(r[1])}"/>` : `<circle r="${tRd(r)}"/>`).join("");
-  return `<svg class="mapsvg consvg${G.quiet ? " quiet" : ""}${G.focus ? " focusing" : ""}" data-cons="${esc(G.id)}" data-kind="${G.kind}" viewBox="${tRd(e[0] - 12)} ${tRd(e[1] - 12)} ${tRd(e[2] - e[0] + 24)} ${tRd(e[3] - e[1] + 24)}" role="group" aria-label="${esc(t(G.label))}: ${G.kind === "wf" ? "what it read and what it made" : "its sections, who built and fixed them, what they read"}">`
+  return `<svg class="mapsvg consvg${G.quiet ? " quiet" : ""}${G.focus ? " focusing" : ""}" data-cons="${esc(G.id)}" data-kind="${G.kind}" viewBox="${tRd(e[0] - 12)} ${tRd(e[1] - 12)} ${tRd(e[2] - e[0] + 24)} ${tRd(e[3] - e[1] + 24)}" role="group" aria-label="${esc(t(G.label))}: ${G.kind === "wf" ? "what it read and what it made" : G.kind === "team" ? "the artifacts the team made, its workflows round them, what it read" : "its sections, who built and fixed them, what they read"}">`
     + `<defs>${["reads", "makes"].map(k => `<marker id="carr-${k}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="carr ${k}" d="M0 0 L8 4 L0 8 z"/></marker>`).join("")}</defs>`
     + `<g class="lview"><g class="csky">${sky}</g><g class="crings">${rings}</g><g class="clines">${lines}</g><g class="cnodes">${body}</g></g></svg>`;
 }
 // the side panel of a focus: built by / fixed by / using, or used by for an input
 function consPanel(G){
+  if (G.kind === "team") return consTeamPanel(G);
   const n = G.kind === "art" && G.at[G.focus]; if (!n) return "";
   const C = G.C, W = C.workflows, t = x => mapWords(x), who = w => `${w} · ${W[w].name}${W[w].t ? ` (ran ${W[w].t})` : W[w].ran ? "" : " (did not run)"}`, art = a => { const x = (C.inputs || []).find(y => y.id === a), s = C.slots.find(y => y.section === a); return x ? x.label : s ? s.label : a; };
   const row = (k, v) => `<div class="k">${t(k)}</div><div>${v.length ? v.map(t).join(", ") : "nothing recorded"}</div>`;
   let head = n.full || n.id, rows = "";
   if (n.kind === "input" || n.kind === "group"){ const mem = n.kind === "group" ? n.members : [n.id], ws = Object.keys(W).filter(w => W[w].reads.some(a => mem.includes(a)));
     head = n.kind === "group" ? n.full : n.a.label; rows = (n.kind === "group" ? row("inputs", mem.map(art)) : row("made by", [n.team])) + row("used by", ws.map(w => `${who(w)}${W[w].section ? " for " + art(W[w].section) : ""}`)); }
-  else if (n.kind === "badge"){ head = `${n.label} on ${n.slot.label}`; rows = n.slot.fixes.map(w => row("fixed by", [who(w)]) + row("using", W[w].reads.map(art))).join(""); }
+  else if (n.kind === "badge"){ head = `${n.btext} on ${n.slot.label}`; rows = n.slot.fixes.map(w => row("fixed by", [who(w)]) + row("using", W[w].reads.map(art))).join(""); }
   else if (n.kind === "section" || n.kind === "empty"){ const s = n.slot; head = s.label || `${s.builder}: no recorded output`;
     rows = row("built by", [who(s.builder)]) + row("fixed by", s.fixes.map(who)) + row("using", [...new Set([s.builder, ...s.fixes].flatMap(w => W[w].reads))].map(art)); }
-  return `<aside class="conspanel" data-conspanel="${esc(n.id)}" aria-label="Details of ${esc(t(head))}"><b>${t(head)}</b>${rows}<button type="button" class="linkbtn" data-consclear>Close (Esc)</button></aside>`;
+  const deep = n.kind === "section" || n.kind === "input" ? `<button type="button" class="linkbtn" data-openart="${esc(n.id)}">Open in Artifacts</button> ` : n.kind === "empty" ? `<button type="button" class="linkbtn" data-openwf="${esc(n.slot.builder)}">Open in Workflows</button> ` : "";
+  return `<aside class="conspanel" data-conspanel="${esc(n.id)}" aria-label="Details of ${esc(t(head))}"><b>${t(head)}</b>${rows}${deep}<button type="button" class="linkbtn" data-consclear>Close (Esc)</button></aside>`;
+}
+function consTeamPanel(G){
+  const n = G.at[G.focus]; if (!n) return ""; const t = x => mapWords(x), row = (k, v) => `<div class="k">${t(k)}</div><div>${v.length ? v.map(t).join(", ") : "nothing recorded"}</div>`, nm = a => G.lab(a);
+  const rows = n.kind === "wf" ? row(n.role === "fix" ? "fixed" : "built", n.built.map(nm)) + row("read", n.reads.map(nm)) + `<div class="k">next</div><div>Click it again to open its sun.</div>`
+    : row("from", [n.lines[n.lines.length - 1]]) + row("read by", G.wfs.filter(w => w.reads.includes(n.id)).map(w => w.full));
+  const deep = n.kind === "wf" ? `<button type="button" class="linkbtn" data-openwf="${esc(n.id)}">Open in Workflows</button> ` : `<button type="button" class="linkbtn" data-openart="${esc(n.id)}">Open in Artifacts</button> `;
+  return `<aside class="conspanel" data-conspanel="${esc(n.id)}" aria-label="Details of ${esc(t(n.full))}"><b>${t(n.kind === "wf" ? n.full : nm(n.id))}</b>${rows}${deep}<button type="button" class="linkbtn" data-consclear>Close (Esc)</button></aside>`;
 }
 function consView(m, G){
-  const by = mapById(m), ix = consIndex(m), a = G.kind === "art" ? by[G.id] || {} : {}, go = a.id ? `<button type="button" class="gobtn" data-mapgo="${esc(a.id)}">${mapWords(mapGoLabel(a))}</button>${a.file ? ` <a href="#" data-mapopen="${esc(a.file)}">Open ${mapWords(a.label)}</a>` : ""}` : "";
-  const help = G.focus ? "Esc or empty space clears the focus." : G.kind === "wf" ? "Left: what it read. Right: what it made. Click one to make it the sun; Esc steps back." : "Click a section or an input to see what fed it, a workflow to make it the sun.";
-  const crumb = p => mapWords(p.kind === "wf" ? `${p.id} · ${(ix.wf[p.id] || {}).name || ""}` : (ix.art[p.id] || {label: p.id}).label);
+  const by = mapById(m), ix = consIndex(m), a = G.kind === "art" ? by[G.id] || {} : {}, go = (a.id ? `<button type="button" class="gobtn" data-mapgo="${esc(a.id)}">${mapWords(mapGoLabel(a))}</button>${a.file ? ` <a href="#" data-mapopen="${esc(a.file)}">Open ${mapWords(a.label)}</a>` : ""}` : "")
+    + (G.kind === "art" ? ` <button type="button" class="linkbtn" data-openart="${esc(G.id)}">Open in Artifacts</button>` : G.kind === "wf" ? ` <button type="button" class="linkbtn" data-openwf="${esc(G.id)}">Open in Workflows</button>` : "");
+  const help = G.focus ? (G.kind === "team" && G.at[G.focus] && G.at[G.focus].kind === "wf" ? "Click it again to open its sun; Esc or empty space clears the focus." : "Esc or empty space clears the focus.")
+    : G.kind === "team" ? "Click a workflow to light what it read, again to open its sun; click a star to open its sun." : G.kind === "wf" ? "Left: what it read. Right: what it made. Click one to make it the sun; Esc steps back." : "Click a section or an input to see what fed it, a workflow to make it the sun.";
+  const crumb = p => mapWords(p.kind === "wf" ? `${p.id} · ${(ix.wf[p.id] || {}).name || ""}` : p.kind === "team" ? `${(mapTree(m).stages[p.id] || {label: p.id}).label} (team)` : (ix.art[p.id] || {label: p.id}).label);
   const path = `<nav class="cpath" aria-label="The walk">${CONS.path.map((p, i) => (i ? `<span aria-hidden="true">›</span>` : "") + (i === CONS.path.length - 1 ? `<b aria-current="step">${crumb(p)}</b>` : `<button type="button" class="linkbtn" data-conscrumb="${i}">${crumb(p)}</button>`)).join("")}</nav>`;
   return `<div class="mapsvgwrap conswrap" data-view="cons"><div class="treebar linebar"><button type="button" class="linkbtn" data-consback>Back</button><button type="button" class="linkbtn" data-linezoom="1.5" aria-label="Zoom in">+</button><button type="button" class="linkbtn" data-linezoom="0.6667" aria-label="Zoom out">&minus;</button><button type="button" class="linkbtn" data-linefit>Fit</button><span class="sub" data-linez></span>${go}<span class="sub">${mapWords(help)}</span></div>`
     + path + `<div class="consbox">${consHtml(m, G)}${consPanel(G)}</div>`
-    + `<div class="clegend"><span class="ck sun">●</span>artifact <span class="ck sec">◆</span>section <span class="ck wf">●</span>built by <span class="ck fix">●</span>fixed by <span class="ck doc">▯</span>artifact used (glows when consumed) <span class="ck doc">···</span>used for (on click)</div></div>`;
+    + (G.kind === "team" ? `<div class="clegend"><span class="ck sun">●</span>artifact the team made <span class="ck wf">●</span>built by <span class="ck fix">●</span>fixed by <span class="ck doc">▯</span>input from another team (glows when read)</div></div>`
+      : `<div class="clegend"><span class="ck sun">●</span>artifact <span class="ck sec">◆</span>section <span class="ck wf">●</span>built by <span class="ck fix">●</span>fixed by <span class="ck doc">▯</span>artifact used (glows when consumed) <span class="ck doc">···</span>used for (on click)</div></div>`);
 }
 // the focus panel takes the corner of the card that hides the fewest of the nodes the focus lights (top right first, as in the mock)
 function consPlace(){
@@ -2795,21 +3064,9 @@ function consPlace(){
 // moving about: every step glides from where each node stood (a new one grows out of the node that was clicked), the view with it; Esc steps back one
 function consSpots(){ const s = $("pane-map").querySelector && $("pane-map").querySelector(".consvg"); if (!s) return null; const pos = {};
   s.querySelectorAll(".cnode[data-cid]").forEach(g => { const k = g.dataset.cid.replace(/^wf:/, ""); if (!pos[k]) pos[k] = [+g.dataset.x, +g.dataset.y]; }); return {pos, tf: s.querySelector(".lview").getAttribute("transform") || ""}; }
-function consGlide(prev, from){
-  const s = $("pane-map").querySelector(".consvg"); if (!prev || !s || treeReduce()) return;
-  const v = s.querySelector(".lview"), num = x => (/translate\(([-\d.e]+),([-\d.e]+)\) scale\(([-\d.e]+)\)/.exec(x || "") || []).slice(1).map(Number), a = num(prev.tf), b = num(v.getAttribute("transform"));
-  const o = prev.pos[from] || [0, 0], go = [...s.querySelectorAll(".cnode[data-cid]")].map(g => { const k = g.dataset.cid.replace(/^wf:/, ""); return [g, prev.pos[k] || o, [+g.dataset.x, +g.dataset.y], !prev.pos[k]]; });
-  const ease = typeof d3 !== "undefined" && d3.easeCubicInOut ? d3.easeCubicInOut : u => u, id = CONS.glide = (CONS.glide || 0) + 1, t0 = performance.now();
-  const put = u => { const e = ease(u), m = (p, q) => tRd(p + (q - p) * e); go.forEach(([g, p, q, fresh]) => { g.setAttribute("transform", `translate(${m(p[0], q[0])},${m(p[1], q[1])})`); if (fresh) g.style.opacity = e; });
-    if (a.length === 3 && b.length === 3) v.setAttribute("transform", `translate(${m(a[0], b[0])},${m(a[1], b[1])}) scale(${Math.round((a[2] + (b[2] - a[2]) * e) * 1e4) / 1e4})`); };
-  const end = () => { if (CONS.glide !== id) return; CONS.glide++; put(1); go.forEach(([g]) => { g.style.opacity = ""; }); s.classList.remove("cmoving"); };
-  s.classList.add("cmoving"); put(0);
-  const frame = now => { if (CONS.glide !== id) return; const u = Math.min(1, (now - t0) / 300); put(u); if (u < 1) requestAnimationFrame(frame); else end(); };
-  requestAnimationFrame(frame); setTimeout(end, 450);      // a tab that draws no frames still lands
-}
 function consGo(path, focus, from){      // set the walk (its last step is the sun) and glide there
   const prev = consSpots(), p = path[path.length - 1];
-  Object.assign(CONS, {path, id: p ? p.id : "", kind: p ? p.kind : "art", focus: focus || "", fan: {}, grp: {}}); MAPPIN = ""; paintMap(); if (p) consGlide(prev, from);
+  Object.assign(CONS, {path, id: p ? p.id : "", kind: p ? p.kind : "art", focus: focus || "", fan: {}, grp: {}}); MAPPIN = ""; paintMap(); if (p) motionFrom($("pane-map").querySelector(".consvg"), prev && prev.pos, from);
 }
 const consOpen = id => consGo([{id, kind: "art"}]);
 const consBack = () => consGo([]);      // Back: to the Map
@@ -2821,7 +3078,11 @@ function consClick(e){
   if (e.target.closest("[data-consclear]")){ CONS.focus = ""; paintMap(); return true; }
   const cr = e.target.closest("[data-conscrumb]"); if (cr){ consGo(CONS.path.slice(0, +cr.dataset.conscrumb + 1), "", CONS.id); return true; }
   const g = e.target.closest(".consvg .cnode"); if (g){ const id = g.dataset.cid, G = consSun(MAP), n = (G || {at: {}}).at[id] || {}, path = CONS.path;
-    if (n.kind === "centre"){ if (CONS.focus){ CONS.focus = ""; paintMap(); } }
+    if (G.kind === "team"){ const art = n.art && n.kind !== "input" && (MAP.constellations || {})[n.art];
+      if (n.kind === "wf" && CONS.focus === id) consGo(path.concat({id, kind: "wf"}), "", id);      // a second click: its sun
+      else if (n.kind === "wf" || n.kind === "input"){ CONS.focus = CONS.focus === id ? "" : id; paintMap(); }
+      else if (art) consGo(path.concat({id: n.art, kind: "art"}), "", id); }      // a star: that artifact's sun
+    else if (n.kind === "centre"){ if (CONS.focus){ CONS.focus = ""; paintMap(); } }
     else if (G.kind === "wf"){ const id = n.art || g.dataset.cid, f = consParent(id); if (f && (MAP.constellations || {})[f]) consGo(path.concat({id: f, kind: "art"}), id, id); else if ((MAP.constellations || {})[id]) consGo(path.concat({id, kind: "art"}), "", id); }      // an artifact round a workflow: it is the sun again
     else if (n.kind === "wf") consGo(path.concat({id, kind: "wf"}), "", id);
     else if (n.kind === "badge"){ CONS.fan[id.slice(4)] = true; paintMap(); }
@@ -2831,12 +3092,27 @@ function consClick(e){
   if (e.target.closest(".consvg")){ if (CONS.focus){ CONS.focus = ""; paintMap(); } return true; }      // empty space
   return false;
 }
+// deep links from any map: a workflow to its row in Adaptation > Workflows, an artifact to its item in Artifacts (a section opens its parent's fold); the row is
+// scrolled into view and lit; "Back to map" returns to the same map view and focus (the map's state is left as it was)
+function mapDeepTarget(kind, id){      // the places to look, best first: a section's own row, else its document's
+  if (kind === "wf") return [`[data-wfrow="${CSS.escape(id)}"]`];
+  if (/^sec:/.test(id)) return [`[data-sec="${CSS.escape(consParent(id) + "|" + id.split(":").pop())}"]`, ...mapDeepTarget("art", consParent(id))];
+  const n = mapById(MAP)[id]; return [`[data-node="${CSS.escape(id)}"]`, n && n.file ? `[data-art="${CSS.escape(n.file)}"]` : "", id === "work:charter" ? '[data-art="goal.json"]' : ""].filter(Boolean);
+}
+async function mapOpenIn(kind, id){
+  document.querySelectorAll(".dlhit").forEach(x => x.classList.remove("dlhit"));
+  if (kind === "wf"){ OTAG = ""; WFSTEP.length = 0; showTab("workflows"); if (typeof state !== "undefined" && state) paint($("pane-workflows"), renderWorkflows(state)); }
+  else { showTab("artifacts"); if (!ARTS.tree) await loadArtifacts(); else paint($("pane-artifacts"), renderArtifacts()); }
+  const pane = $(kind === "wf" ? "pane-workflows" : "pane-artifacts"), el = mapDeepTarget(kind, id).map(q => pane.querySelector(q)).find(Boolean); if (!el) return null;
+  for (let d = el.parentElement.closest("details"); d; d = d.parentElement && d.parentElement.closest("details")) d.open = true;
+  el.classList.add("dlhit"); el.scrollIntoView({block: "center"}); return el;
+}
 function mapSelect(id){      // click or Enter: open this dot's panel (the same one again closes it); the pin keeps its lines lit
   MAPPIN = id; paintMap();
   const el = id && $("pane-map").querySelectorAll && [...$("pane-map").querySelectorAll(`.mapnode[data-id="${CSS.escape(id)}"]`)].find(x => x.getClientRects().length); if (el && el.focus) el.focus();
   const pn = id && $("pane-map").querySelector && $("pane-map").querySelector(".mappanel"); if (pn && pn.scrollIntoView) pn.scrollIntoView({block: "nearest"});      // the panel opens below the Map: bring it into view
 }
-const mapHover = (e, on) => { if (treeHover(e, on)) return; const g = mapNode(e), svg = mapSvg(); if (!g || !svg) return; if (on) svg.dataset.hover = g.dataset.id; else delete svg.dataset.hover;
+const mapHover = (e, on) => { motionHoverEvt(e, on); if (treeHover(e, on)) return; const g = mapNode(e), svg = mapSvg(); if (!g || !svg) return; if (on) svg.dataset.hover = g.dataset.id; else delete svg.dataset.hover;
   $("pane-map").querySelectorAll(".mapsvg").forEach(x => mapLight(x, on ? g.dataset.id : MAPPIN)); };      // the wide and the narrow drawing stay in step
 $("pane-map").addEventListener("mouseover", e => mapHover(e, true)); $("pane-map").addEventListener("mouseout", e => mapHover(e, false));
 $("pane-map").addEventListener("focusin", e => mapHover(e, true)); $("pane-map").addEventListener("focusout", e => mapHover(e, false));
@@ -2845,8 +3121,11 @@ $("pane-map").addEventListener("keydown", e => { const tn = e.target.closest && 
   const g = mapNode(e); if (g && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); consPick(g.dataset.id); } });
 document.addEventListener("keydown", e => { if (e.key !== "Escape" || $("pane-map").hidden) return;      // Esc: the picked workflow, then the open stage, then the panel
   if (CONS.id){ consStep(); return; }      // the solar system: its focus, then one step of the walk back, then the Map
-  if (MAPVIEW === "tree" && TREE.wf) treeFocus(""); else if (MAPPIN) mapSelect(""); else if (MAPVIEW === "tree" && TREE.open) treeClose(); else if (MAPVIEW === "tree" && TREE.focus) treeFocusTeam(""); });
+  if (MAPPIN) mapSelect(""); else if (MAPVIEW === "tree" && TREE.focus) treeFocusTeam(""); });
 $("pane-map").addEventListener("click", async e => { const t = e.target.closest("[data-maptab]"); if (t){ e.preventDefault(); showTab(t.dataset.maptab); return; }
+  if (e.target.closest("[data-mapreset]")){ e.preventDefault(); const b = e.target.closest("[data-mapreset]"), box = b.previousElementSibling;
+    motionReset(box && [...box.querySelectorAll(".treesvg, .consvg, .mapsvg")].find(x => x.getClientRects().length)); return; }
+  const dl = e.target.closest("[data-openwf], [data-openart]"); if (dl){ e.preventDefault(); e.stopPropagation(); await mapOpenIn(dl.dataset.openwf ? "wf" : "art", dl.dataset.openwf || dl.dataset.openart); return; }
   if (consClick(e)){ e.preventDefault(); return; }
   if (!e.target.closest("[data-mapgo],[data-wfcard],[data-mapopen],[data-mapclose]") && treeClick(e)){ e.preventDefault(); return; }
   if (e.target.closest("[data-mapclose]")){ e.preventDefault(); mapSelect(""); return; }
@@ -2941,10 +3220,21 @@ $("pane-lessons").addEventListener("click", async e => {
 });
 $("box").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }});
 $("reset").onclick = async () => { await fetch("/api/reset", {method:"POST"}); location.search = ""; };
+// ---- Appearance (Run settings): Light, Dark or System, per viewer (localStorage, which may be missing); Dark by default. Every colour is a CSS
+// token, so setting data-theme on <html> repaints every view at once, maps included, with no reload.
+let THEME = null;
+const themePref = () => { if (THEME) return THEME; try { const p = localStorage.getItem("j2theme"); return ["light", "dark", "system"].includes(p) ? p : "dark"; } catch (e) { return "dark"; } };
+function themeApply(){ const p = themePref(), de = document.documentElement; if (!de) return;
+  de.dataset.theme = p === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : p;
+  document.querySelectorAll("[data-themepick]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themepick === p))); }
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-themepick]"); if (!b) return;
+  THEME = b.dataset.themepick; try { localStorage.setItem("j2theme", THEME); } catch (err) {} themeApply(); });
+try { matchMedia("(prefers-color-scheme: light)").addEventListener("change", themeApply); } catch (e) {}
+themeApply();
 // ---- Left bar: the Internals tabs in sections. A tab is placed by RAILSEC (the one declared table); a tab it does not name goes to the function whose Map node
 // carries it as its tab (FN_TAB in j2_map.py), else to Other. The function headers, the conflicts and the actions come from the run's records (state and Map).
 const RAILSEC = {conflicts: "conflicts", goal: "identity", charter: "identity", report: "identity", lessons: "adaptation", playbooks: "adaptation", workflows: "adaptation", priorities: "priority", timeline: "coordination",
-  board: "coordination", story: "coordination", library: "artifacts", audit: "audit", preview: "artifacts", docs: "artifacts", artifacts: "artifacts", style: "artifacts", runsettings: "settings", rundetails: "settings"};
+  board: "coordination", story: "coordination", library: "artifacts", audit: "audit", preview: "artifacts", docs: "artifacts", artifacts: "artifacts", runsettings: "settings", rundetails: "settings"};
 const RAILORDER = [["conflicts", "Conflicts"], ["identity", "Identity"], ["adaptation", "Adaptation"], ["priority", "Priority"], ["coordination", "Coordination"], ["audit", "Audit"],
   ["artifacts", "Artifacts"], ["actions", "Actions"], ["other", "Other"], ["settings", "Settings"]];
 let RAILOPEN = {}; try { RAILOPEN = JSON.parse(localStorage.getItem("j2railopen") || "{}") || {}; } catch (e) { RAILOPEN = {}; }      // per viewer: a section the viewer opened or closed
@@ -2961,7 +3251,7 @@ const RAILDIM = {goal: s => !s.goal && "no charter recorded", charter: s => !s.g
   workflows: s => !(s.workflows || []).length && "no workflows yet", priorities: s => !prioModel(s).has && "no ranking records", timeline: s => !(s.allChat || s.chat || []).length && "no messages recorded",
   audit: s => !(s.audits || []).length && "no audit yet", preview: s => !s.versions && "nothing built yet",
   docs: s => !(s.docset || []).length && !["prd", "hld", "lld"].some(k => DOCS[k] && DOCS[k].text) && "this run made no documents",
-  artifacts: s => !((ARTS.tree || {}).groups || []).some(g => g.count) && "no artifacts listed", style: s => !s.style && "no style guide recorded",
+  artifacts: s => !((ARTS.tree || {}).groups || []).some(g => g.count) && "no artifacts listed",
   lessons: s => !(s.memory || (s.lessons_used || []).length || (s.lessons_saved || []).length) && "memory is off", playbooks: s => !(s.memory || (s.playbooks_used || []).length || s.playbook_saved) && "memory is off"};
 // Priorities, from the run's records: Priority's decisions in chat.jsonl (who priority, decision, cycle, text), the workflows it priced (workflows.json: cycle, cost, charged, status, purpose)
 // and, where the bargain cut something, conflicts.json (adaptation_final against priority_final). Credits: report.json metrics.budget, else the state's budget and spent.
@@ -3043,7 +3333,7 @@ function railPaint(){
     if (!el.__init){ el.__init = true; railSetOpen(sec.id, sec.open, false); } else if (sec.needs && !(sec.id in RAILOPEN)) railSetOpen(sec.id, true, false); });
 }
 function railReveal(name){ const b = document.querySelector(`#railsub [data-tab="${name}"]`), sec = b && b.closest && b.closest(".rsec"); if (sec) railSetOpen(sec.dataset.sec, true, false); }
-$("pane-workflows").addEventListener("click", e => { const b = e.target.closest("[data-wfmap]"); if (!b) return; showTab("map"); MAPVIEW = "tree"; try { localStorage.setItem("j2mapview", "tree"); } catch (x) {} treeGo(() => { TREE.open = b.dataset.stage; TREE.wf = b.dataset.wfmap; TREE.focus = ""; }, b.dataset.wfmap); });
+$("pane-workflows").addEventListener("click", e => { const b = e.target.closest("[data-wfmap]"); if (!b) return; showTab("map"); MAPVIEW = "tree"; try { localStorage.setItem("j2mapview", "tree"); } catch (x) {} consGo([{id: b.dataset.stage, kind: "team"}, {id: b.dataset.wfmap, kind: "wf"}]); });      // its team's solar system, then its own sun
 $("railsub").addEventListener("click", e => { const h = e.target.closest(".rshead"); if (h){ const id = h.closest(".rsec").dataset.sec; railSetOpen(id, h.getAttribute("aria-expanded") !== "true", true); return; }
   const go = e.target.closest("[data-railgo]"); if (go){ showTab(go.dataset.railgo); return; }
   const sc = e.target.closest("[data-railsec]"); if (sc){ railSetOpen(sc.dataset.railsec, true, false); const el = document.querySelector(`.rsec[data-sec="${sc.dataset.railsec}"]`); if (el && el.scrollIntoView) el.scrollIntoView({block: "nearest"}); return; }
