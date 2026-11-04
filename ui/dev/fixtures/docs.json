@@ -1,0 +1,601 @@
+{
+  "run": {
+    "id": "fx-docs",
+    "saved": false,
+    "title": "Clinic Booking App"
+  },
+  "status": "working",
+  "status_text": "Writing the low-level design",
+  "usage": {
+    "budget": 1900000,
+    "spent": 820000,
+    "margin_at": 1615000,
+    "estimate": 1600000,
+    "by_phase": {
+      "planning": 600000,
+      "building": 70000,
+      "checking": 150000,
+      "other": 0
+    }
+  },
+  "decision": null,
+  "chat": [
+    {
+      "id": 1,
+      "t": "10:15:00",
+      "from": "you",
+      "text": "A PRD, HLD and LLD for a simple appointment booking app for clinics."
+    },
+    {
+      "id": 2,
+      "t": "10:16:01",
+      "from": "team",
+      "text": "Thanks. Here's what I'd make."
+    },
+    {
+      "id": 3,
+      "t": "10:17:02",
+      "from": "you",
+      "text": "Approve"
+    },
+    {
+      "id": 4,
+      "t": "10:18:03",
+      "from": "team",
+      "text": "The PRD is done. Working on the designs now."
+    }
+  ],
+  "backstage": [
+    {
+      "id": 1,
+      "t": "10:16:00",
+      "from": "Client lead",
+      "to": "Planner",
+      "text": "They want a PRD, an HLD and an LLD for a clinic booking app.",
+      "active": false,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    },
+    {
+      "id": 2,
+      "t": "10:16:07",
+      "from": "Planner",
+      "to": "Budget lead",
+      "text": "Three documents, 6 parts, about 1.6M.",
+      "active": false,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    },
+    {
+      "id": 3,
+      "t": "10:16:14",
+      "from": "Budget lead",
+      "to": "Planner",
+      "text": "Fits.",
+      "active": false,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    },
+    {
+      "id": 4,
+      "t": "10:17:21",
+      "from": "Builder \u00b7 PRD",
+      "to": "Gatekeeper",
+      "text": "PRD is written: goals, features, what's out of scope.",
+      "active": false,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    },
+    {
+      "id": 5,
+      "t": "10:17:28",
+      "from": "Gatekeeper",
+      "to": "Scheduler",
+      "text": "PRD passes.",
+      "active": false,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    },
+    {
+      "id": 6,
+      "t": "10:17:35",
+      "from": "Builder \u00b7 HLD",
+      "to": "Gatekeeper",
+      "text": "The main parts and how a booking flows.",
+      "active": false,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    },
+    {
+      "id": 7,
+      "t": "10:18:42",
+      "from": "Gatekeeper",
+      "to": "Builder \u00b7 HLD",
+      "text": "Good. Add the open choices at the end.",
+      "active": false,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    },
+    {
+      "id": 8,
+      "t": "10:18:49",
+      "from": "Builder \u00b7 LLD",
+      "to": "Gatekeeper",
+      "text": "Writing the tables and the API now.",
+      "active": true,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    }
+  ],
+  "working_now": {
+    "who": "Builder \u00b7 LLD",
+    "task_id": "D-5"
+  },
+  "plan": {
+    "groups": [
+      {
+        "name": "Planning",
+        "tasks": [
+          {
+            "id": "D-1",
+            "name": "Brief",
+            "summary": "Who the app is for and what it must do.",
+            "status": "done",
+            "waits_for": [],
+            "usage": 120000,
+            "share": 150000
+          }
+        ]
+      },
+      {
+        "name": "Writing",
+        "tasks": [
+          {
+            "id": "D-2",
+            "name": "PRD",
+            "summary": "Goals, features and what's out of scope.",
+            "status": "done",
+            "waits_for": [
+              "Brief"
+            ],
+            "usage": 260000,
+            "share": 300000
+          },
+          {
+            "id": "D-3",
+            "name": "HLD",
+            "summary": "The main parts and how they fit.",
+            "status": "done",
+            "waits_for": [
+              "PRD"
+            ],
+            "usage": 240000,
+            "share": 300000
+          },
+          {
+            "id": "D-4",
+            "name": "Data and API",
+            "summary": "Tables and endpoints for the LLD.",
+            "status": "done",
+            "waits_for": [
+              "HLD"
+            ],
+            "usage": 150000,
+            "share": 250000
+          },
+          {
+            "id": "D-5",
+            "name": "LLD",
+            "summary": "The detailed design, part by part.",
+            "status": "working",
+            "waits_for": [
+              "Data and API"
+            ],
+            "usage": 50000,
+            "share": 350000
+          }
+        ]
+      },
+      {
+        "name": "Checking",
+        "tasks": [
+          {
+            "id": "D-6",
+            "name": "Consistency check",
+            "summary": "The three documents agree with each other.",
+            "status": "waiting",
+            "waits_for": [
+              "LLD"
+            ],
+            "usage": 0,
+            "share": 200000
+          }
+        ]
+      }
+    ]
+  },
+  "deliverables": [
+    {
+      "kind": "prd",
+      "label": "PRD",
+      "state": "done",
+      "version": 2,
+      "url": "/ui/dev/samples/prd.md",
+      "download": "/ui/dev/samples/prd.md"
+    },
+    {
+      "kind": "hld",
+      "label": "HLD",
+      "state": "draft",
+      "version": 1,
+      "url": "/ui/dev/samples/hld.md",
+      "download": "/ui/dev/samples/hld.md"
+    },
+    {
+      "kind": "lld",
+      "label": "LLD",
+      "state": "working",
+      "version": 1,
+      "url": "/ui/dev/samples/lld.md",
+      "download": null
+    }
+  ],
+  "ended": null,
+  "settings": {
+    "no_questions": false
+  },
+  "control": {
+    "paused": false,
+    "pausing": false,
+    "stopping": false
+  },
+  "map": {
+    "departments": [
+      {
+        "id": "d-prd",
+        "name": "PRD",
+        "kind": "prd"
+      },
+      {
+        "id": "d-hld",
+        "name": "HLD",
+        "kind": "hld"
+      },
+      {
+        "id": "d-lld",
+        "name": "LLD",
+        "kind": "lld"
+      }
+    ],
+    "units": [
+      {
+        "id": "u-identity",
+        "role": "client",
+        "label": "Client lead",
+        "dept": "d-lld",
+        "at": "d-lld",
+        "state": "idle",
+        "doing": ""
+      },
+      {
+        "id": "u-adaptation",
+        "role": "planner",
+        "label": "Planner",
+        "dept": "d-lld",
+        "at": "d-lld",
+        "state": "idle",
+        "doing": ""
+      },
+      {
+        "id": "u-priority",
+        "role": "budget",
+        "label": "Budget lead",
+        "dept": "d-lld",
+        "at": "d-lld",
+        "state": "idle",
+        "doing": ""
+      },
+      {
+        "id": "u-coordination",
+        "role": "scheduler",
+        "label": "Scheduler",
+        "dept": "d-lld",
+        "at": "d-lld",
+        "state": "idle",
+        "doing": ""
+      },
+      {
+        "id": "u-validator",
+        "role": "gatekeeper",
+        "label": "Gatekeeper",
+        "dept": "d-lld",
+        "at": "d-lld",
+        "state": "working",
+        "doing": "Checking the plan"
+      },
+      {
+        "id": "u-audit",
+        "role": "quality",
+        "label": "Quality check",
+        "dept": "d-lld",
+        "at": "d-lld",
+        "state": "idle",
+        "doing": ""
+      },
+      {
+        "id": "u-D-5",
+        "role": "builder",
+        "label": "Builder \u00b7 LLD",
+        "dept": "d-lld",
+        "at": "D-5",
+        "state": "working",
+        "doing": "Building lld"
+      }
+    ],
+    "buildings": [
+      {
+        "id": "D-1",
+        "name": "Brief",
+        "dept": "d-prd",
+        "progress": 1.0,
+        "state": "done",
+        "depends_on": [],
+        "usage": 120000,
+        "share": 150000,
+        "doing": "Done",
+        "output": {
+          "kind": "notes"
+        }
+      },
+      {
+        "id": "D-2",
+        "name": "PRD",
+        "dept": "d-prd",
+        "progress": 1.0,
+        "state": "done",
+        "depends_on": [
+          "D-1"
+        ],
+        "usage": 260000,
+        "share": 300000,
+        "doing": "Done",
+        "output": {
+          "kind": "document"
+        }
+      },
+      {
+        "id": "D-3",
+        "name": "HLD",
+        "dept": "d-hld",
+        "progress": 1.0,
+        "state": "done",
+        "depends_on": [
+          "D-2"
+        ],
+        "usage": 240000,
+        "share": 300000,
+        "doing": "Done",
+        "output": {
+          "kind": "document"
+        }
+      },
+      {
+        "id": "D-4",
+        "name": "Data and API",
+        "dept": "d-lld",
+        "progress": 1.0,
+        "state": "done",
+        "depends_on": [
+          "D-3"
+        ],
+        "usage": 150000,
+        "share": 250000,
+        "doing": "Done",
+        "output": {
+          "kind": "document"
+        }
+      },
+      {
+        "id": "D-5",
+        "name": "LLD",
+        "dept": "d-lld",
+        "progress": 0.21,
+        "state": "working",
+        "depends_on": [
+          "D-4"
+        ],
+        "usage": 50000,
+        "share": 350000,
+        "doing": "Building lld",
+        "output": null
+      },
+      {
+        "id": "D-6",
+        "name": "Consistency check",
+        "dept": "d-lld",
+        "progress": 0.0,
+        "state": "waiting",
+        "depends_on": [
+          "D-5"
+        ],
+        "usage": 0,
+        "share": 200000,
+        "doing": "Waits for LLD",
+        "output": null
+      }
+    ],
+    "flows": [
+      {
+        "id": 3,
+        "from": "u-D-5",
+        "to": "u-validator",
+        "t": "10:22:00",
+        "what": "Writing the tables and the API now."
+      }
+    ],
+    "attention": null,
+    "counts": {
+      "done": 4,
+      "total": 6
+    }
+  },
+  "_sim": {
+    "lines": [
+      {
+        "from": "Builder \u00b7 LLD",
+        "to": "Gatekeeper",
+        "text": "Tables done. Writing the reminder job.",
+        "status_text": "Writing the low-level design"
+      },
+      {
+        "from": "Gatekeeper",
+        "to": "Builder \u00b7 LLD",
+        "text": "Add the error cases for a lost hold.",
+        "status_text": "Writing the low-level design"
+      },
+      {
+        "from": "Builder \u00b7 LLD",
+        "to": "Gatekeeper",
+        "text": "Error cases added.",
+        "status_text": "Checking the low-level design"
+      }
+    ],
+    "spend": 12000,
+    "bump_every": 4,
+    "fill": 0.03
+  },
+  "_outputs": {
+    "W-1": {
+      "id": "W-1",
+      "name": "Brief",
+      "kind": "notes",
+      "points": [
+        "Hero: the clinic's name, Indiranagar, and one Book on WhatsApp button.",
+        "Services: three treatments, each with a one-line description and a price.",
+        "Opening hours: every day of the week, Sunday closed.",
+        "Booking: a WhatsApp link with a short prefilled message.",
+        "Questions people ask: cost, parking, first visit.",
+        "Footer: address, phone and a map link."
+      ],
+      "markdown": "# Still Water Physio: page plan\n\nOne page for Still Water Physio in Indiranagar. Every later part follows this document. Copy every name, price and time exactly as written here.\n\n## Section order\n\n| # | Section | Built by |\n|---|---|---|\n| 1 | Hero | hero part |\n| 2 | Services | services part |\n| 3 | Opening hours | hours part |\n| 4 | Booking | booking part |\n| 5 | Questions people ask | questions part |\n\n## Hero\n\n- The clinic's name, Indiranagar, and one **Book on WhatsApp** button that links to the booking section.\n\n## Services\n\n- Sports injury rehab: Rs 1,200 a session\n- Back and neck care: Rs 1,000 a session\n- Home visits: Rs 1,800 a visit\n\n## Opening hours\n\nMonday to Saturday, 8am to 8pm. Sunday closed."
+    },
+    "W-2": {
+      "id": "W-2",
+      "name": "Look and feel",
+      "kind": "style",
+      "look": "Warm and friendly",
+      "palette": [
+        {
+          "name": "Primary",
+          "hex": "#b5522a"
+        },
+        {
+          "name": "Secondary",
+          "hex": "#f6e7dc"
+        },
+        {
+          "name": "Accent",
+          "hex": "#2a6f5f"
+        },
+        {
+          "name": "Background",
+          "hex": "#fffaf5"
+        },
+        {
+          "name": "Text",
+          "hex": "#2b1d16"
+        },
+        {
+          "name": "Muted",
+          "hex": "#6e5a4f"
+        }
+      ],
+      "fonts": {
+        "heading": "'Trebuchet MS', sans-serif",
+        "body": "system-ui, sans-serif"
+      },
+      "radius": "18px",
+      "rules": [
+        "Warm, rounded and friendly, with one terracotta accent for every main button.",
+        "Terracotta stays an accent: buttons, icons and thin rules only.",
+        "Write facts exactly: prices and hours as the brief gives them."
+      ]
+    },
+    "W-3": {
+      "id": "W-3",
+      "name": "Services list",
+      "kind": "section",
+      "anchor": "services",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-4": {
+      "id": "W-4",
+      "name": "Opening hours",
+      "kind": "section",
+      "anchor": "hours",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-5": {
+      "id": "W-5",
+      "name": "Booking on WhatsApp",
+      "kind": "section",
+      "anchor": "book",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-6": {
+      "id": "W-6",
+      "name": "Questions people ask",
+      "kind": "section",
+      "anchor": "faq",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-7": {
+      "id": "W-7",
+      "name": "Phone and computer check",
+      "kind": "page",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "R-1": {
+      "id": "R-1",
+      "name": "Research",
+      "kind": "research",
+      "question": "What do strong physio clinic sites do?",
+      "sources": [
+        {
+          "url": "https://www.physio.co.uk/",
+          "label": "physio.co.uk",
+          "note": "A large clinic site: booking first, prices shown plainly"
+        },
+        {
+          "url": "https://land-book.com/",
+          "label": "land-book.com",
+          "note": "A gallery of clinic landing pages, for layout"
+        }
+      ]
+    }
+  }
+}

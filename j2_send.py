@@ -6,6 +6,8 @@ only from J2_TEST_EMAIL and J2_TEST_SLACK_TARGET, never from the brief, and allo
 a key (run, atom, goal) and is never sent twice; at most J2_SEND_CAP (default 10) go out live per run. Receipts hold a
 masked recipient, hashes, the SMTP code and an error class: never an address in full, a secret or the server's own text.
 SMTP settings are read only from the environment (J2_SMTP_HOST, _PORT, _USER, _PASSWORD, _FROM).
+Whether a brief asks for a send or for milestone updates is the output classifier's reading of the message (j2.py
+_classify_output, agents/j2/output-classifier.md), never keyword matching here.
 """
 import hashlib
 import json
@@ -28,27 +30,8 @@ WHY = {"auth": "the SMTP server did not accept the login", "connection": "could 
        "duplicate": "this email was already sent in this run"}      # plain words by code: never the server's own text
 SENT = []      # the mock recorder: every message a mock send "delivered" (tests read it; reset() empties it)
 
-_SEND_EMAIL = re.compile(r"\b(?:send|forward|mail)\b[^.!?\n]{0,40}\be-?mail\b|\be-?mail\s+(?:it|them|this|me|the)\b", re.I)
-_SEND_SLACK = re.compile(r"\b(?:send|post|share|message|dm|notify|ping|drop)\b[^.!?\n]{0,40}\bslack\b|"
-                         r"\bslack\s+(?:it|them|this|me|the)\b", re.I)
-_UPDATES = re.compile(r"\b(?:updates?|progress|milestones?)\b[^.!?\n]{0,40}\b(?:by|via|over)\s+e-?mail\b|"
-                      r"\be-?mail\s+me\s+(?:updates?|when|each|as|after|at)\b|\bkeep\s+me\s+(?:posted|updated)\b[^.!?\n]{0,30}\be-?mail\b", re.I)
 _ADDRESS = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 _SLACK_TARGET = re.compile(r"(?<![\w@])([#@][\w.-]+)")
-
-
-def detect_deeds(*texts):
-    """The sends the brief asks for, in order (email, then Slack); [] when none. A send verb must sit near "email" or
-    "Slack": a mere mention (a Slack link in the footer, an email field) matches nothing. A sentence that asks for updates
-    by email (asks_updates) turns on milestone emails only, never a test-email deed as well."""
-    text = " ".join(str(t or "") for t in texts)
-    mail = " ".join(x for x in re.split(r"(?<=[.!?\n])\s*", text) if not _UPDATES.search(x))
-    return [k for k, rx, t in (("send_email", _SEND_EMAIL, mail), ("send_slack_message", _SEND_SLACK, text)) if rx.search(t)]
-
-
-def asks_updates(*texts):
-    """True when the brief asks to be kept up to date by email ("send me updates by email", "email me when each part is done")."""
-    return bool(_UPDATES.search(" ".join(str(t or "") for t in texts)))
 
 
 def clip(text, n=200):

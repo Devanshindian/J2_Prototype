@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>J2 UI fixtures</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/ui/styles/tokens.css">
+  <style>
+    body { margin: 0; background: var(--page); color: var(--ink); font: var(--fs-md)/var(--lh) var(--font); }
+    main { width: min(720px, 100% - 32px); margin: var(--s12) auto; }
+    h1 { font-size: var(--fs-lg); font-weight: 600; margin: 0 0 var(--s2); }
+    p { color: var(--ink-2); margin: 0 0 var(--s6); font-size: var(--fs-sm); }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li { display: flex; gap: var(--s3); align-items: baseline; padding: var(--s3) 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+    li a:first-child { font-weight: 500; min-width: 120px; color: var(--ink); }
+    li span { color: var(--ink-3); font-size: var(--fs-sm); flex: 1; min-width: 200px; }
+    li a.alt { font-size: var(--fs-xs); color: var(--ink-3); }
+    code { font-family: var(--mono); font-size: 0.85em; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>J2 UI fixtures</h1>
+  <p>Each link opens the real UI with <code>?fixture=&lt;name&gt;</code>. Working states move on their own. Answers move you to the next state. Regenerate with <code>python3 ui/dev/make_fixtures.py</code>.</p>
+  <ul id="list"></ul>
+</main>
+<script>
+  const F = [
+    ["start", "Idle, nothing yet: the one box"],
+    ["confirm", "Unsure what to make: a quick check"],
+    ["proposal", "The proposal card over the map: Approve, Make it smaller, Not this"],
+    ["style", "Pick a look: three previews"],
+    ["working", "Working: the map lives (tiles fill, builders come and go, lights travel); plan, team talk, live preview"],
+    ["paused", "Paused by you: the team holds between steps"],
+    ["facts", "A decision with fields only the user knows"],
+    ["usage", "Usage running low"],
+    ["problem", "A problem the team can't solve alone"],
+    ["done", "Done: result opens, start something new"],
+    ["done_open", "Done with one thing open"],
+    ["stopped", "Stopped (not an error)"],
+    ["crashed", "Something broke"],
+    ["docs", "A document run: three villages (PRD, HLD, LLD) with the mini-map"],
+  ];
+  const list = document.getElementById("list");
+  for (const [name, text] of F) {
+    const li = document.createElement("li");
+    const a = (href, label, cls) => Object.assign(document.createElement("a"), { href, textContent: label, className: cls || "" });
+    const s = document.createElement("span");
+    s.textContent = text;
+    li.append(a(`/ui/index.html?fixture=${name}`, name), s,
+      a(`/ui/index.html?fixture=${name}&theme=dark`, "dark", "alt"),
+      a(`/ui/index.html?fixture=${name}&theme=light`, "light", "alt"));
+    list.append(li);
+  }
+</script>
+</body>
+</html>

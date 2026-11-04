@@ -1,0 +1,26 @@
+[
+  {
+    "id": "fx-done",
+    "title": "Still Water Physio",
+    "status": "done",
+    "spent": 1810000,
+    "when": "Today, 10:42",
+    "fixture": "done"
+  },
+  {
+    "id": "fx-docs",
+    "title": "Clinic Booking App",
+    "status": "working",
+    "spent": 820000,
+    "when": "Today, 09:10",
+    "fixture": "docs"
+  },
+  {
+    "id": "fx-stopped",
+    "title": "Corner Bakery",
+    "status": "stopped",
+    "spent": 640000,
+    "when": "Yesterday",
+    "fixture": "stopped"
+  }
+]

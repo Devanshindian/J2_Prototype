@@ -5,7 +5,7 @@
     {"id": "P1", "text": "All six sections are present and not empty", "check": "sections-present", "min_words": 1},
     {"id": "P2", "text": "Requirement ids are unique and sequential (R1, R2, ...)", "check": "ids-sequential", "section": "Requirements", "prefix": "R"},
     {"id": "P3", "text": "Every brief fact appears exactly", "check": "facts-present-all"},
-    {"id": "P4", "text": "No invented facts: every number, email and proper name comes from the charter or the Requester's answers, or sits in an Assumption: line", "check": "no-invented-facts", "names": true},
+    {"id": "P4", "text": "No invented facts: every number, email and proper name comes from the charter or the Requester's answers, or sits in an Assumption: line", "check": "no-invented-facts", "names": true, "overridable": true},
     {"id": "P5", "text": "Nothing is \"to be confirmed\"", "check": "nothing-to-be-confirmed"},
     {"id": "P6", "text": "Every goal has a matching success metric", "check": "ids-covered", "from": "Goals", "prefix": "G", "in": "Success metrics"},
     {"id": "P7", "text": "Every user group named in the charter appears in Requirements or in a \"no actions in this version\" statement", "check": "groups-covered", "section": "Requirements"},

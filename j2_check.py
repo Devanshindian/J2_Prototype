@@ -47,7 +47,8 @@ function design(w, phone){
     const bg = bgOf(el); if (!bg) continue;
     const c = cs(el), a = rel(rgb(c.color)), b = rel(bg), ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     const size = parseFloat(c.fontSize), need = size >= 24 || (+c.fontWeight >= 700 && size >= 18.66) ? 3 : 4.5;
-    if (ratio < need) low.push(`"${tw.currentNode.textContent.trim().slice(0, 30)}" ${ratio.toFixed(2)}:1 (needs ${need}:1)`); }
+    if (ratio < need) { const sec = el.closest('section[id], header, nav, footer'), cls = (typeof el.className === 'string' && el.className.trim()) ? '.' + el.className.trim().split(/\s+/)[0] : '';
+      low.push(`"${tw.currentNode.textContent.trim().slice(0, 30)}" ${ratio.toFixed(2)}:1 (needs ${need}:1; the text element ${el.tagName.toLowerCase()}${el.id ? '#' + el.id : cls}${sec ? ' in ' + (sec.id ? '#' + sec.id : sec.tagName.toLowerCase()) : ''})`); } }
   const lv = [...d.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(vis).map(h => +h.tagName[1]);
   const out = {contrast: {checked, low_count: low.length, low: low.slice(0, 6)},
     headings: {h1: d.querySelectorAll('h1').length, skipped_levels: lv.filter((x, i) => i && x > lv[i - 1] + 1).length},
@@ -93,6 +94,20 @@ frames.forEach(f => f.addEventListener('load', () => setTimeout(() => {
   try {
     w = f.contentWindow; const d = w.document.documentElement;
     out[f.dataset.name] = {width: w.innerWidth, scroll_width: d.scrollWidth, errors: w.__j2e || []};
+    if (d.scrollWidth > w.innerWidth) {   // what sticks out: the outermost too-wide elements and their section
+      const W = w.innerWidth, wide = [];
+      for (const el of w.document.querySelectorAll('body *')) {
+        const r = el.getBoundingClientRect(), pr = el.parentElement && el.parentElement.getBoundingClientRect();
+        if (r.width > 0 && r.right > W + 1 && !(pr && pr.right > W + 1 && el.parentElement !== w.document.body)) {
+          const sec = el.closest('section[id], [id]');
+          const cls = (typeof el.className === 'string' && el.className.trim()) ? '.' + el.className.trim().split(/\s+/)[0] : '';
+          wide.push({el: el.tagName.toLowerCase() + (el.id ? '#' + el.id : cls), section: sec ? '#' + sec.id : '',
+                     right: Math.round(r.right), width: Math.round(r.width)});
+          if (wide.length >= 3) break;
+        }
+      }
+      out[f.dataset.name].wide = wide;
+    }
     out[f.dataset.name].design = design(w, !!f.dataset.forms);
     if (f.dataset.forms) out[f.dataset.name].forms = testForms(w);
   } catch (e) { out[f.dataset.name] = {error: String(e)}; }
@@ -196,7 +211,8 @@ def check(html):
         if "error" in r:
             out[name] = {"note": r["error"]}
             continue
-        out[name] = {"width": r["width"], "overflow_px": max(0, r["scroll_width"] - r["width"])}
+        out[name] = {"width": r["width"], "overflow_px": max(0, r["scroll_width"] - r["width"]),
+                     **({"wide": r["wide"]} if r.get("wide") else {})}
         errors += [e for e in r["errors"] if e not in errors]
         if "forms" in r:
             out["form_results"] = [{**x, "ok": form_ok(x)} for x in r["forms"]]
@@ -315,7 +331,10 @@ def summary(c):
     for n in WIDTHS:
         r = c.get(n) or {}
         if "overflow_px" in r:
-            parts.append(f"{n} {r['width']}px: " + (f"overflows by {r['overflow_px']}px" if r["overflow_px"]
+            wide = "; ".join(f"{x['el']}" + (f" in {x['section']}" if x.get("section") and x["section"] != x["el"] else "")
+                             + f" is {x['width']}px wide" for x in r.get("wide") or [])
+            parts.append(f"{n} {r['width']}px: " + (f"overflows by {r['overflow_px']}px"
+                                                    + (f" (too wide: {wide})" if wide else "") if r["overflow_px"]
                                                     else "no horizontal overflow"))
     parts.append(f"JS errors: {'; '.join(c['js_errors'][:3]) if c['js_errors'] else 'none'}")
     parts.append(f"broken in-page links: {', '.join(c['broken_in_page_links']) or 'none'}")

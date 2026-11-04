@@ -7,7 +7,7 @@
     {"id": "N3", "text": "No horizontal overflow at 360px and 1280px", "check": "no-overflow", "widths": [360, 1280]},
     {"id": "N4", "text": "Every in-page link resolves; WhatsApp (wa.me) and tel: links are well formed", "check": "links-well-formed"},
     {"id": "N5", "text": "Every charter fact appears exactly, and nothing is \"to be confirmed\"", "check": ["facts-present-all", "nothing-to-be-confirmed"]},
-    {"id": "N6", "text": "No invented content: every number, email and phone number on the page comes from the charter or the Requester's answers", "check": "no-invented-facts"},
+    {"id": "N6", "text": "No invented content: every number, email and phone number on the page comes from the charter or the Requester's answers", "check": "no-invented-facts", "overridable": true},
     {"id": "N7", "text": "Every form has a submit control and a destination (action or mailto)", "check": "forms-have-destination"},
     {"id": "N8", "text": "A nav reaches every section, and the hero has one obvious main action", "check": "nav-and-main-action", "plan": "\\bnav(?:igation|bar)?\\b|\\bmenu bar\\b|\\bjump links?\\b"}
   ]

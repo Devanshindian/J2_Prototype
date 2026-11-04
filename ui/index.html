@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>J2</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='3' width='10' height='10' rx='2' fill='%23b5441b'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- The web font never blocks the first paint: loaded as a preload and applied once it arrives (the system font
+       shows meanwhile); without JavaScript the plain stylesheet link below applies. -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap"></noscript>
+  <link rel="stylesheet" href="/ui/styles/tokens.css">
+  <link rel="stylesheet" href="/ui/styles/app.css">
+  <script>
+    // Theme override for testing (?theme=dark|light); otherwise follow the system.
+    (function () {
+      var t = new URLSearchParams(location.search).get("theme");
+      if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip" href="#start-input">Skip to the message box</a>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- 1. Start: one box -->
+  <main id="start" class="start" hidden>
+    <div class="brand" aria-hidden="true">J2</div>
+    <div class="start-inner">
+      <h1 class="start-title" id="start-title">What should we make?</h1>
+      <form id="start-form" class="start-form" aria-labelledby="start-title">
+        <textarea id="start-input" class="start-input" rows="3" placeholder="A one-page website for my physio clinic in Indiranagar…" aria-labelledby="start-title"></textarea>
+        <div class="start-row">
+          <p class="start-try">Try: <button type="button" class="linkish" data-try="A website for a small neighbourhood cafe, with the menu and opening hours">a cafe website</button><span aria-hidden="true"> · </span><button type="button" class="linkish" data-try="A PRD for a simple appointment booking app for clinics">a PRD for a booking app</button></p>
+          <button id="start-go" class="btn btn-ink btn-go" type="submit" disabled>Go <span class="icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>
+        </div>
+      </form>
+      <div class="start-under">
+        <label class="switch" id="decide-switch">
+          <input id="decide-input" type="checkbox" role="switch" aria-describedby="decide-tip" data-decide>
+          <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+          <span class="switch-text">Decide for me</span>
+          <span class="tip" id="decide-tip" role="tooltip">When this is on, the team runs on its own: it approves the plan, picks the look and design details, answers small questions with the suggested option and tops up usage up to twice the estimate. It stops and asks only at that limit.</span>
+        </label>
+      </div>
+      <section id="recent" class="recent" aria-labelledby="recent-title" hidden>
+        <h2 class="recent-title" id="recent-title">Recent</h2>
+        <ul id="recent-list" class="recent-list"></ul>
+      </section>
+    </div>
+  </main>
+
+  <!-- 2. The kingdom: the live map is the screen. Numbers on top, cards only when attention is needed. -->
+  <div id="work" class="work" hidden>
+    <header class="topbar" aria-label="Resources and controls">
+      <div id="status-slot"></div>
+      <div class="topbar-right">
+        <div id="usage-slot" class="topbar-usage"></div>
+        <button id="plan-btn" class="parts-chip tnum" type="button" aria-expanded="false" aria-controls="plan-sheet" title="Parts done. Opens the plan."><span id="parts-done">0</span><span class="parts-sep" aria-hidden="true">/</span><span id="parts-total">0</span><span class="sr-only"> parts done</span></button>
+        <span class="topbar-gap" aria-hidden="true"></span>
+        <button id="pause-btn" class="icon-btn ctl-btn" type="button" aria-label="Pause" title="Pause" hidden></button>
+        <button id="stop-btn" class="icon-btn ctl-btn" type="button" aria-label="Stop" title="Stop" hidden></button>
+        <span class="topbar-gap" aria-hidden="true"></span>
+        <label class="switch switch-below topbar-decide" id="decide-run-switch" title="">
+          <input id="decide-run-input" type="checkbox" role="switch" aria-describedby="decide-run-tip" data-decide>
+          <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+          <span class="switch-text">Decide for me</span>
+          <span class="tip" id="decide-run-tip" role="tooltip">When this is on, the team runs on its own: it approves the plan, picks the look and design details, answers small questions with the suggested option and tops up usage up to twice the estimate. It stops and asks only at that limit.</span>
+        </label>
+        <button id="eye-btn" class="icon-btn" type="button" aria-pressed="false" aria-label="See the team talking" title="Team talk over the map"></button>
+        <button id="conv-btn" class="icon-btn" type="button" aria-expanded="false" aria-controls="conv-sheet" aria-label="Conversation" title="Conversation"></button>
+        <button id="result-btn" class="icon-btn" type="button" aria-expanded="false" aria-controls="result-panel" aria-label="Result" title="Result"></button>
+      </div>
+      <div id="usage-line" class="usage-line" aria-hidden="true"><span></span></div>
+    </header>
+
+    <div id="stage" class="stage">
+      <div id="map-slot" class="map-slot"></div>
+      <div id="mini-slot" class="mini-slot"></div>
+      <div class="zoom-ctl" id="zoom-ctl" aria-label="Zoom">
+        <button id="zoom-in" class="icon-btn" type="button" aria-label="Zoom in" title="Zoom in"></button>
+        <button id="zoom-out" class="icon-btn" type="button" aria-label="Zoom out" title="Zoom out"></button>
+        <button id="zoom-fit" class="icon-btn" type="button" aria-label="Fit the map" title="Fit the map"></button>
+      </div>
+      <!-- the attention card rises here (a decision, or the ending) -->
+      <div id="attn" class="attn" hidden><div id="attn-card" class="attn-card" data-no-gesture></div></div>
+      <button id="back-btn" class="back-btn" type="button" hidden>Back to the map</button>
+    </div>
+  </div>
+
+  <p id="offline" class="offline" role="status" hidden>Can't reach J2 right now. Trying again…</p>
+
+  <div id="sheets"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="announcer" class="sr-only" aria-live="assertive"></div>
+  <noscript><p class="noscript">This page needs JavaScript.</p></noscript>
+
+  <script type="module" src="/ui/js/main.js"></script>
+</body>
+</html>

@@ -36,7 +36,8 @@
       "id": "H5",
       "text": "No invented facts: every number, email and proper name comes from the charter, the Requester's answers or the PRD, or sits in an Assumption: line",
       "check": "no-invented-facts",
-      "names": true
+      "names": true,
+      "overridable": true
     },
     {
       "id": "H6",

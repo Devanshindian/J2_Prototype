@@ -1,0 +1,189 @@
+/* Design tokens. Light first; dark mirrors every token.
+   Identity: warm paper, deep ink, one kiln-orange accent used only where the user acts. */
+
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --page: #f5f2ec;
+  --page-veil: rgba(245, 242, 236, 0.6); /* translucent chat over the backstage: the layer shows through at rest */
+  --surface: #fbfaf7;
+  --surface-2: #eeeae2;
+  --line: #e1dcd2;
+  --line-strong: #cbc4b7;
+
+  /* text */
+  --ink: #1a1d21;
+  --ink-2: #474c54;
+  --ink-3: #62666d;
+  --on-accent: #ffffff;
+  --on-ink: #f5f2ec;
+
+  /* the one accent, plus status hues */
+  --accent: #b5441b;
+  --accent-soft: #f7ebe4;
+  --accent-ring: rgba(181, 68, 27, 0.35);
+  --ok: #2c7a4b;
+  --warn: #9a6200;
+  --bad: #b42318;
+  --idle: #8b8f96;
+
+  /* type */
+  --font: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --fs-xs: 13px;
+  --fs-sm: 14px;
+  --fs-md: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 30px;
+  --lh-tight: 1.25;
+  --lh: 1.55;
+
+  /* 4px spacing scale */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s10: 40px;
+  --s12: 48px;
+  --s16: 64px;
+
+  /* shape and depth */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --shadow-card: 0 1px 0 rgba(26, 29, 33, 0.04), 0 8px 24px -12px rgba(26, 29, 33, 0.18);
+  --shadow-sheet: -1px 0 0 var(--line), -24px 0 48px -32px rgba(26, 29, 33, 0.35);
+
+  /* motion: one shared set. fast = hover/colour, base = small moves, panel = sheets and the stage,
+     slow = the backstage crossfade. Every transition and animation in app.css uses these. */
+  --t-fast: 120ms;
+  --t-base: 180ms;
+  --t-panel: 220ms;
+  --t-slow: 260ms;
+  --t-bar: 600ms; /* usage bars growing */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1); /* ease-out, for things arriving */
+  --ease-in-out: cubic-bezier(0.45, 0, 0.2, 1); /* for things leaving or reversing */
+  --ease-spring: cubic-bezier(0.22, 1.2, 0.36, 1); /* a crisp snap with a touch of overshoot */
+
+
+  /* the kingdom map: calm earth tones, one attention colour (amber) */
+  --k-village: #ece7db;
+  --k-village-line: #ddd6c6;
+  --k-road: #cfc7b5;
+  --k-tile: #fbfaf7;
+  --k-tile-line: #b4ab98;
+  --k-fill: #9dba97;
+  --k-done: #76a072;
+  --k-unit: #5b6b7d;
+  --k-unit-glyph: #ffffff;
+  --k-builder: #b07a3d;
+  --k-castle: #7b6b58;
+  --k-glow: rgba(118, 160, 114, 0.4);
+  --k-attn: #d9931a;
+  --k-attn-ring: rgba(217, 147, 26, 0.45);
+  --k-light: #f0b73a;
+  --k-light-halo: rgba(240, 183, 58, 0.35);
+  --k-label: #474c54;
+
+  /* layout */
+  --col: 680px;
+  --topbar-h: 56px;
+  --sheet-w: 400px;
+  --panel-w: min(760px, 58vw);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #151412;
+    --page-veil: rgba(21, 20, 18, 0.64);
+    --surface: #1d1c19;
+    --surface-2: #272521;
+    --line: #2f2c28;
+    --line-strong: #45413b;
+    --ink: #edeae3;
+    --ink-2: #c0bbb1;
+    --ink-3: #9a958c;
+    --on-accent: #151412;
+    --on-ink: #151412;
+    --accent: #ec7a4f;
+    --accent-soft: #3a241a;
+    --accent-ring: rgba(236, 122, 79, 0.4);
+    --ok: #5fbf85;
+    --warn: #e0a940;
+    --bad: #f07a6e;
+    --idle: #807b73;
+    --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 10px 28px -14px rgba(0, 0, 0, 0.7);
+    --shadow-sheet: -1px 0 0 var(--line), -24px 0 48px -32px rgba(0, 0, 0, 0.8);
+
+    --k-village: #1f1d19;
+    --k-village-line: #2c2924;
+    --k-road: #3b372f;
+    --k-tile: #25221e;
+    --k-tile-line: #5c5447;
+    --k-fill: #5f8a5c;
+    --k-done: #6f9a6c;
+    --k-unit: #8d9cac;
+    --k-unit-glyph: #151412;
+    --k-builder: #c48c4e;
+    --k-castle: #a28c74;
+    --k-glow: rgba(111, 154, 108, 0.4);
+    --k-attn: #e8aa3c;
+    --k-attn-ring: rgba(232, 170, 60, 0.45);
+    --k-light: #ffd166;
+    --k-light-halo: rgba(255, 209, 102, 0.3);
+    --k-label: #c0bbb1;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #151412;
+  --page-veil: rgba(21, 20, 18, 0.64);
+  --surface: #1d1c19;
+  --surface-2: #272521;
+  --line: #2f2c28;
+  --line-strong: #45413b;
+  --ink: #edeae3;
+  --ink-2: #c0bbb1;
+  --ink-3: #9a958c;
+  --on-accent: #151412;
+  --on-ink: #151412;
+  --accent: #ec7a4f;
+  --accent-soft: #3a241a;
+  --accent-ring: rgba(236, 122, 79, 0.4);
+  --ok: #5fbf85;
+  --warn: #e0a940;
+  --bad: #f07a6e;
+  --idle: #807b73;
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 10px 28px -14px rgba(0, 0, 0, 0.7);
+  --shadow-sheet: -1px 0 0 var(--line), -24px 0 48px -32px rgba(0, 0, 0, 0.8);
+
+  --k-village: #1f1d19;
+  --k-village-line: #2c2924;
+  --k-road: #3b372f;
+  --k-tile: #25221e;
+  --k-tile-line: #5c5447;
+  --k-fill: #5f8a5c;
+  --k-done: #6f9a6c;
+  --k-unit: #8d9cac;
+  --k-unit-glyph: #151412;
+  --k-builder: #c48c4e;
+  --k-castle: #a28c74;
+  --k-glow: rgba(111, 154, 108, 0.4);
+  --k-attn: #e8aa3c;
+  --k-attn-ring: rgba(232, 170, 60, 0.45);
+  --k-light: #ffd166;
+  --k-light-halo: rgba(255, 209, 102, 0.3);
+  --k-label: #c0bbb1;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --fs-xl: 26px;
+    --topbar-h: 52px;
+  }
+}

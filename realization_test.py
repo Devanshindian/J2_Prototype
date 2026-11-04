@@ -242,15 +242,18 @@ ok(all(os.path.exists(os.path.join(run.dir, f)) for f in ("realization.json", "r
    and not os.path.exists(os.path.join(run.dir, "decisions.md")), "realization.json and realization.md are written, "
    "no decisions.md")
 ok([r["name"] for r in s["proposal_brief"]] == ["Plan"] + [f"Build item {i}" for i in range(1, len(run.goal["done_when"]) + 1)]
-   and any("REALIZATION PLAN (judged before any build" in p and "there is no rate card" in p for p in prompts),
+   and any("REALIZATION PLAN (judged before any build" in p and "estimated_resources.tokens" in p for p in prompts),
    "Adaptation's task carries every planned workflow in run order, and says it estimates each budget itself")
 plan_wf = next(w for w in run._all_wfs() if w["name"] == "Plan")
-ok(plan_wf["id"] == "W-1" and plan_wf["status"] == "done" and plan_wf["cost"] == 5 and not plan_wf["covers"]
+ok(plan_wf["id"] == "W-1" and plan_wf["status"] == "done" and plan_wf["cost"] == j2.similar_usage({"parts": ["artifact"]})
+   and not plan_wf["covers"]
    and os.path.exists(os.path.join(run.dir, "artifacts", "plan.md"))
    and all(a["status"] == "passed" for a in plan_wf["atoms"]),
-   "the planning workflow is a funded J2 workflow, W-1, costs Adaptation's estimate, and writes the file it named "
+   "the planning workflow is a funded J2 workflow, W-1, costs what similar work used (tokens), and writes the file it named "
    "with its checks passing")
-ok(j2.RATES == {}, "a realization run has no rate card")
+ok(not hasattr(j2, "RATES") and run.usage["by_phase"]["planning"] > 0
+   and any(c.get("fn", "").startswith("realization-") for c in j2._jsonl(run.dir, "calls.jsonl")),
+   "no rate card: usage is measured, and the planner's and judge's calls are counted in calls.jsonl")
 ok(plan_wf.get("stage") == "product" and all(w.get("stage") == "build" for w in run._all_wfs() if w["name"].startswith("Build item")),
    "each workflow records its plan stage when registered")
 ok(any(r_["check"] == "artifacts/plan.md exists." and r_["pass"] for a in plan_wf["atoms"] for r_ in a.get("results") or []),
@@ -287,6 +290,73 @@ asked = [m for m in run.chat if m["who"] == "adaptation" and m.get("act") == "PO
 ok(asked and "pickup hours" in asked[0]["text"] and run.real_asked, "a blocking fact goes to Identity before proposing")
 ok("Build item 1" in [r["name"] for r in s["proposal_brief"]] and run.outcome.startswith("Done"),
    "after Identity answers, the held workflow is proposed and the run ends Done")
+
+ok(run.real_questions.get("fact:Build item 1", {}).get("asked") and not any(q["kind"] == "gap" for q in run.real_questions.values()),
+   "5b: the blocking fact has its own question record")
+
+# ---- 5a: the fuller stage guide, one compact block per stage
+st = R.load_stages()
+guide = R.stage_table()
+ok(all(s.get(k) for s in st for k in ("covers", "not_for", "example_workflows", "example_done_test"))
+   and all(isinstance(s.get("typical_inputs"), list) and set(s["typical_inputs"]) <= set(R.STAGES) for s in st),
+   "every stage has covers, not_for, typical_inputs (real stage ids), example workflows and an example done-test")
+ok(all(f"- `{s['id']}`" in guide for s in st) and guide.count("Covers:") == len(st) and guide.count("Not for:") == len(st)
+   and guide.count("Example done-test:") == len(st) and "| Stage |" not in guide,
+   "the planner reads one compact block per stage (no wide table), stage ids unchanged")
+ok("Covers:" in R.planner_system() and "<!-- STAGE TABLE -->" not in R.planner_system(), "the guide replaces the marker")
+
+
+# ---- 5b: a workflow still below the gate is a plain decision (add information, try anyway, skip it)
+def never_mocks(goal):
+    m = BASE_MOCKS(goal)
+    m["judge"] = lambda rnd, p, spec: R.mock_judge(spec, fail={"Build item 1": ["D1"]}, compare="same")
+    return m
+
+
+def gap_run(answer=None, no_questions=False):
+    os.environ["J2_REALIZATION"] = "1"
+    real_mocks = R.default_mocks
+    R.default_mocks = lambda goal: never_mocks(goal)
+    try:
+        run = j2.J2Run()
+        if no_questions:
+            run.set_no_questions(True)
+        F.say(run, F.BREW_LAB)
+        seen = []
+        for _ in range(6):
+            d = run.legacy_decision()
+            if not d:
+                break
+            if d["happening"].startswith("We couldn't plan"):
+                seen.append(d)
+                assert run.decide(d["id"], answer)[0]
+            else:
+                F.say(run, "1")
+            while run.status != "waiting":
+                F.time.sleep(0.02)
+    finally:
+        R.default_mocks = real_mocks
+    return run, seen
+
+
+run, seen = gap_run("try")
+q = run.real_questions["gap:Build item 1"]
+ok(len(seen) == 1 and seen[0]["kind"] == "problem" and [o["id"] for o in seen[0]["options"]] == ["add_info", "try", "skip"]
+   and not j2.J2Run.decision_problems(seen[0]) and "build item 1" in seen[0]["happening"],
+   "a not-ready workflow becomes one problem decision in the standard format")
+ok(q["choice"] == "try" and not q["auto"] and run.outcome.startswith("Done")
+   and next(w for w in run._all_wfs() if w["name"] == "Build item 1").get("at_risk"),
+   "try anyway: funded and built, marked at risk, recorded on its own question")
+run, seen = gap_run("skip")
+ok(run.real_questions["gap:Build item 1"]["choice"] == "skip" and not any(w["name"] == "Build item 1" for w in run._all_wfs())
+   and run.real_questions["gap:Build item 1"]["dropped"][0] in run.goal["dropped_by_requester"]
+   and run.goal["done_when"] == [c for c in run.goal["charter_items"] if c not in run.goal["dropped_by_requester"]],
+   "skip it: left out with the Requester's choice, its item leaves the checklist")
+run, seen = gap_run(None, no_questions=True)
+ok(not seen and run.real_questions["gap:Build item 1"]["choice"] == "try" and run.real_questions["gap:Build item 1"]["auto"]
+   and any(m.get("auto_decision") for m in run.chat) and run.outcome.startswith("Done"),
+   "no questions: a gap only the plan can close takes 'try anyway', logged backstage")
+os.environ["J2_REALIZATION"] = "0"
 
 # The validator knows an id that a workflow this one depends on is told to create (not only the atom's own how)
 atom = {"how": {"kind": "AI", "agent": "Builder", "steps": "Add the hint button #hint-btn"}, "constraints": [],
@@ -332,5 +402,74 @@ ix = {"A": 0, "B": 1, "C": 2}
 r2.workflows = [{"id": "W-2", "name": "B"}, {"id": "W-3", "name": "C"}]
 ok(r2._next_wf_id("A", ix) == "W-1" and r2._next_wf_id("Fix B", ix) == "W-4" and j2.J2Run()._next_wf_id("X") == "W-1",
    "a late planned workflow takes its plan id (W-1); an unplanned one takes the next free id; plain runs count up")
+
+# Live run 2026-11-04: Identity's to_be_confirmed entries are {criterion, fact} dicts; the planner's charter text
+# must read them (it crashed joining them as strings), and an ai-judge check with no target must not crash coverage.
+tbc_goal = {**GOAL, "to_be_confirmed": [{"criterion": "hours and location", "fact": "exact street address"}],
+            "rules": ["one page", {"rule": "WhatsApp only"}]}
+ct = R.charter_text(tbc_goal)
+ok("TO_BE_CONFIRMED: hours and location - exact street address" in ct and "WhatsApp only" in ct,
+   "the charter text reads to-be-confirmed dicts and dict rules")
+cov = j2.cover_expected({"expected_output": [{"kind": "judged", "target": "Is the hero clear?"}, {"kind": "facts", "target": ["menu"]}],
+                         "verification": [{"type": "ai-judge", "question": "Is the hero clear?", "expect": True},
+                                          {"type": "ai-judge", "question": "Another?", "expect": True}]})["verification"]
+ok(cov[0].get("item") == 1 and "item" not in cov[1] and any(c["type"] == "facts-present" and c.get("item") == 2 for c in cov),
+   "expected-output coverage matches an ai-judge check by its question (no target) and adds the facts check")
+
+# A heading check with a list target is one check per heading (a live run failed one 5 times on the list's text), a
+# file workflow's recheck reads its own file, and a measurement in a goal is not a fact that needs facts-present.
+hv = j2.normalise_checks([{"verification": [{"text": "Headings present", "type": "heading-present",
+                                             "target": ["Menu", "## Hours"], "expect": True}]}])[0]["verification"]
+ok([c["target"] for c in hv] == ["Menu", "Hours"] and j2.doc_check(hv[1], "# Menu\nx\n## Hours\ny")["pass"]
+   and j2.doc_check({"type": "heading-present", "target": ["Menu", "Prices"]}, "# Menu\nx")["pass"] is False,
+   "a list heading check runs per heading")
+ok(not j2.SPECIFIC.search(j2.MEASURE.sub(" ", "A layout guide for 360px and 1280px, 44x44 targets, 4.5:1, 3 columns"))
+   and j2.SPECIFIC.search(j2.MEASURE.sub(" ", "Show Masala Dosa Rs 120")),
+   "measurements in a goal are not facts; a price still is")
+
+fsrc = j2.squash("Brew Lab coffee, 40 seats")
+ok(j2.goal_names_fact("Opening hours 8am to 9pm are listed", fsrc) and j2.goal_names_fact("Latte Rs 180", fsrc)
+   and j2.goal_names_fact("Seats 40 people", fsrc) and not j2.goal_names_fact("A success target within 30 days", fsrc)
+   and not j2.goal_names_fact("40% of slots booked online", j2.squash("Brew Lab coffee")),
+   "a goal's time, price or brief number needs facts-present; a number the brief doesn't give does not")
+
+rr = j2.J2Run()
+tbc = [{"criterion": "The page shows the clinic address in Indiranagar", "fact": "Exact street address of the clinic"}]
+ok(rr._already_unknown({"question": "What is the full street address of the clinic?"}, tbc)
+   and not rr._already_unknown({"question": "What are the opening hours on Sunday?"}, tbc),
+   "a detail already marked to be confirmed is recognised, so it isn't asked again every round")
+
+rq = j2.J2Run()
+rq.budget = 1000000
+rq._decision_from_question("problem", "Only you can give what's still missing.",
+                           {"question": "q?", "options": ["Keep going: more work", "Finish as it is: the site as it is"]},
+                           ["continue", "ship"], prefer="ship")
+ok([o["id"] for o in rq.legacy_decision()["options"] if o["suggested"]] == ["ship"],
+   "with only the Requester's facts missing and questions off, Finish as it is is the suggestion")
+
+ra = j2.J2Run()
+ra.no_questions, ra.budget = True, 10 ** 6
+ra._decision("problem", "We need your address.", "Only you know it.",
+             [{"id": "give", "label": "Give the exact address", "gets": "We add it", "suggested": True},
+              {"id": "open", "label": "Leave it open", "gets": "It stays to be confirmed", "suggested": False}],
+             to="identity", handoff={"kind": "question"})
+rb = j2.J2Run()
+rb.no_questions, rb.budget = True, 10 ** 6
+rb._decision("problem", "We need your address.", "Only you know it.",
+             [{"id": "give", "label": "Give the exact address", "gets": "We add it", "suggested": True},
+              {"id": "share", "label": "Share it later", "gets": "Send it when ready", "suggested": False}],
+             to="identity", handoff={"kind": "question"})
+ok(ra.decisions[-1]["decision"] == "open" and rb.decisions[-1]["decision"] == "dont_know"
+   and rb.handoff.get("free") == "I don't know yet.",
+   "decide-for-me never takes an option that needs the person's own words")
+
+rs = j2.J2Run()
+rs.no_questions, rs.budget = True, 10 ** 6
+rs._decision("problem", "Pick how to show prices.", "Your call.",
+             [{"id": "big", "label": "Big type", "gets": "Prices in large type; send people to WhatsApp", "suggested": True},
+              {"id": "small", "label": "Small list", "gets": "A plain list", "suggested": False}],
+             to="identity", handoff={"kind": "question"})
+ok(rs.decisions[-1]["decision"] == "big", "only an option whose label asks for the person's words is skipped, not one "
+   "whose description mentions type or sending")
 
 print(f"realization_test: {passed} checks passed")

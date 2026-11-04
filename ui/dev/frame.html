@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>J2 UI at phone width</title>
+<style>
+  html, body { margin: 0; background: #777; }
+  iframe { display: block; border: 0; background: #fff; }
+</style>
+</head>
+<body>
+<!-- Dev only: shows the UI in a frame of a given size, e.g.
+     /ui/dev/frame.html?w=390&h=844&q=fixture%3Dworking -->
+<script>
+  const p = new URLSearchParams(location.search);
+  const f = document.createElement("iframe");
+  f.width = p.get("w") || 390;
+  f.height = p.get("h") || 844;
+  f.src = "/ui/index.html?" + (p.get("q") || "fixture=working");
+  document.body.append(f);
+</script>
+</body>
+</html>

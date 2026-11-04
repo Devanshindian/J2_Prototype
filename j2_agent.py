@@ -78,7 +78,7 @@ def _reply(c):
 
 def load(d):
     """The run's records the view reads, once: (chat messages, AI calls, workflow short names)."""
-    return (messages(d), _jsonl(d, "calls.jsonl"),
+    return (messages(d), [c for c in _jsonl(d, "calls.jsonl") if not c.get("extra")],
             {w["id"]: w.get("name") or w["id"] for w in _read(d, "workflows.json", []) or [] if isinstance(w, dict) and w.get("id")})
 
 

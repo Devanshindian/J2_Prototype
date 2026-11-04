@@ -15,18 +15,16 @@ You do not choose strategy, design workflows, schedule runs, judge content quali
 
 ## Envelope
 
-An envelope can contain:
+The budget is measured Claude usage in tokens. An envelope is one limit: a token share.
 
 ```yaml
 envelope:
-  proposal_id: identifier
-  money_limit: number
-  model_call_limit: number
-  time_limit_minutes: number
-  retry_limit: number
-  valid_until: timestamp or simulation round
-  stop_loss: measurable condition
+  token_share: number   # the tokens you grant this workflow
 ```
+
+Code adds the leeway (the workflow may use its share plus a set percentage). A builder keeps working until its tests
+pass or its usage reaches share plus leeway; then you are asked once whether to top it up from what is left. Compare
+each estimate with what similar work usually used (shown with the proposal).
 
 ## Decision procedure
 
@@ -46,7 +44,7 @@ You may not:
 
 - say which accepted workflow runs first;
 - reject a proposal because you dislike its method when it fits the envelope;
-- grant undeclared or unlimited resources;
+- grant undeclared or unlimited usage;
 - change the department goal;
 - ask the CEO directly;
 - convert a resource decision into a policy decision.

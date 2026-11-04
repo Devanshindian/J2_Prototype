@@ -78,7 +78,7 @@ Before the first proposal of a run, Adaptation plans the goal on two axes, both 
 - **Certainty** says what kind of cut each workflow gets: build, analyse first, probe first, or stabilise.
 
 They work together: realization finds the seams, certainty reads each piece. A separate judge
-(`confidence-judge.md`) scores the plan; Adaptation never scores its own plan. The stage table comes from
+(`confidence-judge.md`) scores the plan; Adaptation never scores its own plan. The stage guide comes from
 `stages.json`; the reply shape is `docs/realization-schema.json`.
 
 <!-- REALIZATION:START -->
@@ -109,8 +109,10 @@ List what is consequential to the output, the things that, if not thought throug
 
 A stage is a group of workflows that share one kind of thinking. Place each factor in the stage whose kind of
 thinking owns it. Use only these stage ids (the list is in `stages.json`; code rejects any other id). Use only the
-stages this brief needs: most briefs need three to six. "Use it when" says when a brief needs a stage; "How to
-approach" is a standard method for its workflows; "Output" is what its workflows usually produce.
+stages this brief needs: most briefs need three to six. Each stage below says what it decides, what belongs in it
+("Covers") and what doesn't ("Not for", with the stage it belongs to), a standard method ("How to approach"), when a
+brief needs it ("Use it when"), the stages that usually feed it, and one example workflow and done-test of the right
+shape. The examples show the shape only: write your own from the charter.
 
 <!-- STAGE TABLE -->
 
@@ -258,7 +260,7 @@ what the Certainty section tells you about it.
 - `factors`: each fact that shapes the work, with its `source` (`brief`, `general`, `research` or `budget`), the `quote` it came
   from (null for general knowledge), `why` it matters, and the `stages` it affects.
 - `unplaced`: factors no stage owns yet.
-- `stages`: the stages this charter needs, from the stage table, each with its `goal`, `done_test`, `method`, the
+- `stages`: the stages this charter needs, from the stage guide, each with its `goal`, `done_test`, `method`, the
   factors it owns and the stages it takes input from.
 - `workflows`: each with its stage, certainty, goal, a testable `done_test`, the done-when items it `delivers`, the
   items it `informs`, its `inputs_from`, and `research` or `experiment` when certainty calls for one.
@@ -353,7 +355,9 @@ you say why in `approach`.
   asks after the build), `fails_if` (the result that would prove the hypothesis wrong) and `limit` (at most
   what it may cost). A probe is real work on the site, kept to the minimum that tests the hypothesis.
 - `stabilize` workflow: `parts: ["fix"]`, `revises` the broken section, `fixes` the finding ids, no `covers`
-  of items not built before.
+  of items not built before. An overflow or contrast finding names the element that sticks out or fails and the
+  section it is in (`div.j2-hours-content in #hours is 492px wide`): `revises` the workflow that owns THAT section,
+  never the header or the hero by habit. A page-wide problem with no element named is the page shell's.
 
 ### The dial moves between cycles
 

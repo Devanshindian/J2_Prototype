@@ -11,7 +11,13 @@ NOUN = {"make": "artifact", "do": "deed"}
 MAKE_FORMS = ("doc", "code", "page", "test", "plan", "skill", "app")
 DO_FORMS = ("behaviour", "fetch", "send")      # behaviour has scope self; send is external (test sends: dry-run or mock); fetch is not produced yet
 FINAL_FORMS = ("page", "doc", "send")      # makes that are the deliverable itself; a send is a deed that ends a chain
-MAX_ATTEMPTS = 3
+
+
+
+def max_attempts():
+    """The builder's attempt limit, from j2 (MAX_CHECK_ATTEMPTS): one number, kept in one place."""
+    import j2
+    return j2.MAX_CHECK_ATTEMPTS
 MAKE_CHECKS = {"file-exists": "exists", "element-count": "exists", "grep-count": "exists", "heading-present": "exists",
                "section-not-empty": "exists", "facts-present": "meets the defined output",
                "lld-slice": "meets the defined output"}      # anything else: "valid"
@@ -58,7 +64,7 @@ def atom_status(atom, wf=None, ended=False):
     s, ws = atom.get("status"), (wf or {}).get("status")
     if s == "passed":
         return "closed"
-    if s == "escalated" or (s == "failed" and (ws != "running" or (atom.get("attempts") or 0) >= MAX_ATTEMPTS)):
+    if s == "escalated" or (s == "failed" and (ws != "running" or (atom.get("attempts") or 0) >= max_attempts())):
         return "verify_failed"
     if ws == "unfunded" or (ended and not s and ws not in (None, "done")):
         return "abandoned"

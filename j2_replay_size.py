@@ -32,7 +32,7 @@ def jl(name):
 
 
 def main():
-    calls, receipts = jl("calls.jsonl"), jl("receipts.jsonl")
+    calls, receipts = [c for c in jl("calls.jsonl") if not c.get("extra")], jl("receipts.jsonl")
     sections = json.load(open(os.path.join(RUN, "sections.json"), encoding="utf-8"))
     audits = json.load(open(os.path.join(RUN, "audits.json"), encoding="utf-8"))
     last = audits[-1] if audits else None
@@ -122,11 +122,11 @@ def documents_estimate(avg, avg_old):
              "prices, pre-order a coffee, find the shop, read the opening hours. Constraints: one page only. Success: 30 "
              "pre-orders per week.")
     r = j2.J2Run()
-    r.budget = 900
+    r.budget = max(r.budget, 50_000_000)      # tokens: never the limit in this measurement
     r.user_says(brief)
     while r.status != "waiting":
         time.sleep(0.02)
-    rows = jl_dir(r.dir, "calls.jsonl")
+    rows = [c for c in jl_dir(r.dir, "calls.jsonl") if not c.get("extra")]
     kind = lambda fn: "builder" if fn.startswith("W-") else fn
     ranges = [(k, v["calls"]["from"], v["calls"]["to"]) for k, v in r.docs.items()]
     ranges.append(("website (blueprint)", r.docs["lld"]["calls"]["to"] + 1, 10 ** 9))

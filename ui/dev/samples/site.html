@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Still Water Physio</title>
+<style>
+  :root { --green: #2f5d50; --sand: #f4efe6; --ink: #1f2a27; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Georgia, "Times New Roman", serif; color: var(--ink); background: #fff; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 20px 6vw; border-bottom: 1px solid #e7e2d8; }
+  header b { font-size: 20px; letter-spacing: .01em; }
+  header nav a { margin-left: 22px; color: var(--ink); text-decoration: none; font: 14px system-ui, sans-serif; }
+  .hero { padding: 72px 6vw 64px; background: var(--sand); }
+  .hero h1 { font-size: clamp(30px, 5vw, 52px); line-height: 1.08; margin: 0 0 16px; max-width: 14ch; font-weight: 500; }
+  .hero p { font: 18px/1.55 system-ui, sans-serif; max-width: 46ch; margin: 0 0 28px; color: #45524e; }
+  .cta { display: inline-block; background: var(--green); color: #fff; padding: 14px 22px; border-radius: 4px; font: 600 15px system-ui, sans-serif; text-decoration: none; }
+  section { padding: 56px 6vw; }
+  h2 { font-size: 28px; font-weight: 500; margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .svc { border: 1px solid #e7e2d8; padding: 20px; border-radius: 6px; font: 15px/1.5 system-ui, sans-serif; }
+  .svc b { display: block; font: 600 16px system-ui, sans-serif; margin-bottom: 6px; }
+  .hours { font: 15px/1.9 system-ui, sans-serif; }
+  .tag { display: inline-block; font: 12px system-ui, sans-serif; background: #fff4d6; color: #7a5b00; padding: 2px 8px; border-radius: 3px; margin-left: 8px; }
+  footer { padding: 32px 6vw; font: 13px system-ui, sans-serif; color: #6b7672; border-top: 1px solid #e7e2d8; }
+</style>
+</head>
+<body>
+<header><b>Still Water Physio</b><nav><a href="#services">Services</a><a href="#hours">Hours</a><a href="#book">Book</a></nav></header>
+<div class="hero">
+  <h1>Move without pain again.</h1>
+  <p>Physiotherapy in Indiranagar for back pain, sports injuries and recovery after surgery. One therapist, one hour, your whole attention.</p>
+  <a class="cta" href="#book">Book on WhatsApp</a>
+</div>
+<section id="services">
+  <h2>Services</h2>
+  <div class="grid">
+    <div class="svc"><b>Back and neck pain</b>Hands-on treatment and a home plan you can actually follow.</div>
+    <div class="svc"><b>Sports injuries</b>Runners, cricketers and weekend players. Back to the game safely.</div>
+    <div class="svc"><b>After surgery</b>Knee, hip and shoulder rehab, step by step.</div>
+  </div>
+</section>
+<section id="hours">
+  <h2>Hours <span class="tag">being built</span></h2>
+  <div class="hours">Monday to Friday · 8:00 to 20:00<br>Saturday · 9:00 to 14:00</div>
+</section>
+<footer>12th Main, Indiranagar, Bengaluru · Sample preview for the J2 UI fixtures</footer>
+</body>
+</html>

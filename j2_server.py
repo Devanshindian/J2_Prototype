@@ -17,17 +17,28 @@ import j2_agent
 import j2_artifacts
 import j2_map
 import j2_story
+import j2_v2
 import llm
 from j2 import HERE, J2Run, clear_lessons
 
 RUN = J2Run()
 VENDOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor")      # never HERE: tests point HERE at a temp page
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+UI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")      # the new page (/ and /ui/*)
+UI_TYPES = {".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".mjs": "text/javascript",
+            ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon",
+            ".woff2": "font/woff2", ".woff": "font/woff", ".txt": "text/plain", ".md": "text/markdown"}
+UI_PLACEHOLDER = ("<!doctype html><meta charset='utf-8'><title>J2</title><p style='font:15px system-ui;padding:24px'>"
+                  "The new page isn't here yet (ui/index.html). The current page is at <a href='/legacy'>/legacy</a>.</p>")
+
+
+USAGE_SETTINGS = ("J2_TOKEN_BUDGET", "J2_TOKEN_CAP", "J2_LIMIT_ADD_TOKENS")    # usage numbers, not credentials
 
 
 def secrets():
     """Values the page must never show: every .env value and any env var whose name looks like a credential."""
-    vals = {v for k, v in os.environ.items() if any(w in k.upper() for w in ("KEY", "TOKEN", "SECRET", "PASSWORD", "AUTH"))}
+    vals = {v for k, v in os.environ.items() if any(w in k.upper() for w in ("KEY", "TOKEN", "SECRET", "PASSWORD", "AUTH"))
+            and k.upper() not in USAGE_SETTINGS}
     try:
         with open(os.path.join(HERE, ".env"), encoding="utf-8") as f:
             vals |= {ln.split("=", 1)[1].strip().strip("\"'") for ln in f if "=" in ln and not ln.lstrip().startswith("#")}
@@ -46,6 +57,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+    def _ui_file(self, rel):
+        """A file of the new page from ui/, by its path under ui/ (no path tricks); None when it isn't there."""
+        base = os.path.realpath(UI_DIR)
+        p = os.path.realpath(os.path.join(base, rel))
+        if not p.startswith(base + os.sep) or not os.path.isfile(p):
+            return None
+        return p
+
+    def _send_ui(self, path):
+        ext = os.path.splitext(path)[1].lower()
+        ctype = UI_TYPES.get(ext, "application/octet-stream")
+        with open(path, "rb") as f:
+            data = f.read()
+        if ctype.startswith("text/") or ctype in ("application/json", "image/svg+xml"):
+            return self._send(200, data, ctype)
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
     def _send(self, code, body, ctype="application/json", name="prd.docx"):
         if ctype in ("image/png", DOCX):     # a screenshot or a .docx: binary, no text to redact
             self.send_response(code)
@@ -63,7 +95,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         u = urlparse(self.path)
-        if u.path in ("/", "/index.html"):
+        if u.path in ("/", "/index.html"):           # the new page (ui/); a placeholder until it exists
+            p = self._ui_file("index.html")
+            return self._send_ui(p) if p else self._send(200, UI_PLACEHOLDER, "text/html")
+        if u.path.startswith("/ui/"):
+            p = self._ui_file(u.path[len("/ui/"):])
+            return self._send_ui(p) if p else self._send(404, "not found", "text/plain")
+        if u.path in ("/legacy", "/legacy/"):         # the old page, for developers
             with open(os.path.join(HERE, "j2_ui.html"), encoding="utf-8") as f:
                 return self._send(200, f.read(), "text/html")
         if u.path == "/vendor/d3.min.js":      # the Map's Tree view library, served from this folder (no CDN: the page works offline)
@@ -78,6 +116,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
         run = q.get("run")              # a saved run's folder name, opened read-only
         if run and run == os.path.basename(RUN.dir) and not os.path.isdir(RUN.dir):
             run = None                  # the live run's id before its folder exists (no prompt sent yet): the live run, empty
+        if u.path == "/api/v2/state":   # the new page's one poll (api-contract.md)
+            since, bsince = int(q.get("since", "0") or 0), int(q.get("bsince", "0") or 0)
+            snap = j2_v2.saved(run, since, bsince) if run else RUN.v2_snapshot(since, bsince)
+            return self._send(200, json.dumps(snap, ensure_ascii=False)) if snap else self._send(404, '{"error": "no such run"}')
+        if u.path == "/api/v2/map":     # the kingdom view: departments, units, buildings, hand-offs, attention
+            since = int(q.get("since", "0") or 0)
+            snap = j2_v2.map_saved(run, since) if run else j2_v2.map_live(RUN, since)
+            return self._send(200, json.dumps(snap, ensure_ascii=False)) if snap else self._send(404, '{"error": "no such run"}')
+        if u.path == "/api/v2/output":  # "See output": what a finished part made (api-contract.md)
+            wid = q.get("id") or ""
+            snap = j2_v2.output_saved(run, wid) if run else j2_v2.output_live(RUN, wid)
+            return self._send(200, json.dumps(snap, ensure_ascii=False)) if snap else self._send(404, '{"error": "no such part"}')
+        if u.path == "/api/v2/runs":
+            return self._send(200, json.dumps(j2_v2.runs(), ensure_ascii=False))
+        if u.path.startswith("/api/v2/doc/"):   # a document deliverable as raw markdown
+            text = j2_v2.doc_text(RUN, u.path.rsplit("/", 1)[-1], run)
+            text = j2.reader_words(text) if text is not None else None     # the person's words, not the team's
+            return self._send(200, text, "text/markdown") if text is not None else self._send(404, "not found", "text/plain")
         if u.path == "/api/state":
             since = int(q.get("since", "0"))
             snap = j2.saved_snapshot(run, since) if run else {**RUN.snapshot(since), "saved": None}
@@ -183,6 +239,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 conds.update({c["id"]: c["text"] for c in j2.load_conditions(f"{n}.json")})
             rub = {i: t for o in j2.OUTPUTS.values() for i, t in o.get("rubric") or ()}
             return self._send(200, json.dumps({"conditions": conds, "rubric": rub}, ensure_ascii=False))
+        if u.path.startswith("/design/"):      # step 11: a style direction's preview page (run folder, design/)
+            d, name = (j2.saved_dir(run) if run else RUN.dir), u.path.rsplit("/", 1)[-1]
+            path = os.path.join(d or "", "design", name)
+            if not (d and re.fullmatch(r"preview-\d+\.html", name) and os.path.exists(path)):
+                return self._send(404, "not found", "text/plain")
+            with open(path, encoding="utf-8") as f:
+                return self._send(200, f.read(), "text/html")
         if u.path.startswith("/shot/"):        # the screenshot Audit looked at for site vN
             d, n = (j2.saved_dir(run) if run else RUN.dir), u.path.rsplit("/", 1)[-1]
             path = os.path.join(d or "", "site", "shots", f"v{n}.png")
@@ -201,14 +264,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(path, "rb") as f:
                 data = f.read()
             return self._send(200, data, DOCX, name) if name.endswith(".docx") else \
-                self._send(200, data, "text/markdown")
+                self._send(200, j2.reader_words(data.decode("utf-8", "replace")), "text/markdown")
         if u.path.startswith("/site/") and run:
             d, key = j2.saved_dir(run), u.path.rsplit("/", 1)[-1]
             site = os.path.join(d or "", "site")
-            num = lambda f: int(f[1:].split(".")[0])
-            vs = sorted((f for f in os.listdir(site) if re.fullmatch(r"v\d+\.(?:html|md)", f)), key=num) \
-                if d and os.path.isdir(site) else []
+            vs = j2.site_versions(site) if d else []          # v3.html, or a document chain's prd-v2.md
             name = vs[-1] if key == "latest" and vs else next((f for f in vs if f.split(".")[0] == key), None)
+            if not name and re.fullmatch(r"v\d+", key) and 1 <= int(key[1:]) <= len(vs):
+                name = vs[int(key[1:]) - 1]                   # vN: the Nth version, whatever its stage
             if not name:
                 return self._send(200, "<p style='font:14px system-ui;color:#667;padding:24px'>No site in this run.</p>",
                                   "text/html")
@@ -221,7 +284,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                        f"{'document' if RUN.doc else 'website'} will appear here once it's built.</p>",
                                   "text/html")
             key = u.path.rsplit("/", 1)[-1]
-            i = len(RUN.sites) if key == "latest" else int(key.lstrip("v") or 0)
+            key = re.sub(r"^\w+-(?=v\d+(?:\.\w+)?$)", "", key).split(".")[0]      # prd-v2.md -> v2 (the current stage)
+            i = len(RUN.sites) if key == "latest" else (int(key.lstrip("v")) if key.lstrip("v").isdigit() else 0)
             if not 1 <= i <= len(RUN.sites):
                 return self._send(404, "not found", "text/plain")
             return self._send(200, j2.md_html(RUN.sites[i - 1], RUN.out["label"]) if RUN.doc else RUN.sites[i - 1],
@@ -237,13 +301,43 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self._send(400, '{"error": "empty"}')
             ok = RUN.user_says(text)
             return self._send(200 if ok else 409, json.dumps({"ok": ok}))
+        if self.path == "/api/v2/say":
+            text = (body.get("text") or "").strip()
+            if not text:
+                return self._send(400, '{"error": "empty"}')
+            ok = RUN.user_says(text)
+            return self._send(200, '{"ok": true}') if ok else self._send(409, json.dumps({"error": "a turn is running"}))
+        if self.path == "/api/v2/decide":
+            ok, why = RUN.decide(body.get("decision_id"), body.get("option_id"), body.get("text") or "",
+                                 body.get("fields") or {}, model=body.get("model"))
+            return self._send(200, '{"ok": true}') if ok else \
+                self._send(409, json.dumps({"error": why or "that decision is no longer open"}))
+        if self.path == "/api/v2/control":       # kingdom view: pause | resume | stop | skip | redo | note (api-contract.md)
+            ok, info = RUN.control(body.get("action"), body.get("target"), body.get("text") or "")
+            if ok:
+                return self._send(200, json.dumps({"ok": True, **info}))
+            code = 400 if info in ("unknown action", "say which part", "write the note first") else 409
+            return self._send(code, json.dumps({"ok": False, "error": info}))
+        if self.path == "/api/v2/new":
+            if RUN.status == "running":
+                return self._send(409, json.dumps({"error": "a turn is running"}))
+            RUN.reset()
+            return self._send(200, '{"ok": true}')
         if self.path == "/api/playbooks/clear":    # the Playbooks tab's "Clear playbooks" (the page confirms first)
             return self._send(200, json.dumps({"ok": True, "cleared": j2.clear_playbooks()}))
         if self.path == "/api/lessons/clear":      # the Lessons tab's "Clear memory" (the page confirms first)
             return self._send(200, json.dumps({"ok": True, "cleared": clear_lessons()}))
         if self.path == "/api/output":           # the start page's output type, before the first message
-            ok = RUN.set_output(body.get("type"))
-            return self._send(200 if ok else 409, json.dumps({"ok": ok, "output": RUN.output}))
+            # {"type": "prd"} picks one output; {"stages": ["prd", "website"]} picks a chain (step 8). Either way the
+            # output classifier is skipped for this run.
+            ok = RUN.set_stages(body.get("stages")) if isinstance(body.get("stages"), list) else RUN.set_output(body.get("type"))
+            return self._send(200 if ok else 409, json.dumps({"ok": ok, "output": RUN.output, "stages": list(RUN.stages)}))
+        if self.path == "/api/v2/settings":      # run settings: {"no_questions": bool} (api-contract.md)
+            if not isinstance(body.get("no_questions"), bool):
+                return self._send(400, json.dumps({"error": "no_questions must be true or false"}))
+            answered = RUN.set_no_questions(body["no_questions"], "set on the page")
+            return self._send(200, json.dumps({"ok": True, "settings": {"no_questions": RUN.no_questions},
+                                               **({"answered": answered} if answered else {})}))
         if self.path == "/api/reset":
             if RUN.status == "running":
                 return self._send(409, '{"ok": false}')
@@ -252,12 +346,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._send(404, "{}")
 
 
+class Server(http.server.ThreadingHTTPServer):
+    # A fresh page asks for about 14 module scripts at once; the default listen backlog (5) made macOS reset the
+    # extra connections (net::ERR_CONNECTION_RESET on a .js file, a blank page). A deeper queue holds them.
+    request_queue_size = 128
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8773)
     ap.add_argument("--no-browser", action="store_true")
     a = ap.parse_args()
-    srv = http.server.ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
+    srv = Server(("127.0.0.1", a.port), Handler)
     url = f"http://127.0.0.1:{a.port}/"
     print("Mode:", "MOCK (scripted functions)" if llm.MOCK else f"{llm.PROVIDER} ({llm.MODEL})")
     print("Open:", url)

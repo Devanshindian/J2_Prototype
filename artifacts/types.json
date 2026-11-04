@@ -1,10 +1,8 @@
 {
-  "_note": "Artifact types, step 1. j2.py's flow does not read this file; tests/test files compare it with the Python it mirrors (prd/hld/lld/website) and the Artifacts tab reads it. kind type = a deliverable the department builds; kind record = evidence the run keeps. A file with * lists every match. Regexes are case-insensitive.",
+  "_note": "Artifact types, step 1. j2.py's flow does not read this file; tests/test files compare it with the Python it mirrors (prd/hld/lld/website) and the Artifacts tab reads it. kind type = a deliverable the department builds; kind record = evidence the run keeps. A file with * lists every match. What to make is read from the Requester's message by the output classifier (agents/j2/output-classifier.md), so no type carries trigger words.",
   "schema": "artifact-types/1",
-  "site_words": "\\b(?:web\\s?)?sites?\\b|\\bweb\\s?pages?\\b|\\blanding\\s+page\\b",
   "groups": {
     "design-docs": {
-      "pattern": "\\bdesign\\s+(?:docs?|documents?|documentation)\\b|\\bfull\\s+documentation\\b",
       "members": [
         "prd",
         "hld",
@@ -23,9 +21,6 @@
       "file": "prd.md",
       "export": "docx",
       "deliverable": true,
-      "triggers": [
-        "\\bPRDs?\\b|\\bproduct\\s+requirements?\\b"
-      ],
       "groups": [
         "design-docs"
       ],
@@ -44,8 +39,7 @@
         "builder": "python:PRD_BUILDER",
         "refs": "^prd\\.md(#|$)"
       },
-      "cost": {
-        "card": "rates_prd",
+      "usage": {
         "parts": {
           "doc_section": 5,
           "requirements_section": 1
@@ -62,9 +56,6 @@
       "file": "hld.md",
       "export": "docx",
       "deliverable": true,
-      "triggers": [
-        "\\bHLDs?\\b|\\bhigh[- ]level\\s+design\\b|\\barchitecture\\s+overview\\b"
-      ],
       "groups": [
         "design-docs"
       ],
@@ -85,8 +76,7 @@
         "builder": "python:HLD_BUILDER",
         "refs": "^hld\\.md(#|$)"
       },
-      "cost": {
-        "card": "rates_prd",
+      "usage": {
         "parts": {
           "doc_section": 5,
           "requirements_section": 1
@@ -103,9 +93,6 @@
       "file": "lld.md",
       "export": "docx",
       "deliverable": true,
-      "triggers": [
-        "\\bLLDs?\\b|\\blow[- ]level\\s+design\\b|\\bdetailed\\s+design\\b"
-      ],
       "groups": [
         "design-docs"
       ],
@@ -126,8 +113,7 @@
         "builder": "python:LLD_BUILDER",
         "refs": "^lld\\.md(#|$)"
       },
-      "cost": {
-        "card": "rates_prd",
+      "usage": {
         "parts": {
           "doc_section": 4,
           "requirements_section": 1
@@ -144,8 +130,6 @@
       "file": "site/index.html",
       "export": null,
       "deliverable": true,
-      "triggers": [],
-      "also_when": "site-words",
       "groups": [],
       "depends_on": [
         "hld",
@@ -158,8 +142,7 @@
         "builder": "builder.md",
         "refs": "\\.html?(#|$)"
       },
-      "cost": {
-        "card": "rates",
+      "usage": {
         "parts": {
           "styling": 1,
           "page_section": 3,

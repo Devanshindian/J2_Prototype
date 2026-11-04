@@ -1,0 +1,723 @@
+{
+  "run": {
+    "id": "fx-style",
+    "saved": false,
+    "title": "Still Water Physio"
+  },
+  "status": "needs_you",
+  "status_text": "",
+  "usage": {
+    "budget": null,
+    "spent": 260000,
+    "margin_at": null,
+    "estimate": 2100000,
+    "by_phase": {
+      "planning": 260000,
+      "building": 0,
+      "checking": 0,
+      "other": 0
+    }
+  },
+  "decision": {
+    "id": "d-3",
+    "kind": "style",
+    "happening": "Pick a look for your website.",
+    "why": "Three directions drawn from real sites of this kind; we suggest Warm and friendly.",
+    "options": [
+      {
+        "id": "s1",
+        "label": "Calm and airy",
+        "gets": "Light, spacious and quiet; suits a place people visit to feel better.",
+        "usage": 0,
+        "suggested": false,
+        "preview_url": "/ui/dev/samples/preview-1.html",
+        "inspired_by": {
+          "label": "cruip/open-react-template",
+          "url": "https://github.com/cruip/open-react-template"
+        }
+      },
+      {
+        "id": "s2",
+        "label": "Warm and friendly",
+        "gets": "Warm tones and rounded shapes; feels like being welcomed in.",
+        "usage": 0,
+        "suggested": true,
+        "preview_url": "/ui/dev/samples/preview-2.html",
+        "inspired_by": {
+          "label": "Land-book: health and wellness",
+          "url": "https://land-book.com/"
+        }
+      },
+      {
+        "id": "s3",
+        "label": "Clean and clinical",
+        "gets": "Crisp, precise and trustworthy; suits a professional practice.",
+        "usage": 0,
+        "suggested": false,
+        "preview_url": "/ui/dev/samples/preview-3.html",
+        "inspired_by": {
+          "label": "Physio clinic live site",
+          "url": "https://www.physio.co.uk/"
+        }
+      }
+    ],
+    "fields": [],
+    "allow_text": true,
+    "proposal": null
+  },
+  "chat": [
+    {
+      "id": 1,
+      "t": "10:15:00",
+      "from": "you",
+      "text": "A one-page website for my physio clinic in Indiranagar. Services, hours, and a way to book on WhatsApp."
+    },
+    {
+      "id": 2,
+      "t": "10:16:01",
+      "from": "team",
+      "text": "Thanks. Here's what I'd make."
+    },
+    {
+      "id": 3,
+      "t": "10:17:02",
+      "from": "team",
+      "kind": "record",
+      "title": "Plan approved",
+      "summary": "A one-page website for Still Water Physio \u00b7 7 parts \u00b7 about 2.1M",
+      "answer": "Approved",
+      "detail": []
+    },
+    {
+      "id": 4,
+      "t": "10:18:03",
+      "from": "you",
+      "text": "Approved"
+    },
+    {
+      "id": 5,
+      "t": "10:19:04",
+      "from": "team",
+      "text": "Thanks. One quick choice before we build: the look."
+    }
+  ],
+  "backstage": [
+    {
+      "id": 1,
+      "t": "10:16:00",
+      "from": "Client lead",
+      "to": "Planner",
+      "text": "They want one page: services, hours and WhatsApp booking.",
+      "active": false,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    },
+    {
+      "id": 2,
+      "t": "10:16:07",
+      "from": "Planner",
+      "to": "Budget lead",
+      "text": "Here are 7 parts, about 2.1M in total.",
+      "active": false,
+      "detail": {
+        "kind": "plan",
+        "decided": "Parts: Brief, Look and feel, Services list, Opening hours, Booking on WhatsApp, Questions people ask, Phone and computer check.",
+        "why": "Every item on the checklist has a part that delivers it, and the booking part is the biggest because it is the one thing the brief asks visitors to do.",
+        "summary": "7 parts in 4 stages.",
+        "stages": [
+          {
+            "name": "Planning",
+            "parts": [
+              {
+                "name": "Brief",
+                "purpose": "What the site must say and do, in one page.",
+                "waits_for": [],
+                "share": "200k",
+                "share_pct": 12
+              }
+            ]
+          },
+          {
+            "name": "Design",
+            "parts": [
+              {
+                "name": "Look and feel",
+                "purpose": "Calm colours and type that suit a clinic.",
+                "waits_for": [
+                  "Brief"
+                ],
+                "share": "250k",
+                "share_pct": 15
+              }
+            ]
+          },
+          {
+            "name": "Building",
+            "parts": [
+              {
+                "name": "Services list",
+                "purpose": "The three main treatments, in plain words.",
+                "waits_for": [
+                  "Brief"
+                ],
+                "share": "260k",
+                "share_pct": 16
+              },
+              {
+                "name": "Opening hours",
+                "purpose": "When the clinic is open, including Sunday.",
+                "waits_for": [
+                  "Services list"
+                ],
+                "share": "200k",
+                "share_pct": 12
+              },
+              {
+                "name": "Booking on WhatsApp",
+                "purpose": "Lets visitors ask for an appointment on WhatsApp.",
+                "waits_for": [
+                  "Opening hours"
+                ],
+                "share": "300k",
+                "share_pct": 18
+              },
+              {
+                "name": "Questions people ask",
+                "purpose": "Short answers about cost, parking and first visits.",
+                "waits_for": [
+                  "Services list"
+                ],
+                "share": "180k",
+                "share_pct": 11
+              }
+            ]
+          },
+          {
+            "name": "Checking",
+            "parts": [
+              {
+                "name": "Phone and computer check",
+                "purpose": "Makes sure it reads well on every screen.",
+                "waits_for": [
+                  "Booking on WhatsApp",
+                  "Questions people ask"
+                ],
+                "share": "240k",
+                "share_pct": 15
+              }
+            ]
+          }
+        ],
+        "total": "1.6M",
+        "confidence": "The plan reviewer is very sure of this plan (95%).",
+        "not_ready": []
+      }
+    },
+    {
+      "id": 3,
+      "t": "10:16:14",
+      "from": "Budget lead",
+      "to": "Planner",
+      "text": "Fits. Keep the FAQ short so the booking part has room.",
+      "active": false,
+      "detail": {
+        "kind": "budget",
+        "decided": "Decision: grant.",
+        "why": "The total sits under the budget, and the booking part keeps the largest share because it is on the checklist twice.",
+        "summary": "Granted: 7 parts, 1.6M in total.",
+        "rows": [
+          {
+            "label": "Brief",
+            "value": "200k"
+          },
+          {
+            "label": "Look and feel",
+            "value": "250k"
+          },
+          {
+            "label": "Services list",
+            "value": "260k"
+          },
+          {
+            "label": "Opening hours",
+            "value": "200k"
+          },
+          {
+            "label": "Booking on WhatsApp",
+            "value": "300k"
+          },
+          {
+            "label": "Questions people ask",
+            "value": "180k (asked 220k)"
+          },
+          {
+            "label": "Phone and computer check",
+            "value": "240k"
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "t": "10:17:21",
+      "from": "Plan reviewer",
+      "to": "Planner",
+      "text": "The plan covers everything they asked for.",
+      "active": false,
+      "detail": {
+        "kind": "checks",
+        "decided": "Verdict: pass.",
+        "why": null,
+        "what": "The plan reviewer read every part against your checklist.",
+        "summary": "All 4 passed.",
+        "items": [
+          {
+            "name": "Every checklist item has a part",
+            "pass": true,
+            "reason": "Eight items, each covered once."
+          },
+          {
+            "name": "Each part can start",
+            "pass": true,
+            "reason": "Nothing waits on a part that doesn't exist."
+          },
+          {
+            "name": "Each part has a check that proves it",
+            "pass": true,
+            "reason": null
+          },
+          {
+            "name": "The facts come from your brief",
+            "pass": true,
+            "reason": "Hours and number are yours, not made up."
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "t": "10:17:28",
+      "from": "Client lead",
+      "to": "Planner",
+      "text": "Studied three strong physio and clinic sites; three looks drawn from them.",
+      "active": false,
+      "detail": {
+        "kind": "generic",
+        "decided": null,
+        "why": null
+      }
+    }
+  ],
+  "working_now": null,
+  "plan": {
+    "groups": [
+      {
+        "name": "Planning",
+        "tasks": [
+          {
+            "id": "W-1",
+            "name": "Brief",
+            "summary": "What the site must say and do, in one page.",
+            "status": "waiting",
+            "waits_for": [],
+            "usage": 0,
+            "share": 200000
+          }
+        ]
+      },
+      {
+        "name": "Design",
+        "tasks": [
+          {
+            "id": "W-2",
+            "name": "Look and feel",
+            "summary": "Calm colours and type that suit a clinic.",
+            "status": "waiting",
+            "waits_for": [
+              "Brief"
+            ],
+            "usage": 0,
+            "share": 250000
+          }
+        ]
+      },
+      {
+        "name": "Building",
+        "tasks": [
+          {
+            "id": "W-3",
+            "name": "Services list",
+            "summary": "The three main treatments, in plain words.",
+            "status": "waiting",
+            "waits_for": [
+              "Brief"
+            ],
+            "usage": 0,
+            "share": 260000
+          },
+          {
+            "id": "W-4",
+            "name": "Opening hours",
+            "summary": "When the clinic is open, including Sunday.",
+            "status": "waiting",
+            "waits_for": [
+              "Services list"
+            ],
+            "usage": 0,
+            "share": 200000
+          },
+          {
+            "id": "W-5",
+            "name": "Booking on WhatsApp",
+            "summary": "Lets visitors ask for an appointment on WhatsApp.",
+            "status": "waiting",
+            "waits_for": [
+              "Opening hours"
+            ],
+            "usage": 0,
+            "share": 300000
+          },
+          {
+            "id": "W-6",
+            "name": "Questions people ask",
+            "summary": "Short answers about cost, parking and first visits.",
+            "status": "waiting",
+            "waits_for": [
+              "Services list"
+            ],
+            "usage": 0,
+            "share": 180000
+          }
+        ]
+      },
+      {
+        "name": "Checking",
+        "tasks": [
+          {
+            "id": "W-7",
+            "name": "Phone and computer check",
+            "summary": "Makes sure it reads well on every screen.",
+            "status": "waiting",
+            "waits_for": [
+              "Booking on WhatsApp",
+              "Questions people ask"
+            ],
+            "usage": 0,
+            "share": 240000
+          }
+        ]
+      }
+    ]
+  },
+  "deliverables": [],
+  "ended": null,
+  "settings": {
+    "no_questions": false
+  },
+  "control": {
+    "paused": false,
+    "pausing": false,
+    "stopping": false
+  },
+  "map": {
+    "departments": [
+      {
+        "id": "d-website",
+        "name": "Website",
+        "kind": "website"
+      }
+    ],
+    "units": [
+      {
+        "id": "u-identity",
+        "role": "client",
+        "label": "Client lead",
+        "dept": "d-website",
+        "at": "d-website",
+        "state": "waiting",
+        "doing": "Waiting for your answer"
+      },
+      {
+        "id": "u-adaptation",
+        "role": "planner",
+        "label": "Planner",
+        "dept": "d-website",
+        "at": "d-website",
+        "state": "idle",
+        "doing": ""
+      },
+      {
+        "id": "u-priority",
+        "role": "budget",
+        "label": "Budget lead",
+        "dept": "d-website",
+        "at": "d-website",
+        "state": "idle",
+        "doing": ""
+      },
+      {
+        "id": "u-coordination",
+        "role": "scheduler",
+        "label": "Scheduler",
+        "dept": "d-website",
+        "at": "d-website",
+        "state": "idle",
+        "doing": ""
+      },
+      {
+        "id": "u-validator",
+        "role": "gatekeeper",
+        "label": "Gatekeeper",
+        "dept": "d-website",
+        "at": "d-website",
+        "state": "idle",
+        "doing": ""
+      },
+      {
+        "id": "u-audit",
+        "role": "quality",
+        "label": "Quality check",
+        "dept": "d-website",
+        "at": "d-website",
+        "state": "idle",
+        "doing": ""
+      }
+    ],
+    "buildings": [
+      {
+        "id": "W-1",
+        "name": "Brief",
+        "dept": "d-website",
+        "progress": 0.0,
+        "state": "waiting",
+        "depends_on": [],
+        "usage": 0,
+        "share": 200000,
+        "doing": "Waiting its turn",
+        "output": null
+      },
+      {
+        "id": "W-2",
+        "name": "Look and feel",
+        "dept": "d-website",
+        "progress": 0.0,
+        "state": "waiting",
+        "depends_on": [
+          "W-1"
+        ],
+        "usage": 0,
+        "share": 250000,
+        "doing": "Waits for Brief",
+        "output": null
+      },
+      {
+        "id": "W-3",
+        "name": "Services list",
+        "dept": "d-website",
+        "progress": 0.0,
+        "state": "waiting",
+        "depends_on": [
+          "W-1"
+        ],
+        "usage": 0,
+        "share": 260000,
+        "doing": "Waits for Brief",
+        "output": null
+      },
+      {
+        "id": "W-4",
+        "name": "Opening hours",
+        "dept": "d-website",
+        "progress": 0.0,
+        "state": "waiting",
+        "depends_on": [
+          "W-3"
+        ],
+        "usage": 0,
+        "share": 200000,
+        "doing": "Waits for Services list",
+        "output": null
+      },
+      {
+        "id": "W-5",
+        "name": "Booking on WhatsApp",
+        "dept": "d-website",
+        "progress": 0.0,
+        "state": "waiting",
+        "depends_on": [
+          "W-4"
+        ],
+        "usage": 0,
+        "share": 300000,
+        "doing": "Waits for Opening hours",
+        "output": null
+      },
+      {
+        "id": "W-6",
+        "name": "Questions people ask",
+        "dept": "d-website",
+        "progress": 0.0,
+        "state": "waiting",
+        "depends_on": [
+          "W-3"
+        ],
+        "usage": 0,
+        "share": 180000,
+        "doing": "Waits for Services list",
+        "output": null
+      },
+      {
+        "id": "W-7",
+        "name": "Phone and computer check",
+        "dept": "d-website",
+        "progress": 0.0,
+        "state": "waiting",
+        "depends_on": [
+          "W-5",
+          "W-6"
+        ],
+        "usage": 0,
+        "share": 240000,
+        "doing": "Waits for Booking on WhatsApp and Questions people ask",
+        "output": null
+      }
+    ],
+    "flows": [
+      {
+        "id": 1,
+        "from": "u-adaptation",
+        "to": "u-priority",
+        "t": "10:20:00",
+        "what": "Here are 7 parts, about 2.1M in total."
+      },
+      {
+        "id": 2,
+        "from": "u-priority",
+        "to": "u-adaptation",
+        "t": "10:21:00",
+        "what": "Fits"
+      }
+    ],
+    "attention": "u-identity",
+    "counts": {
+      "done": 0,
+      "total": 7
+    }
+  },
+  "_next": {
+    "*": "working"
+  },
+  "_outputs": {
+    "W-1": {
+      "id": "W-1",
+      "name": "Brief",
+      "kind": "notes",
+      "points": [
+        "Hero: the clinic's name, Indiranagar, and one Book on WhatsApp button.",
+        "Services: three treatments, each with a one-line description and a price.",
+        "Opening hours: every day of the week, Sunday closed.",
+        "Booking: a WhatsApp link with a short prefilled message.",
+        "Questions people ask: cost, parking, first visit.",
+        "Footer: address, phone and a map link."
+      ],
+      "markdown": "# Still Water Physio: page plan\n\nOne page for Still Water Physio in Indiranagar. Every later part follows this document. Copy every name, price and time exactly as written here.\n\n## Section order\n\n| # | Section | Built by |\n|---|---|---|\n| 1 | Hero | hero part |\n| 2 | Services | services part |\n| 3 | Opening hours | hours part |\n| 4 | Booking | booking part |\n| 5 | Questions people ask | questions part |\n\n## Hero\n\n- The clinic's name, Indiranagar, and one **Book on WhatsApp** button that links to the booking section.\n\n## Services\n\n- Sports injury rehab: Rs 1,200 a session\n- Back and neck care: Rs 1,000 a session\n- Home visits: Rs 1,800 a visit\n\n## Opening hours\n\nMonday to Saturday, 8am to 8pm. Sunday closed."
+    },
+    "W-2": {
+      "id": "W-2",
+      "name": "Look and feel",
+      "kind": "style",
+      "look": "Warm and friendly",
+      "palette": [
+        {
+          "name": "Primary",
+          "hex": "#b5522a"
+        },
+        {
+          "name": "Secondary",
+          "hex": "#f6e7dc"
+        },
+        {
+          "name": "Accent",
+          "hex": "#2a6f5f"
+        },
+        {
+          "name": "Background",
+          "hex": "#fffaf5"
+        },
+        {
+          "name": "Text",
+          "hex": "#2b1d16"
+        },
+        {
+          "name": "Muted",
+          "hex": "#6e5a4f"
+        }
+      ],
+      "fonts": {
+        "heading": "'Trebuchet MS', sans-serif",
+        "body": "system-ui, sans-serif"
+      },
+      "radius": "18px",
+      "rules": [
+        "Warm, rounded and friendly, with one terracotta accent for every main button.",
+        "Terracotta stays an accent: buttons, icons and thin rules only.",
+        "Write facts exactly: prices and hours as the brief gives them."
+      ]
+    },
+    "W-3": {
+      "id": "W-3",
+      "name": "Services list",
+      "kind": "section",
+      "anchor": "services",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-4": {
+      "id": "W-4",
+      "name": "Opening hours",
+      "kind": "section",
+      "anchor": "hours",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-5": {
+      "id": "W-5",
+      "name": "Booking on WhatsApp",
+      "kind": "section",
+      "anchor": "book",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-6": {
+      "id": "W-6",
+      "name": "Questions people ask",
+      "kind": "section",
+      "anchor": "faq",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-7": {
+      "id": "W-7",
+      "name": "Phone and computer check",
+      "kind": "page",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "R-1": {
+      "id": "R-1",
+      "name": "Research",
+      "kind": "research",
+      "question": "What do strong physio clinic sites do?",
+      "sources": [
+        {
+          "url": "https://www.physio.co.uk/",
+          "label": "physio.co.uk",
+          "note": "A large clinic site: booking first, prices shown plainly"
+        },
+        {
+          "url": "https://land-book.com/",
+          "label": "land-book.com",
+          "note": "A gallery of clinic landing pages, for layout"
+        }
+      ]
+    }
+  }
+}

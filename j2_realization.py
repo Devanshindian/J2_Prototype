@@ -35,16 +35,30 @@ def load_stages():
 STAGES = tuple(s["id"] for s in load_stages())
 
 
+def stage_block(s):
+    """One stage of the guide (5a), compact: what it decides, what belongs in it and what doesn't, what usually feeds
+    it, how to approach it, when to use it, an example workflow and an example done-test."""
+    lines = [f"- `{s['id']}` ({', '.join(t.title() for t in s['tiers'])}): {s['thinking']}. Output: {s['output']}.",
+             f"  Covers: {s.get('covers') or s['thinking']}." + (f" Not for: {s['not_for']}." if s.get("not_for") else ""),
+             f"  How to approach: {s['approach']}. Use it when: {s['use_when']}."
+             + (f" Usually fed by: {', '.join(s['typical_inputs'])}." if s.get("typical_inputs") else "")]
+    ex = "; ".join(f'"{x}"' for x in s.get("example_workflows") or [])
+    if ex or s.get("example_done_test"):
+        lines.append((f"  Example workflow: {ex}." if ex else "")
+                     + (f" Example done-test: \"{s['example_done_test']}\"." if s.get("example_done_test") else ""))
+    if s.get("note"):
+        lines.append(f"  Note: {s['note']}.")
+    return "\n".join(x.replace("..", ".") for x in lines)
+
+
 def stage_table():
-    """The Realization section's stage table, rendered from stages.json, grouped."""
+    """The Realization section's stage guide, rendered from stages.json: one compact block per stage, by group (5a)."""
     st = load_stages()
-    rows = ["| Stage | Kind of thinking | Tiers | Output | How to approach | Use it when |", "|---|---|---|---|---|---|"]
+    out = []
     for g in dict.fromkeys(s["group"] for s in st):
-        rows.append(f"| **{g}** | | | | | |")
-        rows += [f"| `{s['id']}` | {s['thinking']} | {', '.join(t.title() for t in s['tiers'])} | {s['output']} | "
-                 f"{s['approach']} | {s['use_when']}" + (f". Note: {s['note']}" if s.get("note") else "") + " |" for s in st
-                 if s["group"] == g]
-    return "\n".join(rows)
+        out.append(f"**{g}**")
+        out += [stage_block(s) for s in st if s["group"] == g]
+    return "\n".join(out)
 SOURCES = ("brief", "general", "research", "budget")
 CHECKS = ("inputs", "method", "done_test", "factors", "zone_fit", "size")
 ANSWERS = ("yes", "partly", "no")
@@ -451,7 +465,7 @@ PLAN_FMT = """{
  "deferred": [{"item": int, "until": str}],
  "factors": [{"name": str, "source": "brief"|"general"|"research"|"budget", "quote": str|null, "citation": str|null, "why": str, "stages": [stage id]}],
  "unplaced": [{"name": str, "why": str}],
- "stages": [{"id": str (a stage id from the stage table in the Realization section), "thinking": str, "tiers": ["strategy"|"capability"|"architecture"|"feature"|"contract"|"implementation"], "goal": str, "done_test": str, "method": str|null, "owns_factors": [factor name], "inputs_from": [stage id]}],
+ "stages": [{"id": str (a stage id from the stage guide in the Realization section), "thinking": str, "tiers": ["strategy"|"capability"|"architecture"|"feature"|"contract"|"implementation"], "goal": str, "done_test": str, "method": str|null, "owns_factors": [factor name], "inputs_from": [stage id]}],
  "workflows": [{"name": str (unique), "stage": stage id, "certainty": zone, "certainty_signals": [str], "approach": str (one sentence), "goal": str, "done_test": str (observable, pass/fail), "delivers": [item number], "informs": [item number], "inputs_from": [workflow name], "experiment": {"hypothesis": str, "signal": str, "fails_if": str, "limit": str}|null, "research": {"question": str, "feeds": str, "min_sources": int (3 or more), "output": "research.md#R-n"}|null}],
  "open_facts": [{"fact": str, "workflow": workflow name, "blocking": bool, "handling": str}],
  "not_ready": []
@@ -488,23 +502,34 @@ def judge_system():
             + adaptation_part("CERTAINTY") + "\n\nReply with one JSON object and nothing else.")
 
 
+def _item_text(x):
+    """One charter list entry as text: a string as it is, a dict (a to-be-confirmed {criterion, fact}) as its values."""
+    if isinstance(x, dict):
+        return " - ".join(str(v) for v in x.values() if v not in (None, "", [], {}))
+    return str(x)
+
+
 def charter_text(goal):
     """What Adaptation and the judge read of Identity's charter."""
     lines = [f"STATEMENT: {goal.get('statement', '')}"]
     for k in ("audience", "standards", "rules"):
         if goal.get(k):
             v = goal[k]
-            lines.append(f"{k.upper()}: " + ("; ".join(v) if isinstance(v, list) else str(v)))
+            lines.append(f"{k.upper()}: " + ("; ".join(map(_item_text, v)) if isinstance(v, list) else str(v)))
     lines.append("DONE WHEN:")
-    lines += [f"  {i}. {d}" for i, d in enumerate(goal.get("done_when") or [], 1)]
+    lines += [f"  {i}. {_item_text(d)}" for i, d in enumerate(goal.get("done_when") or [], 1)]
     for k in ("open_inputs", "to_be_confirmed"):
         if goal.get(k):
-            lines.append(f"{k.upper()}: " + "; ".join(goal[k]))
+            v = goal[k]
+            lines.append(f"{k.upper()}: " + ("; ".join(map(_item_text, v)) if isinstance(v, list) else str(v)))
     return "\n".join(lines)
 
 
 def _web_note(web):
-    return ("WEB ACCESS: research workflows in this run can read outside sources." if web else
+    return ("WEB ACCESS: you and the research workflows in this run can search the web and read public GitHub "
+            "repositories (read only). Study real examples to learn how others solved it, but never copy code or text "
+            "wholesale; write your own, and cite every source you used (a URL). A research workflow writes its "
+            "findings to research.md as entry R-n with at least 3 cited sources." if web else
             "WEB ACCESS: none in this run. Do not plan research workflows; keep such factors general and mark them "
             "unverified in why.")
 
@@ -551,12 +576,15 @@ def judge_task(goal, plan, spec, revised):
 class Session:
     """One planning run: counts calls and time, and keeps every call for the trace."""
 
-    def __init__(self, log=print):
+    def __init__(self, log=print, on_call=None, tools=None):
         self.calls, self.seconds, self.log, self.trail = 0, 0.0, log, []
+        self.on_call = on_call      # J2's usage accounting: on_call(who, system, user, raw, meta, seconds) per call
+        self.tools = tools or {}    # who -> tool groups (llm.TOOL_GROUPS) its calls may use; J2's tools map (step 7)
 
     def ask(self, who, system, user, mock):
         t0 = time.time()
-        raw = llm.ask(system, user, mock, max_tokens=16000, effort="high", json_mode=True)
+        raw = llm.ask(system, user, mock, max_tokens=16000, effort="high", json_mode=True,
+                      tools=self.tools.get(who) or None)
         dt = time.time() - t0
         self.calls += 1
         self.seconds += dt
@@ -564,8 +592,11 @@ class Session:
             reply = llm.extract_json(raw)
         except ValueError:
             reply = None
-        self.trail.append({"who": who, "seconds": round(dt, 1), "meta": dict(llm.LAST_META),
+        meta = dict(llm.LAST_META)
+        self.trail.append({"who": who, "seconds": round(dt, 1), "meta": meta,
                            "user": user, "raw": raw, "parsed": reply is not None})
+        if self.on_call:
+            self.on_call(who, system, user, raw, meta, dt)
         self.log(f"  {who}: {dt:.0f}s" + ("" if reply is not None else " (reply was not JSON)"))
         return reply
 
@@ -636,12 +667,14 @@ class Session:
         return scores, faults
 
 
-def plan_goal(goal, web=True, out_dir=None, log=print, mocks=None, extra=""):
+def plan_goal(goal, web=True, out_dir=None, log=print, mocks=None, extra="", on_call=None, tools=None):
     """The planning half of realization for one charter. mocks: {"checklist", "plan", "revise", "judge"} callables for
     offline runs (plan and revise take the round; judge takes the round, the plan and the question spec), used only
-    when llm.MOCK. extra: rules of the system the plan runs in (J2 passes its own), added to Adaptation's task."""
-    mocks = mocks or default_mocks(goal)
-    s = Session(log)
+    when llm.MOCK. extra: rules of the system the plan runs in (J2 passes its own), added to Adaptation's task.
+    tools: {"adaptation": [tool groups]} when the planner may use the web and read-only GitHub (J2_TOOLS)."""
+    mocks = mocks or (default_mocks(goal, research=True) if web and os.getenv("J2_MOCK_RESEARCH") == "1"
+                      else default_mocks(goal))
+    s = Session(log, on_call, tools)
     checklist = s.checklist(goal, lambda: mocks["checklist"]())
     plan, faults = s.plan(goal, plan_task(goal, web, extra), lambda: mocks["plan"](0))
     rounds = [{"round": 0, "plan": plan, "plan_faults": faults, "changes": []}]
@@ -815,7 +848,8 @@ def proposal_brief(result, decisions=None, answered=False):
     rows = [{"name": w.get("name"), "stage": w.get("stage"), "certainty": w.get("certainty"), "approach": w.get("approach"),
              "goal": w.get("goal"), "done_test": w.get("done_test"), "covers": lst(w.get("delivers")),
              "informs": lst(w.get("informs")), "after": [d for d in lst(w.get("inputs_from")) if d in names],
-             **({"experiment": w["experiment"]} if isinstance(w.get("experiment"), dict) else {})} for w in go]
+             **({"experiment": w["experiment"]} if isinstance(w.get("experiment"), dict) else {}),
+             **({"research": w["research"]} if isinstance(w.get("research"), dict) else {})} for w in go]
     return rows, left
 
 
@@ -939,14 +973,34 @@ def mock_judge(spec, fail=None, note="no step for the goal", compare=None):
         for n, q in spec.items()]})
 
 
-def default_mocks(goal):
-    """The first build workflow fails D1 (critical: 0.70) on the first look and passes (0.95) after one revision."""
+def mock_research(p):
+    """The mock plan with one research workflow before the build (J2_MOCK_RESEARCH=1 with web on): it informs every
+    item, writes research.md#R-1, and every build workflow reads it."""
+    n = len([w for w in p["workflows"] if w["stage"] == "build"])
+    r = {"name": "Study examples", "stage": "product", "certainty": "analyze", "certainty_signals": ["mock"],
+         "approach": "Read three real examples and note what works.", "goal": "Findings every build follows",
+         "done_test": "research.md has entry R-1 with at least 3 cited sources", "delivers": [],
+         "informs": list(range(1, n + 1)), "inputs_from": [], "experiment": None,
+         "research": {"question": "How do similar sites present this?", "feeds": "every build workflow",
+                      "min_sources": 3, "output": "research.md#R-1"}}
+    for w in p["workflows"]:
+        if w["stage"] == "build":
+            w["inputs_from"] = list(w["inputs_from"]) + ["Study examples"]
+    p["workflows"].insert(1, r)
+    return p
+
+
+def default_mocks(goal, research=False):
+    """The first build workflow fails D1 (critical: 0.70) on the first look and passes (0.95) after one revision.
+    research: the plan also has one research workflow (mock_research)."""
     def plan(rnd):
         p = mock_plan(goal)
         if rnd:
             p["workflows"][1]["done_test"] = "Item 1 is on the page and its check passes"
             p["changes"] = [{"workflow": "Build item 1", "weakest": "done_test", "remedy": "mock: named what to check",
                              "axis": "rewrite"}]
+        if research:
+            p = mock_research(p)
         return json.dumps(p)
     return {"plan": plan, "revise": plan,
             "checklist": lambda: json.dumps({"items": [{"item": i, "question": f"Is item {i} checked?"}

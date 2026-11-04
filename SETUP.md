@@ -49,7 +49,7 @@ source .venv/bin/activate
 STUDIO_PROVIDER=claude-cli python3 j2_server.py
 ```
 
-Opens http://127.0.0.1:8773. Type a brief (or pick an example card) and answer the team's questions.
+Opens http://127.0.0.1:8773. Write what you want, approve the plan, and answer the team's questions.
 
 ### Clean test run: no memory, no delay
 
@@ -61,28 +61,31 @@ J2_FIXES=0 J2_MEMORY=0 STUDIO_PROVIDER=claude-cli J2_DELAY=0 python3 j2_server.p
 - `J2_MEMORY=0`: no lessons read or written, so runs do not affect each other
 - `J2_DELAY=0`: no pause between AI calls (the pause is only for free-tier API rate limits)
 
-### Which budget fits which run
+### Usage and the proposal
 
-The budget is counted in work credits. Set it with `J2_BUDGET` (the default is 100).
+The budget is real usage in tokens, measured on every AI call. You don't pick it up front: after the team
+understands your request, it shows a proposal (what it will make, its parts and the estimated usage). Approve sets
+the budget to the estimate plus a 15% margin (`J2_MARGIN_PCT`). When usage reaches the margin, the run pauses and you
+choose: keep going (type an amount like `300k` or `1.5M`), leave items out, or finish as it is.
 
-| Run | Budget |
-|---|---|
-| A short test run, or a small website. Budget pressure shows up early | `J2_BUDGET=40` |
-| A normal one-page website | the default, 100 |
-| One document (PRD, HLD or LLD) | not measured live. Start with the default and raise it if the team runs out |
-| A full documents-plus-website run | `J2_BUDGET=500` or more. One measured live run used all 500 credits, so the default of 100 is too low |
-| A test email, Slack message or milestone email | 5 credits each, on top of the run. A milestone email the credits can't cover is skipped and the run goes on |
+- `J2_TOKEN_BUDGET=3000000` fixes the budget and skips the proposal (a developer override; the tests use it).
+- `J2_TOKEN_CAP` is the most your approvals can raise it to (default: twice the approved budget).
+- The old `J2_BUDGET` / `J2_BUDGET_CAP` still work: one old credit = 20,000 tokens.
 
-`J2_BUDGET_CAP` (default 2 x the budget) is the most your approvals can raise it to.
+### What gets made
 
-### Design docs and websites
-
-- Asking for "design docs" (or "design documents", or a PRD, HLD or LLD by name) builds those documents, in the order
-  PRD, HLD, LLD. Naming one or two builds exactly those.
-- A website is built from the documents only when the brief also names a website. With no document asked for, the
-  run is the normal website flow.
+- There are no output buttons. Write what you want: "a website for my clinic", "a PRD", "the design docs", "a PRD and
+  then the website". An AI reader decides what to make from your message (`agents/j2/output-classifier.md`): a
+  website, documents in the order PRD, HLD, LLD, or documents and then the website. When it isn't sure, it asks you
+  to confirm in one click ("A PRD and a website, right?").
 - The details question comes first. When a website is also asked for, the team asks once, before the first document,
   for what only you know (menu and prices, hours, address, contact, form fields). The answers go to every later stage.
+- `J2_OUTPUT=prd` (or `website`, `hld`, `lld`) picks the output for every run and skips the reader.
+
+### Pages
+
+- `http://127.0.0.1:8773/` is the new page (`ui/`, on the `/api/v2` routes).
+- `http://127.0.0.1:8773/legacy` is the older page with the Simple view, the Detailed view and the Map.
 
 ### Other ways to run
 
@@ -133,13 +136,14 @@ python3 j2_flow_test.py --fast --template-demo --template-fail-demo
 J2_MILESTONE_EMAILS=1 J2_TEST_EMAIL=you@example.com STUDIO_PROVIDER=claude-cli python3 j2_server.py
 ```
 
-Sends (a test email or Slack message asked for in the brief, and milestone emails) are dry run only. Live sending
-is not built yet. They go only to `J2_TEST_EMAIL` or `J2_TEST_SLACK_TARGET`, never to an address in the brief. With
-the variable unset, nothing is sent. Asking in the brief ("email me updates") also turns milestone emails on.
+Sends (a test email or Slack message asked for in the brief, and milestone emails) are dry run by default.
+`J2_SEND_MODE=live` sends real email by SMTP after you say yes once in the run (see `README.md`). They go only to
+`J2_TEST_EMAIL` or `J2_TEST_SLACK_TARGET`, never to an address in the brief. With the variable unset, nothing is sent.
+Asking in the brief ("email me updates") also turns milestone emails on.
 
-The page opens in the Simple view. "See how it works" opens the Detailed view, which starts on the Map. The rail
-on the left switches between Map, Chat (the Simple view) and Internals (the other tabs, including Board when the
-board is on). On a phone the rail runs along the bottom.
+The legacy page (`/legacy`) opens in the Simple view. "See how it works" opens the Detailed view, which starts on the
+Map. The rail on the left switches between Map, Chat (the Simple view) and Internals (the other tabs, including Board
+when the board is on). On a phone the rail runs along the bottom.
 
 ## Settings
 
@@ -151,40 +155,56 @@ Set any of these before `python3 j2_server.py`, like the examples above.
 | `CLAUDE_CLI_MODEL` | `sonnet` | Model for `claude -p` |
 | `STUDIO_MOCK` | off | `1` runs offline with scripted agents. Mock also runs when no provider or key is set |
 | `J2_FIXES` | 0 | `1` turns on the two flow fixes |
-| `J2_BUDGET` | 100 | Starting budget, in work credits (see "Which budget fits which run") |
-| `J2_BUDGET_CAP` | 2 x budget | Most your approvals can raise the budget to |
+| `J2_TOKEN_BUDGET` | unset | A fixed usage budget in tokens; skips the proposal |
+| `J2_MARGIN_PCT` | 15 | The safety margin: the run pauses and asks when usage reaches budget minus this share |
+| `J2_TOKEN_CAP` | 2 x budget | The most your approvals can raise the budget to |
+| `J2_LEEWAY_PCT` | 25 | A workflow may use its token share plus this much before a top-up is asked |
+| `J2_PARALLEL` | 3 | Builders that work at the same time (`1` = one at a time) |
+| `J2_TOOLS` | on | Read-only web search and fetch and read-only GitHub (`gh repo view`, `gh search`) for the planner, the research workflows and the design research. `0` turns them off. Needs `claude-cli`; GitHub needs `gh` logged in |
+| `J2_DESIGN` | on | Websites: design research from the brief's problem and a style choice (three looks with previews) right after the proposal is approved. `0` turns both off (the first builder writes the style guide, as before) |
+| `J2_DESIGN_BUDGET_USD` | 0.75 | Spend cap for the one design research call (`claude --max-budget-usd`); the prompt also allows only a few searches and fetches |
+| `J2_POLISH` | on | `0` turns off the polish step before the final check |
+| `J2_NEIGHBOURS` | on | `0` gives builders only a short list of the other sections, not their neighbours' full text |
 | `J2_MEMORY` | 1 | `0` turns lessons and playbooks off |
-| `J2_REALIZATION` | 1 | On by default: Adaptation's first plan of a website run goes through realization and certainty (the planning part of `agents/j2/adaptation.md`), a separate judge scores every workflow before the build, and planning files are written under `artifacts/` for the build to read. Writes `realization.json` and `realization.md` in the run folder. `0` turns it off (the classic path) |
+| `J2_REALIZATION` | 1 | On by default: Adaptation plans by stage and certainty, a separate judge scores every workflow before the build, and a part that isn't ready becomes a question for you (add information, try anyway, skip it). Writes `realization.json`, `realization.md` and `realization-questions.json`. `0` turns it off (the classic path) |
 | `J2_DELAY` | 2 | Seconds between AI calls |
 | `J2_MAX_CYCLES` | 6 | Plan, build, audit cycles before Identity asks you what to do |
 | `J2_MAX_TURNS` | 30 | Agent turns per cycle |
-| `J2_LIMIT_ADD` | 30 | Budget "keep working" adds when the budget runs out |
-| `J2_RATES` | 1 | `0` turns the rate card off |
-| `J2_SLIM` | on | Builders get their own section plus a short list of the other sections, not the whole page. `0` turns it off |
+| `J2_LIMIT_ADD_TOKENS` | 600000 | The least "keep going" adds when the budget runs out |
+| `J2_SLIM` | on | Builders get their neighbours' sections in full plus a short list of the others, not the whole page. `0` turns it off |
+| `J2_OUTPUT` | unset | Picks the output for every run and skips the AI reader |
 | `J2_RUNS_DIR` | `runs/` | Folder runs are saved to |
+| `J2_SHARE_FLOOR` | 0.8 | A part's usage share far under what that kind of work usually uses is raised to this part of it |
+| `J2_SHARE_FAR_UNDER` | 0.5 | "Far under": a share below this part of the usual usage |
+| `J2_KEEP_TEST_RUNS` | off | 1 keeps the flow suite's temp folder of mock runs (removed at exit otherwise) |
 | `J2_CHROME` | auto | Path to Chrome for Audit screenshots |
 | `J2_OVERRIDE_KEY` | unset | Owner override key, set in `.env` only (see `README.md`) |
-| `J2_BOARD` | off | `1` turns on the message board |
+| `J2_BOARD` | off | `1` turns on the message board (builders then run one at a time) |
 | `J2_FORCE_QUESTION` | off | Mock-only test switch: a comma list of askers, each asking one question. A function (`identity`, `adaptation`, `priority`, `coordination`, `audit`) or a builder (workflow id or role word) |
 | `J2_MILESTONE_EMAILS` | off | `1` writes a milestone email per goal reached (dry run) |
-| `J2_SEND_MODE` | `dry-run` | `dry-run` or `mock` (tests). Live sending is not built |
+| `J2_SEND_MODE` | `dry-run` | `dry-run`, `mock` (tests) or `live` (real email by SMTP, after you say yes once a run) |
 | `J2_TEST_EMAIL` | unset | The only address a send may go to |
-| `J2_TEST_SLACK_TARGET` | unset
- | The only Slack target a send may go to |
+| `J2_TEST_SLACK_TARGET` | unset | The only Slack target a send may go to |
+
+Other mock-only test switches are listed in `README.md` ("Modes and settings").
 
 ## Checks
 
 ```bash
-python3 j2_flow_test.py --fast             # offline flow test in mock mode, no browser steps. About 35 seconds
+python3 j2_flow_test.py --fast             # offline flow test in mock mode, no browser steps. About 5 minutes
 python3 j2_flow_test.py --fast --browser   # adds the tests that drive the page in Chrome. About 8 to 9 minutes
 python3 j2_flow_test.py                    # the full test, both J2_FIXES modes. Longest
 python3 j2_check.py site.html              # render check on any HTML page
 python3 realization_test.py                # realization planner, judge and J2 runs with J2_REALIZATION, offline
+python3 v2_test.py                         # the v2 API, walked like the new page does, offline
+python3 kingdom_test.py                    # the kingdom view's map and control routes, offline
 ```
 
 `plain_unchanged` is one of the checks. It compares the plain website path (no documents asked for) with a fixed
-checkpoint commit, so a change that alters the plain path shows up. It runs twice: with `J2_SLIM=0` against the
-older commit, and with the default against the commit made right after `J2_SLIM` became the default.
+checkpoint commit, so a change that alters the plain path shows up. It runs with `J2_SLIM=0` against the older
+commit and with the default against the commit made right after `J2_SLIM` became the default. The style guide step
+and parallel batches are the two allowed differences: run one builder at a time, the agents speak in the checkpoint's
+order once the style step is left out; run in parallel, the page, its sections and the outcome are the same.
 
 ## Where output goes
 
@@ -195,6 +215,9 @@ Each run is saved under `runs/` (or `J2_RUNS_DIR`): chat log, AI calls, site ver
 - the document files of a documents run: `prd.md`, `hld.md`, `lld.md`, and `.docx` copies (needs `python-docx`)
 - `map.json`: the Map tab's drawing data, built by code from the run's files. Described in `docs/map-schema.md`
 - `board.json` and `board.jsonl`: the message board, only when `J2_BOARD=1`
+- `style.json` (the website's style guide, `kind: site`) and `doc-style.json` (the documents' house style, `kind: doc`)
+- `research.md`: research workflows' entries (R-1, R-2, ...) with their sources
+- `output-choice.json`: what the AI reader decided to make and why; `settings.json`: run settings (`no_questions`)
 
 Past runs open read-only from the page. Lessons are kept in `memory/`, which is git-ignored. A few reference runs are tracked; new runs are ignored by git.
 

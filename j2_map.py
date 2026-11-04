@@ -496,7 +496,7 @@ def build(d, live=None):
     if not chat:
         nr.append("chat (messages from the Requester)")
     state, state_status = _state_line(d, live, atoms, waiting)
-    calls = (snap.get("call_log") if live else _jsonl(d, "calls.jsonl")) or []
+    calls = [c for c in (snap.get("call_log") if live else _jsonl(d, "calls.jsonl")) or [] if not c.get("extra")]
     if not calls and not live:
         nr.append("AI calls per function (calls.jsonl)")
     funcs = _functions(chat, calls, snap if live else None, waiting, nr)

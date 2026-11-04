@@ -120,7 +120,7 @@ another scenario: `python negotiate.py scenarios/mine.json`. Output goes to `run
 rule-based agents for an offline check. Live runs pause 4 s between calls to stay under the free tier's
 per-minute limit (`NEGOTIATE_DELAY=3` to change it).
 
-## J2 mode: J2 agents build a website in a group chat (test of J2, no Sutra)
+## J2 mode: J2 agents build a website or documents in a group chat (test of J2, no Sutra)
 
 ```bash
 source .venv/bin/activate
@@ -129,161 +129,128 @@ python j2_server.py                              # same page, uses the API keys 
 STUDIO_MOCK=1 python j2_server.py                # offline demo, scripted agents
 ```
 
-The page opens in the **Simple view**, made for someone who knows nothing about agents (screenshots in
-`docs/ui-simple-*.png`):
-- **Layout:** chat on the left, a large preview of the site on the right. On a phone the preview stays hidden
-  until a site exists; then a "Chat | Preview" toggle at the top shows one at a time.
-- **One voice:** only the messages addressed to you, from one assistant called "Your website team". No agent
-  names, @mentions, step codes or internal messages.
-- **Plain words at the source:** every Identity prompt says that anything written to you must suit a college
-  student with no tech background: no internal terms, at most two short sentences of context, and each option
-  says what you get and what it costs ("Add a section about your coffee's story (takes a bit longer)" / "Keep
-  it simple, no story section").
-- **Word list (fallback only):** a word list in the page rewrites whatever still slips through. Function names
-  become "the team", Audit becomes "our checks" (so never "after the team"), budget becomes "effort". There are
-  no model names, AI-call counts, cycles or badges. When the effort runs out it asks "This needs a bit more work
-  than planned. What would you like to do?" with Continue (uses a little more effort) / Skip … / Finish as it
-  is.
-- **Progress:** a 5-step bar above the chat (solid background, so messages never show through it) (Understanding your request, Planning, Building, Checking, Ready),
-  plus one friendly line while the team works, e.g. "Building your menu section…".
-- **Questions:** a question with options is shown once, followed by its buttons, so you never type an option
-  number; a text box is there for your own answer.
-- **Start screen:** example briefs as cards: a cafe, a bakery, a florist and a photographer.
-- **When done:** "Your website is ready" with Open full screen, Download the HTML file and Ask for a change.
-- **Errors:** a plain "Something went wrong. Try again."; the details stay in the Detailed view.
+**Two pages, one server.**
+- `/` is the new page (`ui/`, built on the v2 API in `j2_v2.py`, contract in `j2-revamp/api-contract.md`). You write
+  what you want in one box. Then the screen is the kingdom view: a live map of the team at work (the castle is you,
+  round tokens are the team, tiles are the parts filling up as they are built, lights travel for hand-offs). A
+  question rises as one decision card; tap anything for a bubble; hold and slide for labels and controls (Skip, Redo,
+  Note); Pause, Resume and Stop at the top (`/api/v2/control`). The conversation (your messages, the team's one voice,
+  and the agents' own talk in plain words) is one icon away. See `j2-revamp/HANDOFF.md`.
+- `/legacy` is the older page (`j2_ui.html`): the Simple view, the Detailed view, the Map and the Internals tabs
+  described further down. Its routes (`/api/state`, `/api/say`, `/api/output`, ...) still work.
 
-"See how it works" (top right) opens the **Detailed view**: everything described below. A rail on the left
-switches between the views: **Map** (the Detailed view opens on it), **Chat** (the Simple view; the rail stays and
-Chat is highlighted) and **Internals** (the other tabs: Preview, Goal, Workflows, Conflicts, Timeline, Audit,
-Charter, Documents, Artifacts, Board, Style guide, Lessons, Playbooks, Report, Run details, Run settings). Any
-rail item other than Chat goes back to the Detailed view. On a phone the rail runs along the bottom of the
-screen. The choice is remembered in the browser, and `?view=simple` / `?view=detail` in the URL picks one. The
-Simple view only changes how the run is shown; the agents and `j2.py` behave the same in both.
+**What gets made.** There are no output buttons. You just write what you want ("a website for my physio clinic",
+"a PRD and then the site", "the design docs"). A separate AI reader (`agents/j2/output-classifier.md`) reads your
+first message and returns what to make (website, PRD, HLD, LLD, in that order), any sends, and whether it is sure.
+Sure: the team goes ahead and the proposal names it. Not sure: one confirm question ("A PRD and a website, right?")
+with your answer one click away, or type what you want. Nothing is picked by keyword matching. `/api/output` still
+lets the legacy page and tests pick explicitly (`{"type": "prd"}` or `{"stages": ["prd", "website"]}`).
 
-You type the brief as the Requester. The flow follows `docs/j2-flow.jpg` and the
-[J2 page](https://<owner-github-username>.github.io/<owner-site>/native/system/department.html) (J2.a to J2.h). Only Identity
-talks to you. The run pauses until you answer.
+**The proposal.** After the charter, you approve a plan before anything is built: what will be made, its parts and
+the estimated usage. Approve sets the budget to the estimate plus a margin (`J2_MARGIN_PCT`, 15%). "Make it smaller"
+trims optional parts (never a must-keep item). "Not this" sends your words back to intake. `J2_TOKEN_BUDGET` skips
+the proposal with a fixed budget (a developer override, used by the tests).
+
+**Usage, not credits.** The budget is real usage in tokens, measured on every model call (managers, builders, the
+work-order review, AI checks, planning, the chat summary, the reviewer). `calls.jsonl` has each call's full usage and
+its phase (planning, building, checking, other). Estimates come from past runs (`j2_usage.py`). There is no price
+list and no rate card. When usage reaches the margin line, code pauses between turns and you decide: keep going (with
+an amount), leave items out, or finish as it is.
+
+You type as the Requester. The flow follows `docs/j2-flow.jpg` and the J2 page (J2.a to J2.h). Only Identity talks to
+you.
 
 | Participant | File | Job |
 |---|---|---|
-| Identity | `agents/j2/identity.md` (official) | J2.a: asks until it has enough, records the charter; J2.d: resolves conflicts; J2.h: is the site workable? |
-| Adaptation | `adaptation.md` (official) | J2.b: proposes workflows, reads lessons; disputes an Audit finding or a HOLD; saves lessons |
-| Priority | `priority.md` (official) | J2.c: GRANT / COUNTER / REFUSE within the budget; checks each run's envelope |
-| Coordination | `coordination.md` (official) | J2.f: schedules registered work, holds the write lock on the site file |
+| Identity | `agents/j2/identity.md` (official) | J2.a: asks until it has enough, records the charter; J2.d: resolves conflicts; J2.h: is it workable? |
+| Adaptation | `adaptation.md` (official, plus the planning part) | J2.b: plans by stage and certainty, proposes workflows, reads lessons; disputes a finding or a HOLD |
+| Priority | `priority.md` (official) | J2.c: GRANT / COUNTER / REFUSE token shares; checks usage is free before a run; one top-up |
+| Coordination | `coordination.md` (official) | J2.f: orders the ready work into batches |
 | Audit | `audit.md` (official) | J2.g: files PASS / NEEDS_REVISION findings against the done-when list, all to Identity |
-| W-1 Builder, W-2 Builder, ... | `builder.md` (placeholder) | One agent per registered workflow; writes only its own section of the site |
-| Validator | code in `j2.py` | J2.e: checks the charter and each workflow (cost, outputs, budget), creates the workflow's agent |
+| W-1 Builder, W-2 Builder, ... | `builder.md` | One agent per registered workflow; writes only its own section |
+| Validator | code in `j2.py` + `work-order-review.md` | J2.e: code's free checks, then one AI review per batch; creates the workflow's agent |
+| Judges | `confidence-judge.md`, `check-judge.md`, `condition-double-check.md` | Score the plan; answer AI checks; double-check a condition that may be a false alarm |
 
-`team.md` and `builder.md` are our placeholders (marked at the top); the other five are the official files and
-are never edited by this code.
+`team.md` and `builder.md` are ours and describe the current flow; the five function files are the official ones
+and are never edited by this code.
 
 ### The loop
 
-1. **J2.a** Identity asks as many rounds as it needs; there is no round cap. It works out what kind of business
-   this is and what its visitors usually need: a florist's visitors browse, order and check delivery, and a
-   photographer's look at the portfolio, packages and booking. Unless the brief already says it, Identity lists
-   those needs and asks you to confirm or change them. The charter records `business_type` and the confirmed
-   `visitor_needs`. A fact only you know is a question to you. If you can't give it yet, Identity records it as **to be confirmed** against its done-when item. That
-   item is not met: Audit's result for it is forced to `TO_BE_CONFIRMED` by code.
-2. **J2.b** Adaptation proposes workflows. With memory on it gets the 5 most relevant lessons and, on the first
-   proposal for a brief, the playbooks of similar businesses. It says which one it used and what it changed.
-3. **J2.c** Priority prices them. The bargain is bounded by **four hops, fifteen minutes and its spend**. Past
-   any bound, both final positions go to Identity (J2.d).
-4. **J2.e** The validator registers each agreed workflow and creates its agent, e.g. "W-3 Builder", with the
-   workflow's goal, outputs, completion check and envelope.
+1. **J2.a** Identity asks as many rounds as it needs, as one facts decision (a form with one field per question).
+   It works out the business type and what its visitors need, and asks you to confirm. A fact only you know that
+   you can't give yet is **to be confirmed**; that item isn't met.
+2. **The proposal**, then **J2.b**. With realization on (`J2_REALIZATION`, default on), Adaptation plans by stage
+   and certainty (`j2_realization.py`): factors, stages from the stage guide (`agents/j2/stages.json`: each stage
+   says what it covers, what it isn't for, what usually feeds it, an example workflow and an example done-test),
+   then workflows. A separate judge scores every workflow; below 0.80 Adaptation revises, up to three rounds. A
+   workflow still not ready becomes one decision: add information, try anyway (built and marked at risk) or skip it
+   (its items leave the checklist). Each question has its own record (`realization-questions.json`). With tools on
+   (`J2_TOOLS`), the planner may search the web and read public GitHub repositories, and may plan research
+   workflows.
+3. **J2.c** Priority grants each workflow a token share. The bargain is bounded by four hops, fifteen minutes and its
+   spend (`J2_BARGAIN_CALLS`); past any bound, both positions go to Identity (J2.d).
+4. **J2.e** The validator registers each agreed workflow:
+   - Code's free checks first: required fields, the work-atom rules, a usage estimate, nothing Priority refused, it
+     covers an item or fixes a finding, in a document only that document's sections, and every dependency names a
+     workflow of this run or of the batch (by id, name or "W-2 Name"), with no loops. Dependencies are stored as
+     W-ids (`depends_on`).
+   - Then one AI work-order review for the whole batch (`work-order-review.md`): does it build (not check or
+     report), is its goal specific, do its tests prove its items, are its steps enough, is it one output. A "no" is
+     the rejection reason, sent back to Adaptation.
+   - An essential rejection (a must-keep item, or work others depend on) registers nothing of the batch and sends it
+     back once; the second time you decide (add information, leave it out, stop).
+   - Checks are code checks (file, element, count, facts, named tests, behaviour steps) plus optional AI checks
+     (`ai-judge`: a yes/no question with a concrete pass line, judged on the section, the page or a screenshot by
+     `check-judge.md`; receipts say `"by": "ai"`). An atom always keeps at least one code check.
+5. **J2.f** Coordination orders the ready work. **Code enforces the order**: a workflow whose dependencies aren't
+   done is held whatever the reply says; one waiting on a failed workflow goes to Adaptation once, then to you (try
+   again, skip, stop). A fix that redoes the failed workflow releases the wait.
+   - **Style first:** before any section, the first workflow writes the style as its own step. A website gets a
+     style guide (palette, fonts, spacing, buttons, cards and motion: entrance, timing, easing, hover, scroll and a
+     reduced-motion rule), turned into CSS variables (`--j2-primary`, `--j2-duration`, ...) and classes (`j2-btn`,
+     `j2-card`, `j2-reveal`, `j2-hover`), saved as `style.json` (`kind: site`). A document chain gets one house
+     style (tone, voice, reading level, heading format, id formats, terms, words to avoid), written once and kept
+     for the HLD and LLD, saved as `doc-style.json` (`kind: doc`).
+   - **Parallel builders:** independent ready workflows with their own sections build at the same time
+     (`J2_PARALLEL`, default 3), each writing only its own section. Code assembles the page once per batch and runs
+     every check on the whole page after the batch. A workflow whose checks fail carries on alone; the others keep
+     their result. Mock runs pass the calls through an ordered gate, so ids and messages are the same every run.
+   - **Neighbours:** a builder sees the full text of the sections next to its own and of what it depends on, plus a
+     short list of the rest (`J2_NEIGHBOURS=0`: the list only; `J2_SLIM=0`: the whole page, the old path).
+   - **One limit:** a token share plus a leeway (`J2_LEEWAY_PCT`, 25%). A builder keeps working until its checks
+     pass or the share plus leeway is used; then Priority is asked once about a top-up. `MAX_CHECK_ATTEMPTS` (5)
+     bounds quality attempts, not cost.
+   - **Research:** a research workflow may search the web and read GitHub (read only), learns from examples without
+     copying, and writes entry `R-n` in `research.md` with at least three cited sources. The workflows that depend on
+     it get that entry in their prompt.
+   - **Polish:** when every builder is done and no check is failing, code adds one polish workflow before the final
+     Audit (`kind: polish`, code-made, so the work-order review never sees it). It sees the whole page or document
+     and the style and may edit any section. Code re-runs every check that passed; if one now fails, every section
+     goes back as it was. `J2_POLISH=0` turns it off.
+6. **J2.g** Audit checks the result and files every finding to Identity, plus the design and usability rubric on a
+   website (R-1 to R-7; code measures contrast, headings, tap targets and alt text). Necessary conditions
+   (`conditions/*.json`) are checked by code. A condition marked `overridable` that fails on what may be a false
+   alarm gets an AI double-check with a quote (`condition-double-check.md`): a false alarm is marked met and logged
+   backstage; a real one is fixed, or you accept it.
+7. **J2.h** Identity: is it **workable**? Code decides (`workable()`), never a model: every done-when item passes,
+   every rubric item and necessary condition is met, and on a website there are no JS errors, no overflow at 360px
+   and 1280px, forms submit and in-page links resolve. Identity can't tell you it's finished while code says it
+   isn't. Not workable: back to J2.b.
 
-   **Cost follows the work, not the labels.** Each workflow lists `covers` (the done-when items it builds) and
-   `fixes` (the Audit findings it fixes). The validator rejects a workflow that breaks any of these rules:
-   - It is priced below the rate-card minimum for the items it newly covers. Each item's minimum comes from its
-     kind: a form or ordering item is `form` (15); a filter, search or slider item is `interactive_feature`
-     (10); a viewport or phone-layout item is `styling` (5); anything else is `page_section` (10).
-   - It is a fix (it lists findings, or rewrites an earlier section) without one `fix` part per finding. A fix
-     can't be relabelled as a cheaper part.
-   - It covers nothing but has `page_section` or `form` parts, or it covers nothing and fixes nothing after the
-     first Audit.
+**Limits never stop a run silently.** You decide (keep going with an amount, leave items out, finish as it is) when
+usage reaches the margin, after `J2_MAX_CYCLES` (6) cycles, when the same failure comes back twice, after 2 cycles
+that registered nothing, or at the per-cycle turn cap. A typed amount like `300k` or `1.5M` is understood.
+"Finish as it is" ends `done_with_open_items` with the open items listed.
 
-   Items an earlier workflow already paid for aren't charged again. Priority sees each proposal's cost per
-   covered item against those minimums and is told to question plans far below them. Each workflow agent is told
-   to build only the items it covers.
+**Questions.** Every pause is one decision in one format (`_decision`): what is happening, why it matters, and two
+to four options, each with what you get and the usage it needs, one suggested. Kinds: `proposal`, `facts`,
+`usage`, `problem`, `confirm`. "Don't ask me any questions" in the brief, or `POST /api/v2/settings
+{"no_questions": true}`, takes the suggested option for anything that isn't essential and logs it backstage (the
+proposal, usage running out and an essential gap are still asked).
 
-   Audit checks this on the page too. A done-when item that passes although no built workflow paid for it gets
-   the verdict `UNPAID`, a normal finding that loops back. An item counts as paid if a built workflow covers it,
-   or fixed a finding on it. A workflow that covers the item at its rate-card minimum makes it paid. This came from `runs/j2-20261007-190411`, where 13 items cost 35 at
-   budget 40: everything was bundled into two workflows, and a fix (8) was relabelled as styling (5).
-5. **J2.f** Coordination schedules and holds the write lock. Priority checks the envelope. The workflow's agent
-   writes its marked section (`<!-- J2:W-3 start (owner W-3) -->` ... `end`, plus an optional head block).
-   **Style guide:** the first workflow that runs also writes the style guide for this brief before its section
-   is accepted: palette, fonts, spacing, button and card styles suited to the business. Without it the reply
-   is retried within the envelope. Code turns it into CSS variables (`--j2-primary`, `--j2-font-body`, ...) and
-   the classes `j2-btn`, `j2-btn-secondary` and `j2-card`, first in the page head. Every later workflow agent
-   gets the guide and is told to follow it. Values that could break out of CSS or HTML are refused.
-   An unusable reply is retried within the envelope's call and retry limits. Then the agent reports to
-   Coordination. A workflow with `"revises": "W-2"` rewrites W-2's section and becomes its owner. Code
-   assembles the file from the sections, in registration order.
-6. **J2.g** Audit checks the site and files every finding (all IDs and text) to Identity. A finding can name a
-   fact only you know; Identity then asks you for it. Audit also judges the **design and usability rubric**:
-   - R-1 consistent styling (follows the style guide)
-   - R-2 readable contrast (WCAG AA)
-   - R-3 clear hierarchy (one h1, headings in order)
-   - R-4 one obvious main action
-   - R-5 easy navigation
-   - R-6 tap targets at least 44x44px on phones (`J2_TAP_MIN`)
-   - R-7 alt text on images
-
-   In live runs Audit sees a screenshot of the first screen at 360px and 1280px side by side. Code measures
-   contrast, headings, tap targets (links inside text are exempt) and images without alt, so Audit can't pass an
-   item code measured as failing. A failing rubric item is a normal finding that loops back.
-7. **J2.h** Identity: is the site **workable**? If not, back to J2.b. This repeats until it is workable.
-
-**Workable** is decided by code (`workable()` in `j2.py`), not by a model:
-- every done-when item passes Audit
-- every design rubric item passes
-- no JS errors
-- no horizontal overflow at 360px and 1280px
-- every form submits (`j2_check.py` fills each form with sample values and submits it)
-- no broken in-page link
-- no done-when item marked to be confirmed
-
-If Chrome isn't found, the render checks can't run, so the site is never called workable.
-
-**Limits never stop a run silently.** Identity asks you to keep working, drop the failing items or ship as is
-when one of these is hit:
-- the budget (less left than the cheapest rate-card part)
-- `J2_MAX_CYCLES` (default 6)
-- the same failure twice in a row (same failing items and render problems in two audits)
-- 2 cycles that registered nothing
-- 30 turns in one cycle
-
-The same question comes up when only to-be-confirmed items are left. "Keep working" adds `J2_LIMIT_ADD`
-(default 30) budget units when the budget ran out and allows a fresh set of cycles. The option text shows the
-cap (`J2_BUDGET_CAP`), and it is offered only when it can be applied: never when the cap leaves no room, and not
-again after "keep working" changed nothing. Instead of the option number, the Requester can type their own amount
-("25 units"); code adds it, up to the cap, and Adaptation re-plans within it. "Drop" removes the failing done-when
-items (recorded in `goal.json` with the reason), and Audit re-checks. "Ship" ends the run as `Done with open
-items` (status `done_with_open_items`) with the open problems listed. An answer always gets a fresh turn
-allowance, so the per-cycle turn cap can't re-ask before the answer is handled. An agent message that repeats the
-same agent's last message word for word isn't posted again (Audit excepted: a re-check with the same result is news); Identity takes the turn.
-This decision question is the only place the Requester is offered more budget, leaving items out or finishing as
-is, whoever needs the decision: Identity can't offer these in its own questions (it sets `needs_decision`, with an
-estimate in `budget_needed`), and when the site isn't workable and the money can't fund a part, code asks it
-directly. The amount in the option text is what code adds; when the cap limits it, the text says "(the most
-allowed)". A typed answer is applied like a click: "2. Add 25 more. Leave out the lookbook and reviews" adds 25 and
-drops those items; Audit then re-checks against the new done-when before anything else runs. "Finish as is" ends
-the run as `done_with_open_items`.
-Identity talks to two audiences, one message per addressee, and the @tag matches the text. After a Requester answer
-(and when it records the charter) it writes `to_requester` (tagged `@Requester`, plain words) and `to_agents`
-(tagged with the agent, the instruction for the team), posted as two messages: "@Requester Thanks, I have
-everything I need. I'm starting the build now." and "@Adaptation Charter is ready. Propose the first workflows."
-The Simple view shows only messages for the Requester; agents never get them. The Detailed view shows both, each
-labelled with who it is for. Code checks every such reply where Identity's prompt is assembled (`call()`): agent
-content in `to_requester` (instructions, unit counts, workflow ids like W-3, an @agent) or user-facing text in
-`to_agents` (thanks, "I'll start", a question to the user) gets one regeneration with the reason, then a template.
-Everything the Requester reads is at most 3 short sentences plus one question, with at most 3 options that each say
-what they get; internal words (building time, cap, cycles, done-when, estimate) are replaced by code. A workflow agent's section
-with a `<form>` but no submit button is rejected and retried; the browser check still marks such a site not
-workable.
-Once Adaptation has proposed nothing because less than the cheapest part is left, it isn't asked again until
-something changes (budget raised, an item dropped, a new answer from the Requester): Identity asks the Requester.
+Identity talks to two audiences, one message per addressee: `to_requester` in plain words and `to_agents` for the
+team. Between agents, the `say` line is one or two plain sentences with no codes; the structured fields keep every
+id. Code checks the mix and regenerates once, then uses a template.
 
 ### Adaptation's memory (J2.h learns)
 
@@ -315,17 +282,17 @@ something changes (budget raised, an item dropped, a new answer from the Request
 
 - **Agents panel** (next to the chat): one lane per agent (the five functions, the validator as code, each
   workflow agent). Each lane shows its live status (idle, working, waiting on someone, blocked) and what it's
-  on. Workflow agents also show the section they own, attempts used of the call limit, retries used of the
-  retry limit, the last check result and the write lock. Click a lane to open its latest message.
+  on; several builders can be working at once. Workflow agents also show the section they own, attempts, retries,
+  usage against their share and share cap, and the last check result. Click a lane to open its latest message.
 - **Detail view**: click any agent message (or a timeline step). It shows:
   - what it read: inputs summarised by code (charter, ledger, workflows, findings, proposal, lessons, task), with
     a toggle for the full system prompt, prompt and raw reply
   - what it decided: the structured reply
   - why: the `reason` field, which code adds to every agent's reply format
-  - cost: AI calls, tokens, seconds and budget units charged in that step
+  - usage: AI calls, tokens and seconds in that step
 
-  Tokens are shown only when the provider reports them (claude-cli, the Anthropic API and Gemini do); mock mode
-  shows characters instead, never an estimate. Code-written messages say "no AI call".
+  Tokens come from the provider (claude-cli, the Anthropic API and Gemini report them); mock mode has a fake meter
+  (about 4 characters a token) so budget logic can be tested offline. Code-written messages say "no AI call".
 - **Timeline** tab: every step in order on one line, coloured by agent, with each J2 step (J2.a to J2.h)
   marked. Click a step for its details.
 - **Saved runs**: the picker in the header opens any `runs/j2-*` folder read-only in the same view (`?run=` in
@@ -335,8 +302,10 @@ something changes (budget raised, an item dropped, a new answer from the Request
   environment variable named like a key, token, secret, password or auth is replaced with `[redacted]`. The
   page never receives request headers.
 
-Each AI call is saved in `runs/j2-*/calls.jsonl` (inputs, full prompt, raw reply, reason, tokens, seconds). Each
-section is in `sections.json`.
+Each AI call is saved in `runs/j2-*/calls.jsonl` (inputs, full prompt, raw reply, reason, phase, full usage,
+seconds). Calls outside the agents' turns (the output classifier, the work-order review, AI checks, double-checks,
+the planner and judge, the chat summary, the reviewer) are marked `"extra": true`. Each section is in
+`sections.json`.
 
 ### Map
 
@@ -365,7 +334,7 @@ workflow, including a done one from an earlier cycle, or another function.
 - **Board first:** every agent prompt, functions and builders, holds "BOARD (answered questions; check here before
   asking)". A question the board already answers is refused and the asker pointed at it ("already answered in
   Q-1"): 60% or more of its content words are already in that entry's question.
-- **Answer:** one short answer-only call that may not ask back, costs no credits and counts as an AI call. A
+- **Answer:** one short answer-only call that may not ask back; its usage is counted like any call. A
   workflow answers from its recorded section and `agent_output`, and a correction to its own section is applied
   and marked "Updated by Q-1"; a function answers from the run's record. Nothing recorded is "not recorded".
 - **Reuse:** a later agent names the entry it used instead of asking again. Its message carries "[read Q-1]",
@@ -375,8 +344,8 @@ workflow, including a done one from an earlier cycle, or another function.
   (`{workflow, version}` or `{function}`). The **Board** tab under Internals lists the entries, and atom cards
   show "Asked / Answered / Used Q-n". With the flag unset, no board files are written and the flow is unchanged.
 - **Board story** (the first entry under Internals, shown only when the run has a `board.json`; also
-  `?view=detail&tab=story` or `#story`): one flow strip per question — Doubt, Ask, Answer, Deliverable change
-  (highlighted), Re-checked by code — then the impact grouped by deliverable, a numbers row and a compare picker
+  `?view=detail&tab=story` or `#story`): one flow strip per question (Doubt, Ask, Answer, Deliverable change
+  (highlighted), Re-checked by code), then the impact grouped by deliverable, a numbers row and a compare picker
   for another saved run. Built by code from the run's own files (`j2_story.py`, schema `story/1`, served read-only
   at `/api/story`); anything the run didn't record reads "not recorded".
 
@@ -418,10 +387,10 @@ python3 j2_flow_test.py --fast --board-demo
 It builds the Thread & Loom boutique (prices, timings and address from the brief) to Done, then asks for "a section
 for visiting hours", and prints the run id and its page URL. Three questions are asked, each once: Identity asks
 the workflow that built the timings where they are, Adaptation reuses that answer and plans a revise of that
-workflow's section priced as a fix, Priority asks Adaptation whether the change is new work or a fix, the revise
+workflow's section as a fix, Priority asks Adaptation whether the change is new work or a fix, the revise
 builder reuses the answer, and Audit asks the products workflow which attribute holds the price, then reads its own
-entry back on the next audit. (The new checklist item is then paid for by its own small workflow: cost follows the
-work.) The same run with `J2_BOARD` unset writes no board file and asks nothing.
+entry back on the next audit. The same run with `J2_BOARD` unset writes no board file and asks nothing. (Builders
+don't run in parallel while the board is on.)
 
 The document demo is the same command with `--board-doc-demo`: it writes the PRD, HLD and LLD for Still Point Yoga
 and then the website, and the LLD's Interactive elements builder asks the HLD's Components atom how the booking is
@@ -431,12 +400,13 @@ H1-H6 pass again, and every atom the recorded edges reach is re-checked.
 ### Sends: test messages and milestone emails
 
 `j2_send.py` sends nothing by default (dry run). Live sending is email only, by SMTP (Python `smtplib`, STARTTLS).
-- **Send deeds:** a brief that asks to email or Slack the result ("send it to me by email") gets a deed stage.
-  A send verb must be near "email" or "Slack"; a mere mention matches nothing.
+- **Send deeds:** a brief that asks to email or Slack the finished document ("send it to me by email") gets a
+  deed stage. Whether it asks is the output classifier's reading of the message, not keyword matching; a mere
+  mention of an email address or a Slack link isn't a send.
 - **Milestone emails:** one email per goal reached (each document filed and checked, or the site workable),
   built by code from the run's record: goal, version, checks passed and a one-line summary, with links and
-  addresses removed. They are opt-in: set `J2_MILESTONE_EMAILS=1`, or ask in the brief ("email me updates").
-  When the credits can't cover one, it is skipped with the reason and the run goes on.
+  addresses removed. They are opt-in: set `J2_MILESTONE_EMAILS=1`, or ask in the brief ("email me updates"; the
+  output classifier reads it). Built by code, they use no model call and no usage.
 - **Recipient:** taken only from `J2_TEST_EMAIL` / `J2_TEST_SLACK_TARGET`, never from the brief. Anything else
   is refused, and nothing is sent when the variable is unset.
 - **Mode:** `J2_SEND_MODE` is `dry-run` (default: nothing leaves, the deed stays open), `mock` (an in-process
@@ -464,22 +434,33 @@ Settings:
 
 | Setting | Default | What it does |
 |---|---|---|
-| `J2_BUDGET` | 100 | Starting budget |
-| `J2_BUDGET_CAP` | 2 x budget | Most your approvals can raise the budget to |
+| `J2_TOKEN_BUDGET` | unset | A fixed usage budget in tokens (developer override): no proposal pause. Unset, the budget is the approved proposal's estimate plus the margin |
+| `J2_MARGIN_PCT` | 15 | The safety margin: code pauses and asks when usage reaches budget minus this share |
+| `J2_TOKEN_CAP` | 2 x budget | The most your approvals can raise the budget to |
+| `J2_LEEWAY_PCT` | 25 | A workflow may use its token share plus this much before Priority is asked about a top-up |
+| `J2_LIMIT_ADD_TOKENS` | 600000 | The least "keep going" adds when the budget ran out |
+| `J2_PARALLEL` | 3 | Builders that run at once in one batch (1 = one at a time) |
+| `J2_TOOLS` | on | Read-only web search and fetch and read-only GitHub (`gh repo view`, `gh search`) for the planner and research workflows only. 0 turns them off. Needs `claude-cli` (and `gh` logged in for GitHub) |
+| `J2_TOOL_TIMEOUT` | 1800 | Seconds a tool-using CLI call may take (plain calls: 900) |
+| `J2_DESIGN` | on | Websites: design research from the brief's problem (R-design in research.md) and a style choice (three looks with previews) right after the proposal is approved. 0 turns both off |
+| `J2_DESIGN_BUDGET_USD` | 0.75 | Spend cap for the one design research call (`claude --max-budget-usd`); the prompt also allows only a few searches and fetches |
+| `J2_POLISH` | on | 0 turns off the polish step before the final Audit |
+| `J2_NEIGHBOURS` | on | 0 gives builders only the short list of other sections, not their neighbours' full text |
+| `J2_REALIZATION` | on | 0 turns off planning by stage and certainty (and the judge) |
 | `J2_MAX_CYCLES` | 6 | Cycles before Identity asks what to do |
-| `J2_LIMIT_ADD` | 30 | Units "keep working" adds when the budget ran out |
 | `J2_BARGAIN_MINUTES` | 15 | J2.c time bound |
 | `J2_BARGAIN_CALLS` | 8 | J2.c spend bound (AI calls) |
 | `J2_MEMORY` | 1 | 0 turns lessons off |
 | `J2_MAX_TURNS` | 30 | Agent turns per cycle, at least; a cycle gets max(this, 10 + 4 × workflows registered in it). J2.h after a passing Audit always runs |
-| `J2_RATES` | 1 | 0 turns the rate card off |
-| `J2_SLIM` | on | 0 turns off the short prompts (a builder gets its own section plus a list of the others, not the whole page) |
+| `J2_SLIM` | on | 0 sends builders the whole page (the old path) instead of their neighbours and a list of the others |
 | `J2_RUNS_DIR` | `runs/` | Folder runs are saved to |
-| `J2_OUTPUT` | website | `website`, `prd`, `hld` or `lld` (a brief that asks for design docs, or a PRD, HLD or LLD, picks them without this). A website must also meet the necessary conditions in `conditions/website.json` (N1 to N8, checked by code after each build, written to `conditions.json`). `prd` writes a PRD instead (also picked on the start page; `hld` and `lld` work the same way with `conditions/hld.json` and `conditions/lld.json`): six markdown sections checked by code (no browser), necessary conditions in `conditions/prd.json` (P8 is a warning: `"severity": "warn"` shows but never blocks; statements beyond the brief start with `Assumption:` and are collected into a closing "Assumptions to confirm" section), the document rubric D-1 to D-5, `rates_prd` in `rates.json`; the run ends with `prd.md` and `prd.docx` (needs `python-docx`) |
+| `J2_SHARE_FLOOR` | 0.8 | A part's usage share far under what that kind of work usually uses is raised to this part of it |
+| `J2_SHARE_FAR_UNDER` | 0.5 | "Far under": a share below this part of the usual usage |
+| `J2_KEEP_TEST_RUNS` | off | 1 keeps the flow suite's temp folder of mock runs (removed at exit otherwise) |
+| `J2_OUTPUT` | unset | Picks the output for every run (`website`, `prd`, `hld` or `lld`) and skips the output classifier. Unset, the classifier reads the first message. A website must meet `conditions/website.json`; a document is six markdown sections checked by code (no browser) with its own conditions file and rubric, and ends with `<kind>.md` and `<kind>.docx` (needs `python-docx`) |
 | `J2_FORCE_AUDIT_FAIL` | off | Test switch, see below |
 | `J2_MEMORY_TEST_LESSONS` | off | 1 lets J2.b read test lessons (demo runs only), see below |
 | `J2_BOARD` | off | 1 turns on the message board, see "Message board" |
-| `J2_FORCE_QUESTION` | off | Mock-only test switch: a comma list of askers (a function or a builder), each asking one question |
 | `J2_MILESTONE_EMAILS` | off | 1 sends a milestone email per goal reached (dry run) |
 | `J2_SEND_MODE` | `dry-run` | `dry-run`, `mock` or `live` (real email by SMTP, after you say yes once a run) |
 | `J2_SEND_CAP` | 10 | The most live emails one run sends |
@@ -488,9 +469,17 @@ Settings:
 | `J2_TEST_SLACK_TARGET` | unset | The only Slack target a send may go to |
 | `J2_OVERRIDE_KEY` | unset | Owner override key, `.env` only, see below |
 
+Old names still read: `J2_BUDGET` / `J2_BUDGET_CAP` / `J2_LIMIT_ADD` (one old credit = 20,000 tokens).
+
+**Mock-only test switches** (agents never see them): `J2_FORCE_QUESTION` (each named asker asks one board
+question), `J2_FORCE_REVIEW_FAIL=<name words>` (the work-order review says no), `J2_FORCE_AI_CHECK_FAIL=1|<words>`
+(an AI check fails), `J2_FORCE_CONDITION_DOUBT=<id>` and `J2_MOCK_FALSE_ALARM=1` (the false-alarm double-check),
+`J2_FORCE_OUTPUT_UNSURE=1` (the output classifier isn't sure, so the confirm question shows), `J2_FORCE_POLISH_BREAK=1`
+(the polish breaks a check and is undone), `J2_MOCK_RESEARCH=1` (the mock plan has a research workflow).
+
 **Owner override: `J2_OVERRIDE_KEY`.** Set it in `.env` (never committed; `.env.example` lists the name only). A
 message that starts with the key followed by a command is applied by code, not by an agent: `budget +N` adds N
-(the cap doesn't apply), `ship` ends the run as it is (`done_with_open_items`), `drop <item>` leaves out a done-when
+tokens (`+5M`, `+300k`; the cap doesn't apply), `ship` ends the run as it is (`done_with_open_items`), `drop <item>` leaves out a done-when
 item by number or words. A visible "Owner override applied: ..." note is posted. The key itself is never posted,
 stored in the run files or sent to an agent, and the server redacts it from every response.
 
@@ -545,84 +534,63 @@ When a run ends, `runs/j2-*/summary.json` is written at once, before the reviewe
 minute or more), so it exists as soon as the chat says the run ended. It is also written when the reviewer
 fails or the run crashes. It records (written by code, no AI call):
 - run: mode, model, brief, status (`done`, `done_with_open_items`, `stopped`, `crashed`), AI calls
-- budget: start, granted, used, raises
+- budget: measured usage (budget, spent, margin line, estimate, by phase and by workflow), raises
 - what happened: questions to you, conflicts, validator rejections, HOLDs, audits, limits hit
 - the result: workable problems still open, to-be-confirmed facts, items you dropped, each done-when item's
   pass/fail
-- agents: each workflow agent (section, status, calls, retries), lessons saved and used, route-check violations
+- agents: each workflow agent (section, status, calls, retries, usage), lessons saved and used, route-check violations
+- settings: `no_questions`
 
 ### Tests
 
 ```bash
-python3 j2_flow_test.py --fast    # offline, mock mode, no Chrome steps, about 35 s
-python3 j2_flow_test.py --fast --browser   # adds the Chrome-driven tests, about 8 to 9 minutes
+python3 j2_flow_test.py --fast    # offline, mock mode, no Chrome steps, about 5 minutes
+python3 j2_flow_test.py --fast --browser   # adds the Chrome-driven tests
 python3 j2_flow_test.py           # offline, mock mode, both J2_FIXES modes; --chat prints the chats
+python3 realization_test.py       # the planner, the judge, the stage guide and planning gaps, in mock mode
+python3 v2_test.py                # the v2 API walked like the new page does (proposal, decisions, settings, saved runs)
+python3 kingdom_test.py           # the kingdom view's routes: /api/v2/map and /api/v2/control (pause, stop, skip, redo, note)
 python j2_check.py site.html      # the render check on any page
 ```
 
-`j2_flow_test.py` keeps every lesson and playbook in a temp folder, set before `j2` is imported. It ends by
-checking that the real `memory/` files are byte-for-byte unchanged. An earlier version wrote 109 mock cafe
-playbooks into the real file, and a live clothing run reused one. Those are now in
-`_backup/2026-10-07-playbooks-before-cleanup/`, next to a full copy of the file.
+`j2_flow_test.py` keeps every lesson and playbook in a temp folder, set before `j2` is imported, and ends by checking
+that the real `memory/` files are byte-for-byte unchanged. It runs with a fixed `J2_TOKEN_BUDGET` and with the polish
+step off (the storyline tests count workflows and sections as they were); `polish_step` turns it on.
 
-`j2_flow_test.py` covers:
-- the original flows
-- B: one agent per workflow, sections and order, retry within the envelope, failure past the retry limit,
-  `revises` handing a section over
-- C: same failure twice (drop and ship), the cycle limit (keep working), to-be-confirmed facts, the J2.c time
-  bound, out of budget (add budget), `workable()` cases
-- D: a lesson saved, then used by the next run; `J2_MEMORY=0` reads and writes nothing; clear
-- F: `J2_FORCE_AUDIT_FAIL`: forced once in cycle 1 and marked as a test, real fix and re-check, test lesson saved
-  and not reused, an unknown item ignored, off when unset. `J2_MEMORY_TEST_LESSONS`: test lessons filtered by
-  default; with the opt-in one is used and flagged in the chat, the lane and `summary.json`
-- G: the Simple view rendered in headless Chrome in five states (start, intake questions, a conflict question, a
-  limit question, ready). Its visible text never contains agent names, J2 codes, "budget", COUNTER/GRANT/REFUSE,
-  "after the team" or other internals. A question with buttons appears once. The phone toggle appears only once
-  a site exists. The ready card has its three buttons. Also checked: the word list (run in node: Audit becomes
-  "our checks"), and that every Identity prompt, and no other, carries the plain-language rule
-- I: unpaid items. A passing item no workflow paid for is flagged `UNPAID`, paid for and passes. Playbooks:
-  same business type only (a clothing brief that shares words with a cafe brief gets nothing), mock memory
-  kept away from live runs, test memory isolated
-- I: pricing. A bundled plan (6 items for 20) is rejected while the same work at 65 passes; a fix relabelled as
-  styling is rejected; a fix isn't charged again for items already paid for; Priority's prompt carries the cost
-  per item
-- H: J2.a proposes visitor needs for a florist and asks to confirm. The style guide comes first, is retried when
-  missing and is followed by every later agent. A planted small tap target fails R-6 by measurement, loops
-  back, is fixed and passes. Playbooks are saved at Done with the measured outcome, reused for the same business
-  type (not for a florist) with the change named, flagged as test after a forced failure, and untouched with
-  `J2_MEMORY=0`. Also: design measurements and the screenshot on a planted page, no cafe examples in our
-  instructions, the new example briefs
-- E: the page's tabs, lanes and their statuses, call links with reasons and no invented tokens, the full call
-  record, saved runs opened read-only, path tricks refused, a fake key redacted, clear memory
-- Map: `map.json` matches a rebuild from the folder, with the expected nodes, edges and statuses. The wide and
-  vertical drawings fit. At phone width (a 360px frame), the Simple and Detailed views have nothing past either
-  edge, and the rail runs along the bottom
-- Board: off writes no board files and no prompt mentions it; a builder asks once, is answered and is reused;
-  an unanswered question falls back to the normal path. The demo run: Identity, Priority and Audit each ask
-  once (answered by a workflow, by a function and by a workflow from an earlier cycle), the answers are
-  reused, a duplicate question is refused, and the run ends Done with N6 met
-- Sends: a send needs a send verb, only the configured targets are allowed, dry run stays open, and receipts are
-  masked. Milestone emails: one per goal reached, off by default, on when the brief asks
+What the suites cover, in short:
+- the original flows, both `J2_FIXES` modes; one agent per workflow, sections and order, `revises`
+- limits and decisions: same failure twice, the cycle limit, to-be-confirmed facts, the margin pause, the decision
+  format, `no_questions`
+- usage: every call counted (summary, reviewer, planner and judge included), shares, the one top-up
+- the validator: code's free checks, the batched work-order review, `ai-judge` checks and their receipts, essential
+  rejections, the document section guard
+- finishing: false alarms and the double-check, the done-claim guard, no writing ahead
+- step 5: the stage guide, planning gaps as decisions, dependencies resolved, loop-checked and enforced by code
+- step 6: the style guide step with motion, the documents' house style, parallel batches (deterministic in mock),
+  neighbours in the prompt, the polish step and its undo
+- step 7: the exact `--tools` / `--allowedTools` flags, `J2_TOOLS=0`, `research.md` written and read
+- step 8: the output classifier (mock reading), the confirm question, picked outputs, no trigger words in
+  `artifacts/types.json`
+- the legacy page's views, the Map, the board, sends and milestone emails, saved runs, `plain_unchanged` (the plain
+  website flow against an older commit, with the style step and parallel batches allowed for)
 
 ### Still different from the J2 page
 
 - **Root (J2.e)**: the page says Root checks granted workflows against standards ("designed; not yet built").
-  Here a code validator checks fields, price, refusals and budget, not standards.
+  Here code checks fields, dependencies, refusals and usage, and one AI review per batch checks the work orders.
 - **Library workflows**: the page has Adaptation pick from a Library or make custom ones. Here every workflow
   is custom.
 - **Engines and triggers**: the page has each function as an engine that wakes when its records exist. Here one
-  loop hands the turn from agent to agent.
+  loop hands the turn from agent to agent; only builders run in parallel, in batches.
 - **Audit timing**: Audit runs once the build queue is empty, not after every workflow (fewer calls).
 - **"Core" done-when items**: every done-when item counts as core; the charter has no core / optional split.
 - **"Its spend" in J2.c**: our number (8 AI calls), see above.
-- **Item kinds for pricing**: a keyword match on the done-when text. A fix of a failing item pays for that
-  item at the fix price, even when the item's own minimum is higher (e.g. a form item at 15).
 - **Lesson relevance**: word overlap, not meaning; fine for a small file. Playbooks match on business type
   first, then shared words.
 - **Rubric R-1, R-4, R-5** (styling, main action, navigation) are Audit's judgment on the screenshot. Only R-2,
   R-3, R-6 and R-7 are measured by code. Screenshots go to the model in live runs only. Image input through
   `claude -p` (stream-json) is implemented but not yet tried on a live run.
-- **Executors**: the official files have no executor. The workflow agents use our placeholder `builder.md`.
+- **Executors**: the official files have no executor. The workflow agents use our own `builder.md`.
 - **CEO**: where the official files say CEO, J2 reads it as you, reached only through Identity.
 - **No-progress limit**: a run with 2 cycles that registered nothing also triggers Identity's question, a guard
   that isn't on the page.

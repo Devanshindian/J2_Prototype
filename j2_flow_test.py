@@ -31,6 +31,8 @@ F. J2_FORCE_AUDIT_FAIL=<item>: a forced cycle-1 failure that agents can't tell f
 Runs are written to a temp folder (J2_RUNS_DIR), never the real runs/; each ended run has summary.json. Memory is off (J2_MEMORY=0) except in
 the memory test, which uses its own lessons file.
 """
+import copy
+import functools
 import inspect
 import json
 import os
@@ -44,9 +46,21 @@ import tempfile
 os.environ["STUDIO_MOCK"] = "1"
 os.environ["J2_MEMORY"] = "0"        # clean runs: the memory tests turn it on
 os.environ["J2_REALIZATION"] = "0"   # the classic path (realization is on by default; realization_test.py covers it)
+# The polish step (6d) adds one code-made workflow before the final Audit; the storyline tests below count workflows,
+# sections and calls as they were, so it is off here and the polish tests (polish_step) turn it on themselves.
+os.environ["J2_POLISH"] = "0"
+# The usage budget in tokens, fixed by the developer override: no proposal pause, and a budget no mock flow reaches.
+# The tests that need a tight budget set run.budget / run.spent themselves; v2_proposal() walks the proposal.
+os.environ["J2_TOKEN_BUDGET"] = "20000000"
 # Every memory file of this test session lives in a temp folder, set before j2 is imported, so no test can write
 # lessons or playbooks into the real memory/ (it once wrote 109 mock cafe playbooks there; a live run reused one).
 SESSION_MEMORY = tempfile.mkdtemp(prefix="j2-test-memory-")
+# about 0.5 GB of mock runs per session: removed at exit (J2_KEEP_TEST_RUNS=1 keeps it to look at). 170 left-over
+# folders filled the disk during the overnight live runs (2026-11-04) and crashed a live run with "No space left".
+if os.getenv("J2_KEEP_TEST_RUNS") != "1":
+    import atexit
+    import shutil
+    atexit.register(shutil.rmtree, SESSION_MEMORY, True)
 os.environ["J2_MEMORY_FILE"] = os.path.join(SESSION_MEMORY, "lessons.jsonl")
 os.environ["J2_PLAYBOOK_FILE"] = os.path.join(SESSION_MEMORY, "playbooks.jsonl")
 os.environ["J2_RUNS_DIR"] = os.path.join(SESSION_MEMORY, "runs")   # runs/ holds real runs only: report evidence
@@ -167,6 +181,52 @@ if FAST:
         j2.j2_check.find_chrome = lambda: None      # the page-driving tests skip; screenshots aren't taken
 
 
+CREDIT = j2.CREDIT_TOKENS     # tokens per old work credit (what j2 reads an old typed amount as), in the credit world
+OLD_RATES = {"page_section": 10, "form": 15, "interactive_feature": 10, "profiles": 10, "blog_post": 10,
+             "extra_language": 12, "styling": 5, "fix": 8, "doc_section": 10, "requirements_section": 48, "artifact": 5}
+ORIG_ACCOUNT = j2.J2Run._account
+
+
+def credit_account(self, fn, meta, phase=None, system="", user="", raw=""):
+    """Credit world: a builder uses exactly its share, on its first call; every other call is free."""
+    seen = self.__dict__.setdefault("_credit_seen", set())
+    w = next((x for x in self._all_wfs() if x["id"] == fn), None) if j2.is_wf_agent(fn) else None
+    tok = 0
+    if w is not None and fn not in seen:
+        seen.add(fn)
+        tok = j2.granted(w)
+    return ORIG_ACCOUNT(self, fn, {"input_tokens": tok, "output_tokens": 0}, phase)
+
+
+def credit_world(fn):
+    """The budget storylines of the credit era, in tokens: similar work usually used what the old rate card said
+    (x CREDIT tokens), every builder uses exactly its share, the managers' calls are free, and the old limit amounts
+    (+30, cap 200, no safety margin). The budget logic itself (grant, counter, refuse, the limit question, leave out, raise, cap) is the
+    production code, on the same arithmetic as before, one credit = CREDIT tokens."""
+    @functools.wraps(fn)
+    def wrapped(*a, **k):
+        u = j2.j2_usage
+        saved = (dict(u.DEFAULT_TOKENS), u.MANAGER_RATIO, u.PLANNING_TOKENS, j2.LIMIT_ADD, j2.BUDGET_CAP, j2.MARGIN_PCT)
+        u.DEFAULT_TOKENS.clear()
+        u.DEFAULT_TOKENS.update({x: v * CREDIT for x, v in OLD_RATES.items()})
+        u.MANAGER_RATIO, u.PLANNING_TOKENS = 0, 0
+        j2.LIMIT_ADD, j2.BUDGET_CAP, j2.MARGIN_PCT = 30 * CREDIT, 200 * CREDIT, 0
+        j2.J2Run._account = credit_account
+        try:
+            return fn(*a, **k)
+        finally:
+            u.DEFAULT_TOKENS.clear()
+            u.DEFAULT_TOKENS.update(saved[0])
+            u.MANAGER_RATIO, u.PLANNING_TOKENS, j2.LIMIT_ADD, j2.BUDGET_CAP, j2.MARGIN_PCT = saved[1:]
+            j2.J2Run._account = ORIG_ACCOUNT
+    return wrapped
+
+
+def usage_words(credits):
+    """How an amount of old credits reads now: "about 180k usage"."""
+    return f"about {j2.j2_usage.short(credits * CREDIT)} usage"
+
+
 def say(run, text):
     assert run.user_says(text)
     while run.status != "waiting":
@@ -284,25 +344,31 @@ def full(fixes):
     show(run)
 
 
+@credit_world
 def ruling_over_budget():
     """Fixes only: the ruling (90) is over the 85 left; Priority counters; Identity asks; the Requester adds budget.
     The ruling then takes the whole budget, so the viewport fix can't be funded: the run doesn't stop, Identity asks
     (keep working with +30, drop, ship). Keep working funds the fix and the site becomes workable."""
     os.environ["J2_FIXES"] = "1"
     run = j2.J2Run()
-    run.budget = 85
+    run.budget = 85 * CREDIT
     say(run, BREW_LAB)
     assert run.paused and run.paused["kind"] == "ruling_budget", run.outcome
     say(run, "1, add the units")
     c = run.conflicts[0]
     assert c["repricing"]["decision"] == "COUNTER" and c["resolved_by"] == "identity_after_user", c
-    assert run.budget == 90 and any(w["name"] == "Stories section" for w in run.workflows), run.budget
+    assert run.budget == 90 * CREDIT and any(w["name"] == "Stories section" for w in run.workflows), run.budget
     assert run.paused and run.paused["kind"] == "limit" and run.paused["handoff"]["limit"].startswith("Out of budget"), \
         run.outcome
     q = run.paused["questions"][0]
-    assert q["options"][0].startswith("Add 30 work credits and keep going") and q["budget"][0] == 30 and q["options"][-1].startswith("Finish as it is")
+    assert q["options"][0].startswith(f"Add {usage_words(30)} and keep going") and q["budget"][0] == 30 * CREDIT \
+        and q["options"][-1].startswith("Finish as it is"), q
+    d = run.paused["decision"]          # the same pause in the one question format (v2)
+    assert d["kind"] == "usage" and [o["id"] for o in d["options"]] == run.paused["handoff"]["choices"] \
+        and [o["suggested"] for o in d["options"]].count(True) == 1 and d["options"][0]["usage"] == 30 * CREDIT, d
+    assert not j2.J2Run.decision_problems(d), j2.J2Run.decision_problems(d)
     say(run, "1")
-    assert run.budget == 120 and run.outcome.startswith("Done"), (run.budget, run.outcome)
+    assert run.budget == 120 * CREDIT and run.outcome.startswith("Done"), (run.budget, run.outcome)
     s = summary(run)
     assert s["status"] == "done" and s["limits_hit"] and not s["workable"], s
 
@@ -318,6 +384,7 @@ def built_first(run):
     assert order.index("coordination") < order.index("audit") < len(order) - 1 - order[::-1].index("identity"), order
 
 
+@credit_world
 def policy_budget(fixes):
     """runs/j2-20261008-153402 (budget 40, rate-card floor 110): Adaptation asked about affordability twice and never
     proposed, so Priority was never called and nothing was built. Now a budget POLICY_QUESTION is rejected by code and
@@ -325,7 +392,7 @@ def policy_budget(fixes):
     decision question (add credits or leave out; no "finish", there's no site). An unclear answer is asked once more;
     "option 1" raises the budget by code; the rest is proposed, granted and built."""
     run = j2.J2Run()
-    run.budget = 60                                          # Brew Lab's floor is 70
+    run.budget = 60 * CREDIT                                 # Brew Lab's floor is 70
     orig, asked = run.call, []
 
     def call(fn, fmt, task, mock, **k):
@@ -346,30 +413,30 @@ def policy_budget(fixes):
     built_first(run)
     q = run.paused["questions"][0]
     assert run.paused["handoff"]["choices"] == ["continue", "drop", "ship"], run.paused["handoff"]
-    assert q["options"][0].startswith("Add 10 work credits and keep going") and q["options"][1].startswith("Leave out"), q
+    assert q["options"][0].startswith(f"Add {usage_words(10)} and keep going") and q["options"][1].startswith("Leave out"), q
     say(run, "the bigger one I think")                       # unclear: no guess, Identity asks once more
-    assert run.paused and run.paused["handoff"].get("reasked") and run.budget == 60, run.paused
+    assert run.paused and run.paused["handoff"].get("reasked") and run.budget == 60 * CREDIT, run.paused
     say(run, "option 1")
-    assert run.budget == 70 and run.raises[0]["asked"] == 10, run.raises
+    assert run.budget == 70 * CREDIT and run.raises[0]["asked"] == 10 * CREDIT, run.raises
     d = [x for x in run.decisions if x["kind"] == "limit"]
-    assert d[0].get("unclear") and d[1]["decision"] == "continue" and d[1]["budget_added"] == 10, d
-    assert run.spent == 70 and all(w["status"] == "done" for w in run.workflows), (run.spent, run.workflows)
+    assert d[0].get("unclear") and d[1]["decision"] == "continue" and d[1]["budget_added"] == 10 * CREDIT, d
+    assert run.spent <= run.budget and all(w["status"] == "done" for w in run.workflows), (run.spent, run.workflows)
     assert run.outcome.startswith("Done") and not run.goal.get("dropped_by_requester"), run.outcome
-    assert summary(run)["budget"]["granted"] == 70
+    assert summary(run)["budget"]["granted"] == 70 * CREDIT and summary(run)["budget"]["measure"] == "tokens"
     only_identity_addresses_user(run)
     show(run)
 
 
+@credit_world
 def connections():
     """Every J2 link works at three budgets: generous (2x the rate-card floor), tight (floor - 15, cap above the
     floor) and impossible (cap below the floor). Adaptation proposes, Priority rules on every proposal, the validator
     registers or rejects with a reason, Coordination schedules, Audit checks what was built, and every run ends with
     a site built (the Requester always picks leave-out or keep going here). summary.json counts the links."""
-    j2.load_rates()
-    floor = sum(j2.item_min(c) for c in j2.mock_charter(BREW_LAB)["done_when"])
-    assert floor == 70, floor
-    for name, budget, cap in (("generous", 2 * floor, None), ("tight", floor - 15, None),
-                              ("impossible", floor - 30, floor - 30)):
+    floor = j2.J2Run()._items_estimate(j2.mock_charter(BREW_LAB)["done_when"])
+    assert floor == 70 * CREDIT, floor
+    for name, budget, cap in (("generous", 2 * floor, None), ("tight", floor - 15 * CREDIT, None),
+                              ("impossible", floor - 35 * CREDIT, floor - 35 * CREDIT)):   # the 4 core items need 40
         old_cap = j2.BUDGET_CAP
         try:
             if cap:
@@ -422,29 +489,25 @@ def connections():
             assert any(m.get("decision") == "counter" for m in chat) or \
                 any("drop" in p["handoff"]["choices"] for p in limits), (name, links)
         if name == "impossible":
+            # The cap is below what the core items need: "keep going" can't be offered, only leave out or finish. With
+            # no rate card there is no "unpaid" finding any more: what the funded work put on the page passes on its own
+            # merits, so the run can still end Done once the rest is left out.
             first = limits[0] if limits else None
             assert first and "drop" in first["handoff"]["choices"] and "continue" not in first["handoff"]["choices"], first
-            # the finish code applied (the only option left) tells the Requester why, and what's missing
-            i = next(i for i, m in enumerate(chat) if m["text"].startswith("Only one option was possible"))
-            told = chat[i + 1]
-            form = next(c for c in run.goal["done_when"] if "pre-order" in c)
-            assert told["who"] == "identity" and told.get("to_user") and told.get("done"), told
-            assert "We've reached a limit: you've approved the most work credits allowed" in told["text"], told["text"]
-            assert f"{form} can't be paid for and can't be left out" in told["text"], told["text"]
-            assert f"Still not right (1):\n- item {run._no(form)} {j2.short(form)} (unfunded)" in told["text"], told["text"]
-            assert run.outcome.startswith("Done with open items: shipped as is as the only option"), run.outcome
+            assert run.outcome.startswith("Done"), run.outcome
             plain_for_requester(run)
         if name == "generous":
             assert run.outcome == j2.WORKABLE_OUTCOME, run.outcome
 
 
+@credit_world
 def build_before_asking():
     """runs/j2-20261009-133203: 6 workflows were registered across two rulings, but the run went validator -> Identity's
     decision question each time and the site stayed at v0; Identity told the Requester "the site now has..." about
     unbuilt work; the gate item was extended with filters; Audit filed items 5-7 under their pre-drop numbers."""
     # (1) budget 40: the funded workflows are built and audited before the question
     run = j2.J2Run()
-    run.budget = 40
+    run.budget = 40 * CREDIT
     say(run, BREW_LAB)
     built_first(run)
     assert all(w["status"] == "done" for w in run.workflows) and len(run.workflows) >= 1, run.workflows
@@ -472,7 +535,7 @@ def build_before_asking():
             return r
         return orig(fn, fmt, task, mock, **k)
     run.call = call
-    run.budget = 200
+    run.budget = 200 * CREDIT
     say(run, BREW_LAB)
     gate = run.goal["done_when"][-1]
     assert gate == j2.GATE_TEXT and not re.search(r"filter|categor", gate, re.I), gate
@@ -500,12 +563,13 @@ def build_before_asking():
     assert not extras, extras
 
 
+@credit_world
 def below_floor():
     """runs/j2-20261008-153402: budget below the rate-card floor. Adaptation proposes the best set that fits and lists
     the rest in left_out (core facts first); Priority rules; the funded work is built and audited; then Identity asks
     one decision question with a leave-out option. A question never has one option; "finish" needs a site."""
     run = j2.J2Run()
-    run.budget = 50                                          # Brew Lab's floor is 70; its core items cost 45
+    run.budget = 50 * CREDIT                                 # Brew Lab's floor is 70; its core items need 40
     say(run, BREW_LAB)
     assert run.goal["core_items"] == [c for c in run.goal["done_when"] if re.search(r"menu|hours|address|order", c)]
     a = next(m for m in run.chat if m["who"] == "adaptation")
@@ -524,14 +588,14 @@ def below_floor():
     assert run.sites and run.outcome == j2.WORKABLE_OUTCOME, run.outcome
     # at the cap: the funded work is built first, so the question has a site to finish (and no "add credits")
     run = j2.J2Run()
-    run.budget = j2.BUDGET_CAP = 40
+    run.budget = j2.BUDGET_CAP = 40 * CREDIT
     try:
         say(run, BREW_LAB)
         built_first(run)
         q = run.paused["questions"][0]
         assert run.paused["handoff"]["choices"] == ["drop", "ship"] and q["options"][1].startswith("Finish as it is"), q
     finally:
-        j2.BUDGET_CAP = 2 * j2.BUDGET
+        j2.BUDGET_CAP = 200 * CREDIT
     # only "add credits" would be possible (every left-out item is a core fact): stop here is the second option
     run = j2.J2Run()
     run.goal = {"done_when": ["The menu with prices is shown", "Opening hours are listed"]}
@@ -565,12 +629,13 @@ THREAD_AND_LOOM = [   # runs/j2-20261008-153402's charter (12 items, floor 110),
     ("The page has no JavaScript errors, no horizontal overflow at 360px or 1280px, and no broken in-page links.", True)]
 
 
+@credit_world
 def thread_and_loom_core():
     """Follow-up to 3a8960c: "any number" made prices, sizes, "3 styled outfits" and "360px" core, so almost nothing in
     the Thread & Loom charter could be left out. Identity marks core items at J2.a; at budget 40 the decision question
     offers the lookbook, reviews and new arrivals as leave-out options, never a core item."""
     run = j2.J2Run()
-    run.budget = 40
+    run.budget = 40 * CREDIT
     orig = run.call
 
     def call(fn, fmt, task, mock, **k):
@@ -594,12 +659,13 @@ def thread_and_loom_core():
     assert not j2.must_keep(THREAD_AND_LOOM[7][0], {}) and j2.must_keep(THREAD_AND_LOOM[1][0], {})
 
 
+@credit_world
 def deferred_twice():
     """The same done-when item left out or refused in 2 rounds: Identity asks the Requester even though budget remains."""
     run = j2.J2Run()
     run.goal = {"done_when": ["The menu with prices is shown", "A lookbook section shows 3 styled outfits"],
                 "core_items": ["The menu with prices is shown"]}
-    run.budget, look = 100, "A lookbook section shows 3 styled outfits"
+    run.budget, look = 100 * CREDIT, "A lookbook section shows 3 styled outfits"
     run.a_named = [look]
     run._parked("Priority refused it")                       # round 1: budget remains, Adaptation proposes again
     assert run.turn == "adaptation" and run.handoff.get("new_cycle"), run.handoff
@@ -651,13 +717,14 @@ def workflow_agents():
     assert f'<!-- J2:{vp["id"]} head start' in site and site.index('name="viewport"') < site.index("</head>")
     assert os.path.exists(os.path.join(run.dir, "sections.json")) and run.write_lock is None
     # revises: a new workflow rewrites W-2's section and becomes its owner
-    run.budget, run.p_refused = 500, {}
+    run.p_refused = {}
     reg, refused, _ = run._register([{"name": "Core sections rework", "goal_gap": "tighter copy", "outputs": ["W-2"], "atoms": ATOM,
                                       "completion_check": "same items", "parts": ["fix"], "revises": "W-2"}])
     assert reg and not refused and reg[0]["section"] == "W-2" and reg[0]["revises"] == "W-2", (reg, refused)
     run._turn_workflow_agent({"wid": reg[0]["id"]})
     assert run.sections["W-2"]["owner"] == reg[0]["id"] and f"(owner {reg[0]['id']})" in run.sites[-1]
-    # past retry_limit: the agent reports the failure to Coordination and its section is unchanged
+    # replies that can't be used, MAX_UNUSABLE in a row: the agent reports the failure to Coordination and its
+    # section is unchanged (the usage share is the cost limit; this is the safety bound for a builder that never answers)
     reg, _, _ = run._register([{"name": "Broken one", "goal_gap": "x", "outputs": ["y"], "completion_check": "z", "atoms": ATOM,
                                 "parts": ["fix"], "fixes": ["F-9"]}])
     run.call = lambda fn, *a, **k: "no blocks at all"
@@ -810,7 +877,7 @@ def forced_fail():
     os.environ.update(J2_MEMORY="1", J2_FORCE_AUDIT_FAIL="2")
     try:
         run = j2.J2Run()
-        run.budget = 150      # room for the extra fix in both modes (J2_FIXES=1 also funds the stories)
+        run.budget = max(run.budget, 150)   # the token budget (20M) is already more than enough
         say(run, BREW_LAB)
         add_budget_if_asked(run)
         first, last = run.audits[0], run.audits[-1]
@@ -825,7 +892,7 @@ def forced_fail():
             assert json.loads(f.readline())["force_audit_fail"] == 2
         # agents can't tell: no prompt or reply format of any AI call carries a test label or Audit's real verdict
         with open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") as f:
-            calls = [json.loads(ln) for ln in f]
+            calls = [json.loads(ln) for ln in f if '"extra": true' not in ln]
         for c in calls:
             seen = (c["system"] + c["prompt"]).lower()
             for bad in ("forced test", "test switch", "j2_force_audit_fail", "forced_test", "real_verdict", "own verdict",
@@ -933,7 +1000,7 @@ def simple_text(base):
     import subprocess
     chrome = j2.j2_check.find_chrome()
     out = chrome_dom([chrome, "--headless=new", "--disable-gpu", "--virtual-time-budget=6000", "--dump-dom",
-                          base + "/?view=simple"], capture_output=True, text=True, timeout=90).stdout
+                          base + "/legacy?view=simple"], capture_output=True, text=True, timeout=90).stdout
 
     class P(html.parser.HTMLParser):
         depth, skip, text, buttons = 0, 0, [], []
@@ -1020,7 +1087,7 @@ def simple_view():
         # (d) the Detailed view shows both parts of a reply, each labelled with who it is for
         import subprocess
         dom = chrome_dom([j2.j2_check.find_chrome(), "--headless=new", "--disable-gpu", "--virtual-time-budget=6000",
-                              "--dump-dom", base + "/?view=detail"], capture_output=True, text=True, timeout=90).stdout
+                              "--dump-dom", base + "/legacy?view=detail"], capture_output=True, text=True, timeout=90).stdout
         assert "for Requester (you)" in dom and "for Adaptation" in dom, "Detailed view must label both audiences"
     finally:
         j2_server.RUN = keep
@@ -1180,8 +1247,9 @@ def atom_checks():
     timed = {**a, "goal": "Opening hours 8am to 9pm are listed", "how": {**how, "steps": "h2 headings, class hours-head"},
              "expected_output": [{"text": "2 hours headings", "kind": "element", "target": ".hours-head", "count": 2}],
              "verification": [{"text": "2 hours headings", "type": "element-count", "target": ".hours-head", "expect": 2}]}
-    assert j2.check_problems(timed, src) == ["its goal names a time, price, number or email but no check is "
-                                             "facts-present or a named test"], j2.check_problems(timed, src)
+    tp = j2.check_problems(timed, src)
+    assert len(tp) == 1 and tp[0].startswith("its goal names a time, price, number or email but no check is "
+                                             "facts-present or a named test") and '["8am", "9pm"]' in tp[0], tp
 
     def patched(edit, reply=lambda r, fn: r, done=True):
         """A run whose first Adaptation proposal has its first atom changed by edit (once)."""
@@ -1211,14 +1279,16 @@ def atom_checks():
     run = patched(four_cards)
     calls = calls_of(run)
     i = next(n for n, c in enumerate(calls) if "WORK ATOM FAILED" in c["prompt"])
-    assert calls[i]["fn"] == "adaptation" and [c["fn"] for c in calls[i - 2:i]] == ["W-1"] * 2, [c["fn"] for c in calls]
-    assert "ATTEMPT 2 OF 3" in calls[i - 1]["prompt"] and "0 element(s) match '.j2-card'" in calls[i - 1]["prompt"]
+    # W-1's two section attempts (the first in the parallel batch, the second alone), then Adaptation at once
+    w1 = [c for c in calls[:i] if c["fn"] == "W-1" and "STYLE GUIDE STEP" not in c["prompt"]]
+    assert calls[i]["fn"] == "adaptation" and len(w1) == 2 and calls[i - 1] is w1[-1], [c["fn"] for c in calls]
+    assert f"ATTEMPT 2 OF {j2.MAX_CHECK_ATTEMPTS}" in calls[i - 1]["prompt"] and "0 element(s) match '.j2-card'" in calls[i - 1]["prompt"]
     nxt = next(n for n, c in enumerate(calls) if n > i and c["fn"] != "adaptation")
     assert calls[nxt]["fn"] != "identity" and not any(c["fn"] == "identity" for c in calls[i:nxt]), calls[nxt]["fn"]
     at = run._wf("W-1")["atoms"][0]
     card = [r for r in run.receipts if r["target"] == ".j2-card"]
     assert [(r["attempt"], r["expect"], r["actual"], r["pass"]) for r in card] == \
-        [(1, 4, 0, False), (2, 4, 0, False), (3, 0, 0, True)], card
+        [(1, 4, 0, False), (2, 4, 0, False), (j2.MAX_CHECK_ATTEMPTS, 0, 0, True)], [(r["attempt"], r["expect"], r["actual"], r["pass"]) for r in card]
     assert card[-1]["recheck"] == "check corrected by Adaptation" and at["status"] == "passed", at
     assert run.outcome.startswith("Done"), run.outcome
     # receipts: written by code only, one per check run, matching each atom's checks
@@ -1226,7 +1296,7 @@ def atom_checks():
     met = [r for r in lines if "expected" in r]          # per expected-output item: met or not met
     lines = [r for r in lines if "expected" not in r]
     assert met and all(r["by"] == "code" and r["met"] in (True, False, None) and r["checks"] for r in met), met[:3]
-    assert lines == run.receipts and all(r["by"] == "code" and r["of"] == 3 and r["t"] for r in lines)
+    assert lines == run.receipts and all(r["by"] == "code" and r["of"] == j2.MAX_CHECK_ATTEMPTS and r["t"] for r in lines)
     for w in run.workflows:
         for x in w["atoms"]:
             ran = [(r["check"], r["type"], r["target"], r["expect"]) for r in lines
@@ -1315,7 +1385,7 @@ def rubric_and_credits():
     finish(run)
     built = [c for c in calls_of(run) if j2.is_wf_agent(c["fn"])]
     assert built and all(f"{rid} {txt}" in c["prompt"] for c in built for rid, txt in j2.RUBRIC[:6])
-    form = next(i for i, c in enumerate(run.goal["done_when"], 1) if j2.item_kind(c) == "form")
+    form = next(i for i, c in enumerate(run.goal["done_when"], 1) if j2.mock_kind(c) == "form")
     w = next(w for w in run.workflows if form in run._wf_items(w))
     tap = [c for a in w["atoms"] for c in a["verification"] if c["type"] == "tap-targets"]
     assert tap and tap[0]["target"] == ".order-form" and "order-form" in json.dumps(w["atoms"][0]["how"]), w["atoms"]
@@ -1327,14 +1397,13 @@ def rubric_and_credits():
     r = j2.run_check(tap[0], run.dir, page)
     assert r["pass"] is False and "1 of 1 tap target(s)" in r["evidence"] and "120x30" in r["evidence"], r
     # "units": never in the outcome, the report, summary.json or any chat message; the page uses it only to parse
-    run = j2.J2Run()
-    run.budget = 12
-    say(run, BREW_LAB)
-    say(run, "finish as it is")
+    run = credit_world(lambda: (lambda r: (setattr(r, "budget", 12 * CREDIT), say(r, BREW_LAB), say(r, "finish as it is"),
+                                           r)[-1])(j2.J2Run()))()
     assert run.outcome.startswith("Done with open items"), run.outcome
     texts = [run.outcome, open(os.path.join(run.dir, "report.md"), encoding="utf-8").read(),
              open(os.path.join(run.dir, "summary.json"), encoding="utf-8").read()] + [m["text"] for m in run.chat]
-    assert "work credits" in " ".join(texts)
+    assert "usage" in " ".join(m["text"] for m in run.chat if m["who"] == "identity") \
+        and not re.search(r"work credits?", " ".join(m["text"] for m in run.chat if m.get("to_user")))
     bad = [t[:200] for t in texts if re.search(r"\bunits?\b", t)]
     assert not bad, bad
     ui = [ln for ln in open(os.path.join(j2.HERE, "j2_ui.html"), encoding="utf-8") if re.search(r"\bunits\b", ln)]
@@ -1350,7 +1419,7 @@ def charter_numbers():
     crit = list(run.goal["done_when"])
     run._override("drop 2")
     assert crit[1] not in run.goal["done_when"] and run.goal["done_when"][1] == crit[2]   # position 2 is now item 3
-    run.budget, run.p_refused = 500, {}
+    run.p_refused = {}
     reg, refused, _ = run._register([{"name": "Beans again", "goal_gap": "x", "outputs": ["x"], "completion_check": "y",
                                       "atoms": ATOM, "parts": ["page_section"], "covers": [5]}])
     assert reg and not refused, refused
@@ -1359,8 +1428,8 @@ def charter_numbers():
     nums = [1, 3, 4, 5, 6, 7]
     st = json.loads(run.state("adaptation"))
     assert [x["item"] for x in st["charter"]["done_when"]] == nums and "charter_items" not in st["charter"], st["charter"]
-    assert [x["item"] for x in st["rate_card"]["item_minimums"]] == nums
-    assert run._per_item([{"name": "x", "parts": ["page_section"], "covers": [5]}])[0]["covers"] == [5]
+    assert st["usage_guide"]["measure"] == "tokens" and st["budget"]["measure"] == "tokens", st["usage_guide"]
+    assert run._usage_guide([{"name": "x", "parts": ["page_section"], "covers": [5]}])[0]["covers"] == [5]
     run._turn_audit({"kind": "audit"})
     prompt = calls_of(run)[-1]["prompt"]
     assert '{"item": 5, "criterion": ' + json.dumps(crit[4]) in prompt and '"item": 2,' not in prompt
@@ -1511,7 +1580,7 @@ def identity_prompt_is_plain():
     say(run, BREW_LAB)
     add_budget_if_asked(run)
     with open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") as f:
-        calls = [json.loads(ln) for ln in f]
+        calls = [json.loads(ln) for ln in f if '"extra": true' not in ln]
     assert any(c["fn"] == "identity" for c in calls)
     for c in calls:
         assert ("college student with no tech background" in c["prompt"]) == (c["fn"] == "identity"), (c["id"], c["fn"])
@@ -1522,12 +1591,13 @@ FLORIST = "A website for Petal & Stem, a florist in Jaipur"
 
 def calls_of(run):
     with open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") as f:
-        return [json.loads(ln) for ln in f]
+        return [json.loads(ln) for ln in f if '"extra": true' not in ln]
 
 
 def style_guide():
-    """H: the first workflow that runs writes the style guide (retrying within its envelope if it leaves it out);
-    code puts it first in the head; every later workflow agent gets it and is told to follow it."""
+    """H + 6a: the style guide is its own step before any section, written by the first workflow that runs (retrying
+    within its share if it leaves it out), with motion; code puts it first in the head; every builder, the first one's
+    section included, gets it and is told to follow it."""
     run = j2.J2Run()
     orig, dropped = run.call, []
 
@@ -1547,11 +1617,24 @@ def style_guide():
     assert "--j2-primary" in site and site.index("<!-- J2:style head start") < site.index("</head>")
     assert os.path.exists(os.path.join(run.dir, "style.json")) and run.snapshot()["style"] == run.style
     cs = calls_of(run)
-    w1_calls = [c for c in cs if c["fn"] == "W-1"]
-    assert all("YOU RUN FIRST, SO YOU ALSO WRITE THE STYLE GUIDE" in c["prompt"] for c in w1_calls), "W-1 not told"
-    later = [c for c in cs if j2.is_wf_agent(c["fn"]) and c["fn"] != "W-1"]
-    assert later and all("STYLE GUIDE (follow it exactly)" in c["prompt"] for c in later), [c["fn"] for c in later]
+    step = [c for c in cs if c["fn"] == "W-1" and "STYLE GUIDE STEP" in c["prompt"]]
+    assert len(step) == 2 and all("write no section now" in c["prompt"] and "motion" in c["prompt"] for c in step), \
+        "the style guide step: W-1's two tries (the first left the style block out)"
+    later = [c for c in cs if j2.is_wf_agent(c["fn"]) and c not in step]
+    assert later and all("STYLE GUIDE (follow it exactly)" in c["prompt"] and "STYLE GUIDE STEP" not in c["prompt"]
+                         for c in later), [c["fn"] for c in later]
+    assert any(c["fn"] == "W-1" for c in later), "W-1's own section follows the guide like every other"
     assert any("the reply has no ```style block" in m["text"] for m in run.chat), "retry reason not shown"
+    assert run.style["motion"]["duration"] and "--j2-duration" in site and "prefers-reduced-motion" in site \
+        and ".j2-reveal" in site, "motion becomes CSS variables, classes and a reduced-motion rule"
+    assert json.load(open(os.path.join(run.dir, "style.json")))["kind"] == "site"
+    g = j2.parse_style("```style\n" + json.dumps({k: v for k, v in j2.MOCK_STYLE.items() if k != "motion"}) + "\n```")
+    assert g["motion"] == j2.MOTION_DEFAULT, "an older guide without motion gets plain defaults"
+    try:
+        j2.parse_style("```style\n" + json.dumps({**j2.MOCK_STYLE, "motion": {"hover": "x}y{"}}) + "\n```")
+        raise AssertionError("unsafe motion CSS accepted")
+    except ValueError as e:
+        assert "motion" in str(e)
 
 
 def rubric_loop():
@@ -1561,7 +1644,7 @@ def rubric_loop():
         print("rubric loop skipped: Chrome not found")
         return
     run = j2.J2Run()
-    run.budget = 150      # room for the extra fix in both modes (J2_FIXES=1 also funds the stories)
+    run.budget = max(run.budget, 150)   # the token budget (20M) is already more than enough
     orig, planted = run.call, []
 
     def call(fn, fmt, task, mock, **k):
@@ -1595,7 +1678,7 @@ def lone_rubric_failure():
     os.environ["J2_FIXES"], mode = "1", os.environ.get("J2_FIXES", "0")    # stories funded: the beans item is paid
     run = j2.J2Run()
     os.environ["J2_FIXES"] = mode
-    run.budget = 150
+    run.budget = max(run.budget, 150)   # the token budget (20M) is already more than enough
     orig, done = run.call, set()
 
     def call(fn, fmt, task, mock, **k):
@@ -1622,81 +1705,77 @@ def lone_rubric_failure():
 
 
 def pricing():
-    """I: the validator ties price to the work, not to labels."""
+    """I, after the price list: a workflow's usage estimate is Adaptation's own (estimated_resources.tokens), else what
+    similar work usually used for the kinds of work it names (j2_usage); no label is priced. The validator keeps the
+    rules that aren't about price: a workflow must say what it is for (always on), and its share must fit what is free."""
     run = j2.J2Run()
     run.goal = j2.mock_charter(BREW_LAB)    # 1 menu, 2 hours, 3 address, 4 order (form), 5 beans, 6 loyalty, 7 phone
-    run.budget, run.cycle = 500, 1
+    run.cycle = 1
     base = {"goal_gap": "x", "outputs": ["index.html"], "completion_check": "y", "atoms": ATOM}
-    kinds = [j2.item_kind(c) for c in run.goal["done_when"]]
-    assert kinds == ["page_section"] * 3 + ["form"] + ["page_section"] * 2 + ["styling"], kinds
-    # bundling: six items in one 20-unit workflow (as in the run) is rejected; the same work priced honestly passes
+    assert not any(hasattr(j2, n) for n in ("RATES", "price", "item_kind", "item_min", "ITEM_KINDS", "load_rates")) \
+        and not hasattr(j2.J2Run, "_underpriced") and hasattr(j2.J2Run, "_covers_nothing")
+    # bundling six items in one workflow is no longer a price question: its estimate is what its work kinds usually use
     reg, refused, _ = run._register([{**base, "name": "Shop", "parts": ["page_section", "interactive_feature"],
                                       "covers": [1, 2, 3, 4, 5, 6]}])
-    assert not reg and "costs 20, below the rate-card minimum of 65" in refused[0], refused
-    assert "item 4 form 15" in refused[0], refused[0]
-    reg, refused, _ = run._register([{**base, "name": "Shop", "covers": [1, 2, 3, 4, 5, 6],
-                                      "parts": ["page_section"] * 5 + ["form"]}])
-    assert reg and reg[0]["cost"] == 65 and reg[0]["covers"] == [1, 2, 3, 4, 5, 6], refused
-    # page_section/form parts must say which items they build
+    assert reg and reg[0]["cost"] == j2.similar_usage({"parts": ["page_section", "interactive_feature"]}), refused
+    assert reg[0]["envelope"] == {"token_share": reg[0]["cost"], "leeway_pct": j2.LEEWAY_PCT}, reg[0]["envelope"]
+    # Adaptation's own estimate wins over history; Priority's grant wins over both; but a share far under what the
+    # same kind of work usually uses (under SHARE_FAR_UNDER of it) is raised to SHARE_FLOOR of it, because it can't pay
+    # for one builder call (live run 2026-11-04: fixes granted 12k-19k used 44k-48k on their first call)
+    usual = j2.similar_usage({"parts": ["page_section"]})
+    own = int(usual * 0.6)
+    reg, _, _ = run._register([{**base, "name": "Own estimate", "parts": ["page_section"], "covers": [7],
+                                "estimated_resources": {"tokens": own}}])
+    assert reg[0]["cost"] == own, reg[0]
+    reg, _, _ = run._register([{**base, "name": "Granted", "parts": ["page_section"], "covers": [7],
+                                "estimated_resources": {"tokens": own}, "envelope": {"token_share": int(usual * 0.7)}}])
+    assert reg[0]["cost"] == int(usual * 0.7) and reg[0]["envelope"]["token_share"] == int(usual * 0.7), reg[0]
+    reg, _, _ = run._register([{**base, "name": "Far under", "parts": ["page_section"], "covers": [7],
+                                "estimated_resources": {"tokens": 12345}, "envelope": {"token_share": 12345}}])
+    assert reg[0]["cost"] == int(usual * j2.SHARE_FLOOR) == reg[0]["envelope"]["token_share"], (reg[0]["cost"], usual)
+    # page_section/form work must say which items it builds (always on, not only with a rate card)
     reg, refused, _ = run._register([{**base, "name": "Page frame and store info", "parts": ["page_section", "styling"]}])
     assert not reg and "covers no done-when item" in refused[0], refused
-    # revising a section whose workflow hasn't run yet is a new section, not a fix (runs/j2-20261009-133203 msg 27
-    # rejected "Browse by category" for revising W-2 before W-2 had built anything)
-    assert run._wf("W-1")["status"] == "registered"
-    reg, refused, _ = run._register([{**base, "name": "Browse by category", "parts": ["page_section"], "covers": [5],
-                                      "revises": "W-1"}])
-    assert reg and reg[0]["cost"] == 10 and not refused, refused
-    # after the first Audit: a fix relabelled as a cheaper part is rejected, with or without listing the finding
-    run._wf("W-1")["status"] = "done"                        # W-1 ran: rewriting its section is a fix now
+    # after the first Audit every workflow covers an item or fixes a finding; a rewrite of a built section is a fix
+    run._wf("W-1")["status"] = "done"
     run.audits = [{"cycle": 1, "version": 1, "results": [], "rubric": [], "mechanical": {}, "all_pass": False}]
-    for w in ({"fixes": ["R-6"], "revises": "W-1"}, {"revises": "W-1"}, {"fixes": ["R-6", "F-2"]}):
-        reg, refused, _ = run._register([{**base, "name": "Header tap area", "parts": ["styling"], **w}])
-        assert not reg and "a fix is priced as a fix" in refused[0], (w, refused)
-    reg, refused, _ = run._register([{**base, "name": "Header tap area", "parts": ["fix", "fix"], "fixes": ["R-6", "F-2"]}])
-    assert reg and reg[0]["cost"] == 16, refused
-    # a fix to an item already paid for isn't charged the item again; styling with no item or finding is rejected now
-    reg, refused, _ = run._register([{**base, "name": "Hours fix", "parts": ["fix"], "fixes": ["F-2"], "covers": [2]}])
-    assert reg and reg[0]["cost"] == 8, refused
     reg, refused, _ = run._register([{**base, "name": "Polish", "parts": ["styling"]}])
     assert not reg and "covers no done-when item" in refused[0], refused
-    # Priority is told the cost per done-when item and to question plans far below the rate card
+    reg, refused, _ = run._register([{**base, "name": "Header tap area", "parts": ["fix"], "revises": "W-1"}])
+    assert reg and reg[0]["cost"] == j2.similar_usage({"parts": ["fix"]}), refused
+    # a share over what is free to grant is rejected, with the numbers
+    run.budget = run.spent + run._reserved() + 1000
+    reg, refused, _ = run._register([{**base, "name": "Too big", "parts": ["form"], "covers": [4]}])
+    assert not reg and "free to grant" in refused[0] and "tokens" in refused[0], refused
+    # Priority is shown what similar work usually used, in tokens, and grants token shares
     run = j2.J2Run()
     say(run, BREW_LAB)
     finish(run)
     p = next(c for c in calls_of(run) if c["fn"] == "priority" and "ON THE TABLE" in c["prompt"])
-    assert "COST PER DONE-WHEN ITEM" in p["prompt"] and "rate_card_minimum_for_items" in p["prompt"], p["prompt"][-800:]
-    assert "far below the rate-card minimums" in p["prompt"]
+    assert "WHAT SIMILAR WORK USUALLY USED" in p["prompt"] and "similar_work_usually_used" in p["prompt"], p["prompt"][-800:]
+    assert '"token_share"' in p["system"] and "money_limit" not in p["system"] and "model_call_limit" not in p["system"]
     assert all(w.get("covers") or w.get("fixes") or w["name"] in ("Stories section", "Animations") for w in run.workflows)
+    assert all(w["envelope"].keys() == {"token_share", "leeway_pct"} for w in run.workflows), run.workflows
 
 
 def unpaid_items():
-    """Cost follows the work, on the page: a done-when item that passes although no workflow paid for it is a normal
-    finding (UNPAID). Baseline Brew Lab: the stories workflow (covering the beans item) is refused, yet the mock
-    builds that item anyway. Audit flags it, Adaptation registers a workflow that covers it, and the run ends Done."""
+    """The price list is gone, and with it the UNPAID finding: code never fails an item for not being paid for. The
+    mock Audit still reports an item no part of the plan built (baseline Brew Lab: the stories workflow covering the
+    beans item is refused, yet the scaffold puts the item on the page), Adaptation registers a workflow that covers it,
+    and the run ends Done."""
     os.environ["J2_FIXES"], mode = "0", os.environ.get("J2_FIXES", "0")
     try:
+        assert not hasattr(j2.J2Run, "_flag_unpaid") and not hasattr(j2.J2Run, "paid_items")
         run = j2.J2Run()
         say(run, BREW_LAB)
         finish(run)
         beans = next(i for i, c in enumerate(run.goal["done_when"], 1) if "bean" in c.lower())
         first = next(r for r in run.audits[0]["results"] if r["item"] == beans)
-        assert first["verdict"] == "UNPAID" and not first["pass"] and "no workflow covers" in first["note"], first
-        assert any(x.startswith(f"done-when item {beans}") and "UNPAID" in x for x in j2.workable(run.audits[0]))
+        assert first["verdict"] == "NEEDS_REVISION" and not first["pass"] and first["note"] == j2.MOCK_UNBUILT, first
         pay = next(w for w in run.workflows if w.get("covers") == [beans] and w["status"] == "done")
-        assert pay["cost"] >= j2.item_min(run.goal["done_when"][beans - 1]), pay
-        assert beans in run.paid_items() and run.outcome.startswith("Done"), run.outcome
-        assert not any(r["verdict"] == "UNPAID" for r in run.audits[-1]["results"])
-        # unit: an item a fix paid for (via its finding) isn't flagged; an undeclared one is
-        run = j2.J2Run()
-        run.goal = {"done_when": ["A", "B"]}
-        run.audits = [{"results": [{"id": "F-2", "item": 2}]}]
-        run.workflows = [{"status": "done", "covers": [1]}, {"status": "done", "fixes": ["F-2"]}]
-        rows = [{"item": 1, "pass": True, "criterion": "A"}, {"item": 2, "pass": True, "criterion": "B"}]
-        run._flag_unpaid(rows)
-        assert all(r["pass"] for r in rows), rows
-        run.workflows = run.workflows[:1]
-        run._flag_unpaid(rows)
-        assert rows[0]["pass"] and rows[1]["verdict"] == "UNPAID", rows
+        assert pay["cost"] == j2.similar_usage(pay), pay
+        assert run.outcome.startswith("Done"), run.outcome
+        assert not any(r["verdict"] == "UNPAID" for a in run.audits for r in a["results"])
     finally:
         os.environ["J2_FIXES"] = mode
 
@@ -1776,7 +1855,7 @@ def playbooks():
         n = len(j2.load_playbooks())
         os.environ["J2_FORCE_AUDIT_FAIL"] = "2"            # a test run: its playbook is flagged and not reused
         run = j2.J2Run()
-        run.budget = 150
+        run.budget = max(run.budget, 150)   # the token budget (20M) is already more than enough
         say(run, BREW_LAB)
         add_budget_if_asked(run)
         os.environ.pop("J2_FORCE_AUDIT_FAIL")
@@ -1841,7 +1920,7 @@ def page():
     try:
         j2_server.RUN.reset()
         say(j2_server.RUN, BREW_LAB + " Test key: sk-test-not-a-real-key-123")
-        html = get("/")
+        html = get("/legacy")      # the old page moved to /legacy; / is the new ui/
         for x in ('data-tab="timeline"', 'data-tab="lessons"', 'id="lanes"', 'id="detail"', "renderLanes", "openDetail",
                   "renderTimeline", 'id="runsel"', "clear-lessons", "--wf0"):
             assert x in html, x
@@ -1855,7 +1934,8 @@ def page():
         assert ids[:6] == list(j2.FUNCTIONS) and set(ids[6:]) == {w["id"] for w in st["workflows"]}, ids
         assert all(x["status"] == "idle" for x in st["lanes"]), [x["status"] for x in st["lanes"]]
         w1 = next(x for x in st["lanes"] if x["id"] == "W-1")["progress"]
-        assert w1["section"] == "W-1" and w1["attempts"] == 1 and "usable section" in w1["last_check"], w1
+        # W-1's calls: the style guide step (6a), then its section
+        assert w1["section"] == "W-1" and w1["attempts"] == 2 and "usable section" in w1["last_check"], w1
         # detail view data: every AI message links its calls; each call has inputs, a reason, time; tokens or None
         ai = [m for m in st["chat"] if m.get("calls")]
         assert ai and all(m["step"] for m in st["chat"] if m["who"] not in ("user", "system")), \
@@ -1865,7 +1945,10 @@ def page():
             for cid in m["calls"]:
                 c = log[cid]
                 assert c["fn"] == m["who"] and c["inputs"] and c["reason"] and c["seconds"] >= 0, c
-        assert all(c["tokens"] is None for c in st["call_log"]), "mock mode must not invent token counts"
+        # mock mode reports the fake meter (about 4 characters a token), so the budget logic is testable offline;
+        # the model stays None (no real model answered)
+        assert all(c["tokens"]["input"] > 0 and c["usage"]["total"] == c["tokens"]["input"] + c["tokens"]["output"]
+                   and c["model"] is None and c["phase"] in j2.PHASES for c in st["call_log"]), "mock meter on every call"
         assert any(m.get("charged") for m in st["chat"] if m["who"] == "validator"), "budget charged per step"
         full = json.loads(get(f"/api/call?id={ai[0]['calls'][0]}"))
         assert full["system"] and full["prompt"] and full["raw"], full.keys()
@@ -1886,7 +1969,8 @@ def page():
         assert sv["saved"] == name and sv["status"] == "saved" and sv["total"] == st["total"] and sv["lanes"], sv["status"]
         assert sv["workable"] == [] and sv["call_log"] and "prompt" not in sv["call_log"][0]
         assert "J2:W-1" in get(f"/site/latest?run={name}")
-        assert json.loads(get(f"/api/call?id=1&run={name}"))["id"] == 1
+        first = sv["call_log"][0]["id"]       # the output classifier's call (step 8, an extra call) comes first
+        assert json.loads(get(f"/api/call?id={first}&run={name}"))["id"] == first
         for bad in ("../memory", "j2-../../etc", "nope"):
             try:
                 get(f"/api/state?run={bad}")
@@ -1904,6 +1988,7 @@ def page():
         os.environ.pop("J2_TEST_API_KEY", None)
 
 
+@credit_world
 def limit_answers():
     """runs/j2-20261008-110419: the Requester answered a limit question while the cycle was at its turn cap, and the
     cap fired again before the answer was handled, so Identity re-asked forever. Now every answer is handled:
@@ -1912,15 +1997,15 @@ def limit_answers():
         old, os.environ["J2_FIXES"] = os.environ.get("J2_FIXES"), "0"   # fix (a) asks about a ruling first
         run = j2.J2Run()
         os.environ["J2_FIXES"] = old
-        run.budget = 12                          # out of budget after the first cycle: a limit question
+        run.budget = 12 * CREDIT                 # out of budget after the first cycle: a limit question
         say(run, BREW_LAB)
         assert run.paused and run.paused["kind"] == "limit", run.outcome
         run.cycle_turns = j2.MAX_TURNS           # the live run's state when the Requester answered
         return run
     run = at_cap()
     say(run, "i want a different option so go with 25 units")
-    assert run.raises and run.raises[0]["asked"] == 25 and run.raises[0]["to"] == 37, run.raises
-    assert "25 units" in run.raises[0]["why"] and run.decisions[0]["budget_added"] == 25, run.decisions
+    assert run.raises and run.raises[0]["asked"] == 25 * CREDIT and run.raises[0]["to"] == 37 * CREDIT, run.raises
+    assert "25 units" in run.raises[0]["why"] and run.decisions[0]["budget_added"] == 25 * CREDIT, run.decisions
     assert not any(e["type"] == "limit" and "turns" in e["detail"] for e in run.events), "turn cap fired on the answer"
 
     run = at_cap()
@@ -1946,9 +2031,10 @@ def nine_workflows():
     site is "Done", never "Done with open items" with an empty list."""
     def nine(cap=None):
         old, os.environ["J2_FIXES"] = os.environ.get("J2_FIXES"), "0"
+        os.environ["J2_PARALLEL"] = "1"      # the turn cap is about one builder per turn (6b batches use fewer turns)
         run = j2.J2Run()
         os.environ["J2_FIXES"] = old
-        run.budget, orig = 400, run.call
+        orig = run.call            # the token budget (20M) is more than enough
         if cap:
             run._turn_cap = lambda: cap
 
@@ -1968,7 +2054,10 @@ def nine_workflows():
                         "workflows": j2.with_atoms(wfs + [wf(f"Extra {i}", i) for i in rest][:9 - len(wfs)])}
             return orig(fn, fmt, task, mock, **k)
         run.call = call
-        say(run, BREW_LAB)
+        try:
+            say(run, BREW_LAB)
+        finally:
+            os.environ.pop("J2_PARALLEL", None)
         return run
     run = nine()
     assert len(run.workflows) == 9 and all(w["cycle"] == 1 and w["status"] == "done" for w in run.workflows), run.workflows
@@ -1983,6 +2072,7 @@ def nine_workflows():
     assert run._ship_outcome("on the Requester's decision") == j2.WORKABLE_OUTCOME
 
 
+@credit_world
 def budget_cap():
     """The cap shows in the option text; an option that adds budget the cap won't allow is never offered, and
     "keep working" isn't offered when it can't fund anything or when it already changed nothing. When that leaves
@@ -1992,18 +2082,18 @@ def budget_cap():
     run._ask_user("x", [q], "question")             # only the decision question may carry money
     assert "budget" not in run.paused["questions"][0], run.paused
     run.sites = ["<!doctype html><p>v1</p>"]       # a site exists, so "finish as it is" is an option
-    run.budget = j2.BUDGET_CAP - 40                 # Identity says 78 is needed; the cap allows 40
-    run._identity_limit({"reason": "Adaptation asked", "budget_needed": 78})
+    run.budget = j2.BUDGET_CAP - 40 * CREDIT        # Identity says 78 is needed; the cap allows 40
+    run._identity_limit({"reason": "Adaptation asked", "budget_needed": 78 * CREDIT})
     o = run.paused["questions"][0]["options"][0]
-    assert o.startswith("Add 40 work credits (the most allowed)") and run.paused["questions"][0]["budget"][0] == 40, o
+    assert o.startswith(f"Add {usage_words(40)} (the most allowed)") and run.paused["questions"][0]["budget"][0] == 40 * CREDIT, o
     def only_finish(h):                         # one option left: applied by code, never a one-option question
         n, run.paused = len(run.chat), None
         run._identity_limit(h)
         assert any(m["text"].startswith("Only one option was possible (Finish as it is") for m in run.chat[n:]), run.chat[n:]
         assert run.outcome.startswith("Done with open items: shipped as is as the only option") and not run.paused, run.outcome
     run.budget = j2.BUDGET_CAP
-    only_finish({"reason": "Adaptation asked", "budget_needed": 78})
-    cheapest = min(j2.RATES.values())
+    only_finish({"reason": "Adaptation asked", "budget_needed": 78 * CREDIT})
+    cheapest = run._min_share()
     run.spent = run.budget - cheapest + 1                       # less than the cheapest part left, no room to add
     only_finish({"reason": "Out of budget", "out_of_budget": True})
     run.spent = 0                                               # money left: keep working is offered once
@@ -2026,13 +2116,14 @@ def repeats():
     assert run.chat[-1]["who"] == "adaptation" and not run.relay
 
 
+@credit_world
 def adaptation_idle():
     """runs/j2-20261008-110419 msgs 93-103: with less left than the cheapest part, Adaptation said it could propose
     nothing, Identity answered, and Adaptation was asked again, four times. Once it has said so, it isn't asked again
     until something changes (budget raised, item dropped, a new Requester answer); Identity asks the Requester."""
     run = j2.J2Run()
     run.goal = {"done_when": ["The menu with prices is shown", "Opening hours are listed"]}
-    run.budget, run.spent = 40, 38
+    run.budget, run.spent = 40 * CREDIT, 38 * CREDIT
     asked = []
 
     def call(fn, fmt, task, mock, **k):
@@ -2059,6 +2150,7 @@ def adaptation_idle():
         assert len(asked) > n, "a change must let Adaptation re-plan"
 
 
+@credit_world
 def identity_decisions():
     """runs/j2-20261008-123848: when the money ran out, Identity asked its own free-form question (msgs 22, 48), so
     code applied nothing: "2. Add 25 more. Leave out ..." added nothing and the items came back (msg 24 -> 56), and
@@ -2077,7 +2169,7 @@ def identity_decisions():
                                                 "smaller amount and drop some parts. Option 3: Finish as is."]}
             return orig(fn, fmt, task, mock, **k)
         run.call = call
-        run.budget = 12
+        run.budget = 12 * CREDIT
         say(run, BREW_LAB)
         if built:       # below the floor: the funded work is built and audited before the decision question
             built_first(run)
@@ -2090,7 +2182,7 @@ def identity_decisions():
     n = len(run.chat)
     gone = [c for c in run.goal["done_when"] if re.search(r"opening hours|loyalty|beans", c, re.I)]
     say(run, "2. Add 25 more. Leave out the opening hours, loyalty-card explainer and beans.")
-    assert run.raises and run.raises[0]["asked"] == 25 and run.raises[0]["from"] == 12, run.raises
+    assert run.raises and run.raises[0]["asked"] == 25 * CREDIT and run.raises[0]["from"] == 12 * CREDIT, run.raises
     g = run.goal
     assert len(gone) == 3 and all(c not in g["done_when"] for c in gone), g["done_when"]
     assert [x["criterion"] for x in g["dropped_reasons"]] == gone, g["dropped_reasons"]
@@ -2126,6 +2218,7 @@ def plain_for_requester(run):
         assert len(qs) <= 1 and len(re.findall(r"^\s+Option \d+:", m["text"], re.M)) <= 3, m["text"]
 
 
+@credit_world
 def two_audiences():
     """Item 4, corrected: one message, one addressee, the tag matches the text. (a) Live run 8 Oct 14:06 sent "@Adaptation
     Thanks, I have everything I need. I'll start building..." as one message: it becomes one @Requester and one
@@ -2155,7 +2248,7 @@ def two_audiences():
             return orig(fn, fmt, task, first, **k)
         return orig(fn, fmt, task, mock, **k)
     run.call = call
-    run.budget = 12
+    run.budget = 12 * CREDIT
     say(run, BREW_LAB)
     ch = next(i for i, m in enumerate(run.chat) if m.get("artifact") == "charter")
     pair = run.chat[ch - 1:ch + 1]
@@ -2175,6 +2268,7 @@ def two_audiences():
     plain_for_requester(run)
 
 
+@credit_world
 def simple_messages():
     """Item 5: what the Requester reads is short and plain; one question, at most 3 options; the decision question's
     options say what they get."""
@@ -2191,7 +2285,7 @@ def simple_messages():
     assert "?" not in run.chat[-1]["text"].split("\n")[0], run.chat[-1]["text"]
     run._ask_user("Pick one.", [{"question": "Which?", "options": ["a", "b", "c", "d"]}], "question")
     assert run.paused["questions"][0]["options"] == ["a", "b", "c"], run.paused
-    run.budget, run.spent = 40, 38
+    run.budget, run.spent = 40 * CREDIT, 38 * CREDIT
     run._identity_limit({"reason": "Out of budget", "out_of_budget": True})
     opts = run.paused["questions"][0]["options"]                # no site yet: "stop here", never "finish"
     assert opts[0].startswith("Add ") and "you get" in opts[0] and opts[-1].startswith("Stop here: nothing is built"), opts
@@ -2202,6 +2296,7 @@ def simple_messages():
     plain_for_requester(run)
 
 
+@credit_world
 def owner_override():
     """Item 6: a message starting with J2_OVERRIDE_KEY and a command is applied by code; the key is never posted,
     stored or sent to an agent, and the server redacts it."""
@@ -2212,12 +2307,12 @@ def owner_override():
     try:
         run = j2.J2Run()
         os.environ["J2_FIXES"] = old
-        run.budget = 12
+        run.budget = 12 * CREDIT
         say(run, BREW_LAB)
         assert run.paused and run.paused["kind"] == "limit"
-        say(run, f"{key} budget +500")
-        assert run.budget == 512 and run.raises[-1]["override"] and run.budget > j2.BUDGET_CAP, run.raises
-        assert run.chat[-1]["text"].startswith("Owner override applied: budget +500") and run.paused, run.chat[-1]
+        say(run, f"{key} budget +5M")              # tokens; 300k and plain numbers work too
+        assert run.budget == 12 * CREDIT + 5_000_000 and run.raises[-1]["override"] and run.budget > j2.BUDGET_CAP, run.raises
+        assert run.chat[-1]["text"].startswith("Owner override applied: budget +5000000 tokens") and run.paused, run.chat[-1]
         crit = run.goal["done_when"][1]
         say(run, f"{key} drop 2")
         assert crit not in run.goal["done_when"] and run.goal["dropped_reasons"][-1]["reason"] == "Owner override"
@@ -2299,6 +2394,7 @@ def listed_gaps(text):
     return [ln[2:] for ln in text.split("\n") if ln.startswith("- ")]
 
 
+@credit_world
 def limit_wording():
     """Run 20261008-154537: msg 5 printed "1.\n1." (Identity's own numbered list plus code's); msgs 45/46 paused at
     the per-cycle turn cap with a money banner although no money option was offered, and "1 thing still not right"
@@ -2315,6 +2411,7 @@ def limit_wording():
     old, os.environ["J2_FIXES"] = os.environ.get("J2_FIXES"), "0"
     run = j2.J2Run()
     os.environ["J2_FIXES"] = old
+    run.budget = 100 * CREDIT                                 # the old default budget, under the old cap
     say(run, BREW_LAB)
     run.audits[-1]["results"][0].update(verdict="NEEDS_REVISION", **{"pass": False})
     run.audits[-1]["results"][2].update(verdict="NEEDS_REVISION", **{"pass": False})
@@ -2332,9 +2429,10 @@ def limit_wording():
     run._identity_limit({"reason": "Out of budget", "out_of_budget": True})
     q = run.paused["questions"][0]
     assert q["question"].startswith("The work you approved is used up. Add more and keep going"), q["question"]
-    assert re.match(r"Add \d+ work credits", q["options"][0]) and all("you get" in o for o in q["options"]), q["options"]
+    assert re.match(r"Add about [\d.]+[kM]? usage", q["options"][0]) and all("you get" in o for o in q["options"]), q["options"]
 
 
+@credit_world
 def open_list():
     """Follow-up to 6e5aa59 (run 20261008-154537 msg 45: the audit had 1 problem, but reviews, styling and menu links
     weren't built yet). The list combines the last audit's failures with every checklist item an unfinished workflow
@@ -2390,7 +2488,7 @@ def covers_by_text():
     os.environ["J2_FIXES"] = old
     say(run, BREW_LAB)
     crit = list(run.goal["done_when"])
-    run.budget, run.p_refused = 500, {}
+    run.p_refused = {}
     reg, refused, _ = run._register([
         {"name": f"Item {i}", "goal_gap": crit[i - 1], "outputs": ["x"], "completion_check": "y", "atoms": ATOM,
          "parts": ["form" if "form" in crit[i - 1].lower() else "page_section"], "covers": [i]} for i in (4, 5, 6)])
@@ -2416,6 +2514,7 @@ def covers_by_text():
     assert run._wf_items(reg[1]) == [4] and run._open_list(run.audits[-1], []), "old workflows use their numbers"
 
 
+@credit_world
 def readable_decision():
     """Follow-up to bab0ca7: the decision question is readable without shortening the gaps. (1) one gap per line,
     full text, after at most 2 sentences, then the question and options; (2) no "1." before the question; (3) work
@@ -2424,6 +2523,7 @@ def readable_decision():
     old, os.environ["J2_FIXES"] = os.environ.get("J2_FIXES"), "0"
     run = j2.J2Run()
     os.environ["J2_FIXES"] = old
+    run.budget = 100 * CREDIT                                   # the old default budget, under the old cap
     say(run, BREW_LAB)                                          # done and workable: a clean last audit
     run.spent = run.budget                                      # then out of money: add / leave out / finish
     crit = run.goal["done_when"]
@@ -2451,8 +2551,8 @@ def readable_decision():
     assert lines[i + 1 + len(gaps)] == q["question"] and lines[i + 2 + len(gaps)].startswith("   Option 1: "), lines
     # (2) no "1." before the question
     assert not any(re.match(r"\d+\. ", ln) for ln in lines), lines
-    # (3) work credits, never units
-    assert "work credits" in q["options"][0] and not re.search(r"\bunits?\b", text), text
+    # (3) usage, never units or credits
+    assert "usage" in q["options"][0] and not re.search(r"\bunits?\b|\bcredits?\b", text), text
     # (5) counts: the header explains the mix; finish counts the whole list; leave-out explains the difference
     assert lines[i] == f"Still not right ({len(gaps)}: 2 built but failing, 3 not built yet):", lines[i]
     assert f"with {len(gaps)} things still not right: " in q["options"][-1], q["options"]
@@ -2492,7 +2592,7 @@ def prd_run():
     os.environ["J2_OUTPUT"] = "prd"
     try:
         run = j2.J2Run()
-        assert run.output == "prd" and run.doc and j2.RATES == {"doc_section": 10, "requirements_section": 48, "fix": 8}
+        assert run.output == "prd" and run.doc and not hasattr(j2, "RATES") and run.usage_view()["measure"] == "tokens"
         say(run, PRD_BRIEF)
     finally:
         os.environ.pop("J2_OUTPUT")
@@ -2509,9 +2609,9 @@ def prd_run():
     assert (s["conditions"]["met"], s["conditions"]["total"], s["conditions"]["warnings"]) == (7, 8, 1), s["conditions"]
     assert s["export"]["written"], s
     assert s["verification"]["passed"] == 6 and not s["verification"]["failed"] and s["verification"]["checks_run"], s
-    # one workflow per section, one atom each, priced from the document rate card
+    # one workflow per section, one atom each, each with what a document section usually uses
     assert [w["name"] for w in run.workflows] == [f"Write {x}" for x in j2.PRD_SECTIONS], run.workflows
-    assert all(len(w["atoms"]) == 1 for w in run.workflows) and run.spent == 98, run.spent
+    assert all(len(w["atoms"]) == 1 for w in run.workflows) and run.spent > 0 and all(w["cost"] == j2.similar_usage(w) for w in run.workflows), run.spent
     md = open(os.path.join(run.dir, "prd.md"), encoding="utf-8").read()
     assert md.startswith("# QuickQueue") and [h for lv, h, _ in j2.md_sections(md) if lv == 2] == list(j2.PRD_SECTIONS)
     assert "1. **R1**:" in md and "<" not in md, md
@@ -2523,7 +2623,7 @@ def prd_run():
     assert [r["id"] for r in a["rubric"]] == ["D-1", "D-2", "D-3", "D-4", "D-5"] and not a["mechanical"], a["rubric"]
     assert a["output"] == "prd" and a["read"] and a["conditions"] == conds, a
     assert not any(m["text"].startswith("Mechanical check") for m in run.chat)
-    calls = [json.loads(x) for x in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8")]
+    calls = [json.loads(x) for x in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") if '"extra": true' not in x]
     for c in calls:
         text = c["system"] + c["prompt"]
         assert "tap-targets" not in text and "Tap targets are big enough" not in text and "R-6" not in text, c["fn"]
@@ -2549,7 +2649,7 @@ def prd_run():
         bad = run._atom_problems({"atoms": [{**atom, "verification": [{"text": "x", **chk}]}]})
         assert len(bad) == 1 and why in bad[0], (chk, bad)
     # a website run after it is a website again
-    assert j2.J2Run().output == "website" and "page_section" in j2.RATES
+    assert j2.J2Run().output == "website" and "page_section" in j2.j2_usage.table(j2.RUNS_DIR)[0]
     show(run)
     return run
 
@@ -2735,12 +2835,13 @@ def prd_recovery():
     saved = json.load(open(os.path.join(run.dir, "workflows.json"), encoding="utf-8"))[0]
     assert all(c["target"] == "Problem" for c in saved["atoms"][0]["verification"] if c["type"] in j2.HEADING_CHECKS)
     recs = [r for r in run.receipts if r["atom"] == "W-1.a1" and r["type"] in j2.HEADING_CHECKS]
-    assert recs and all(r["target"] == "Problem" and r["pass"] for r in recs) and seen["W-1"] == 1, recs
+    # W-1's calls: the house style step (6a), then its one section
+    assert recs and all(r["target"] == "Problem" and r["pass"] for r in recs) and seen["W-1"] == 2, recs
 
     # (2) a wrong target fails twice with the same evidence (no third attempt): code checks the obvious case, CHECK_WRONG, re-run on the same document
     run, seen = prd(target("Problem section"))
     assert run.outcome.startswith("Done: the PRD is workable"), run.outcome
-    assert seen["W-1"] == 2, seen                      # no new build after the correction
+    assert seen["W-1"] == 3, seen                      # the house style, two builds, no new build after the correction
     assert any(e["type"] == "check_wrong_default" for e in run.events), run.events
     note = next(m for m in run.chat if m["text"].startswith("Code checked the obvious case first"))
     assert "'Problem section' passes as the heading text 'Problem'" in note["text"], note["text"]
@@ -2768,7 +2869,7 @@ def prd_recovery():
     retry = [c for c in calls_of(run) if "YOUR LAST REPLY COULD NOT BE USED" in c["prompt"]]
     assert len(retry) == 1 and '"revises": "W-1"' in retry[0]["prompt"], retry
     fix = next(w for w in run.workflows if w.get("revises") == "W-1")
-    assert fix["name"] == "Revise W-1 Write Problem" and fix["cost"] == j2.RATES["fix"] and fix["status"] == "done", fix
+    assert fix["name"] == "Revise W-1 Write Problem" and fix["cost"] == j2.similar_usage({"parts": ["fix"]}) and fix["status"] == "done", fix
     assert any(m["text"].startswith("Adaptation's reply couldn't be used twice") for m in run.chat)
     md = open(os.path.join(run.dir, "prd.md"), encoding="utf-8").read()
     assert "## Problem" in md and "## Background" not in md, md[:300]
@@ -2792,7 +2893,7 @@ def prd_recovery():
     run.paused = None
     for r in last["results"][1:4]:
         r.update(verdict="PASS", **{"pass": True})
-    run.last_limit = {"state": (len(run.sites), len(run.workflows), run.spent), "decision": "continue"}
+    run.last_limit = {"state": (len(run.sites), len(run.workflows)), "decision": "continue"}
     run._identity_limit({"reason": "The same failure came back twice."})
     q = run.paused["questions"][0]
     assert q["question"].startswith("The last round produced no new work"), q
@@ -2818,7 +2919,7 @@ def prd_page():
         assert json.loads(post("/api/output", {"type": "prd"}).read())["output"] == "prd"
         st = json.loads(get("/api/state"))
         assert st["output"] == "prd" and st["output_label"] == "PRD document" and st["doc"], st["output"]
-        html = get("/").decode()
+        html = get("/legacy").decode()
         assert 'id="outsel"' in html and 'id="otype"' in html and 'id="doclinks"' in html and "/api/output" in html
         say(j2_server.RUN, PRD_BRIEF)
         try:
@@ -2841,7 +2942,8 @@ def prd_page():
         j2_server.RUN.set_output("website")
         j2_server.RUN.reset()                    # the PRD run is now a saved run
         sv = json.loads(get(f"/api/state?run={name}"))
-        assert sv["output"] == "prd" and sv["versions"] == 6 and sv["files"] == ["prd.md", "prd.docx"], sv["output"]
+        # 6b: six sections in two parallel batches of three: the document is assembled once per batch
+        assert sv["output"] == "prd" and sv["versions"] == 2 and sv["files"] == ["prd.md", "prd.docx"], (sv["output"], sv["versions"], sv["files"])
         assert "<h2>Requirements</h2>" in get(f"/site/latest?run={name}").decode()
         assert get(f"/file/prd.docx?run={name}")[:2] == b"PK"
         try:
@@ -3178,14 +3280,14 @@ def run_20261015_fixes():
     assert "THE VALIDATOR REQUIRES" in text and "goal_gap" in text and "completion_check" in text
     ex = json.loads(text.split("passes):\n", 1)[1])
     run = j2.J2Run()
-    run.budget, run.goal = 500, {"done_when": ["A contact form is on the page"]}
+    run.goal = {"done_when": ["A contact form is on the page"]}
     assert not run._atom_problems(ex), run._atom_problems(ex)
-    reg, refused, _ = run._register([{**ex, "envelope": {"money_limit": 20}}])
+    reg, refused, _ = run._register([{**ex, "envelope": {"token_share": 20000}}])
     assert reg and not refused and not run.rejections, (refused, run.rejections)
 
     # 2: W-1 owns #register; W-2's check on #register fails with the same evidence twice: no attempt 3
     run = j2.J2Run()
-    run.budget, run.goal = 500, {"done_when": ["a", "b"]}
+    run.goal = {"done_when": ["a", "b"]}
     run.sections = {"W-1": {"owner": "W-1 Builder", "head": "", "body": '<section id="register">x</section>',
                             "workflow": "Placeholder"}}
     w1 = {"id": "W-1", "section": "W-1", "atoms": [{"id": "W-1.a1"}], "status": "done"}
@@ -3216,7 +3318,7 @@ def run_20261015_fixes():
 
     # 3: "done." alone is rejected and asked for once more; the next speaker is set by code even when missing
     run = j2.J2Run()
-    run.budget, run.goal = 500, {"done_when": ["a"]}
+    run.goal = {"done_when": ["a"]}
     reg, _, _ = run._register([{"name": "Hero", "goal_gap": "x", "outputs": ["y"], "completion_check": "z",
                                 "atoms": ATOM, "parts": ["fix"]}])
     wid, orig, asked = reg[0]["id"], run.call, []
@@ -3240,7 +3342,7 @@ def run_20261015_fixes():
 
 
 def calls_file(run):
-    return [json.loads(l) for l in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8")]
+    return [json.loads(l) for l in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") if '"extra": true' not in l]
 
 
 def atom_outputs():
@@ -3848,7 +3950,7 @@ def fresh_page_run():
             import subprocess
             for q in ("?view=detail", f"?view=detail&run={rid}", "?view=simple"):
                 dom = chrome_dom([j2.j2_check.find_chrome(), "--headless=new", "--disable-gpu", "--virtual-time-budget=6000",
-                                      "--dump-dom", base + "/" + q], capture_output=True, text=True, timeout=90).stdout
+                                      "--dump-dom", base + "/legacy" + q], capture_output=True, text=True, timeout=90).stdout
                 assert re.search(r'id="sstatus">\s*</', dom) and 'class="oops"' not in dom.split("</script>")[-1], q
     finally:
         j2_server.RUN = keep
@@ -4138,7 +4240,7 @@ CHECKPOINT = "0657d93"         # the commit before the design-document work: a p
 def docs_run(text, budget=900, patch=None):
     """A mock run of a brief; patch(run, orig_call) returns a replacement for run.call."""
     run = j2.J2Run()
-    run.budget = budget
+    run.budget = max(run.budget, budget)   # the token budget (20M) is already more than enough
     if patch:
         run.call = patch(run, run.call)
     say(run, text)
@@ -4150,8 +4252,14 @@ def docs_files(run):
 
 
 def docs_detection():
-    """1: documents only when asked, by explicit terms. Set requests mean all three; naming some makes exactly those."""
-    d = j2.detect_documents
+    """1 + step 8: what to make is the output classifier's reading of the message (agents/j2/output-classifier.md),
+    never keyword detection in the real path. Mock mode reads it with simple matching inside the mock reply only, so
+    these cases stay deterministic: set requests mean all three; naming some makes exactly those; other senses of
+    'design' make none. A confident reading is used as it is; an unsure one becomes a confirm decision."""
+    assert not any(hasattr(j2, n) for n in ("detect_documents", "wants_site", "_DOC_WORDS", "_SITE_WORDS", "_DOC_SET_WORDS"))
+    assert not hasattr(j2.j2_send, "detect_deeds") and not hasattr(j2.j2_send, "asks_updates")
+    assert "mock_output_reply" in inspect.getsource(j2.J2Run._classify_output)     # matching lives in the mock reply only
+    d = lambda t: [k for k in j2.clean_output_choice(json.loads(j2.mock_output_reply(t)))["stages"] if k != "website"]
     assert d(BREW_LAB) == [] and d("") == [] and d(None) == []
     for t in ("design docs", "Please write the design documents", "design documentation for my app", "I need full documentation",
               "DESIGN DOCS, please"):
@@ -4163,11 +4271,22 @@ def docs_detection():
     for t in ("a modern design", "design a logo", "I like the design of your site", "design principles", "designing a menu",
               "clean design, warm colours", "a designer will review it"):
         assert d(t) == [], t
-    assert j2.wants_site("docs for my website") and not j2.wants_site("design docs for the app")
-    # a plain website brief creates none
+    st = lambda t: j2.clean_output_choice(json.loads(j2.mock_output_reply(t)))["stages"]
+    assert st("docs for my website") == ["website"] and st("design docs for the app") == ["prd", "hld", "lld"]
+    assert st("PRD and a landing page") == ["prd", "website"]
+    c = j2.clean_output_choice({"stages": ["website", "lld", "nonsense", "prd"], "confident": True, "why": "x"})
+    assert c["stages"] == ["prd", "lld", "website"] and c["confident"]
+    assert j2.clean_output_choice({"stages": [], "confident": True}) == {**j2.clean_output_choice({}), "why": ""} \
+        and not j2.clean_output_choice({"stages": []})["confident"], "nothing usable: a website, and not confident"
+    # a plain website brief creates none; the classifier's call is counted (planning) and recorded
     run = docs_run(BREW_LAB, 200)
     assert run.outcome.startswith("Done") and not run.docset and not run.stages and not docs_files(run), (run.outcome, docs_files(run))
     assert not os.path.exists(os.path.join(run.dir, "documents.json")) and not run.past_workflows
+    rows = j2._jsonl(run.dir, "calls.jsonl")
+    assert [r for r in rows if r.get("fn") == "output-classifier" and r.get("extra") and r["phase"] == "planning"], \
+        "the output classifier's call is counted"
+    assert run.output_choice["stages"] == ["website"] and run.output_choice["confident"]
+    assert json.load(open(os.path.join(run.dir, "output-choice.json")))["stages"] == ["website"]
     # "design docs" creates all three, in order; "write a PRD" only the PRD; "HLD and LLD" those two
     run = docs_run("Design docs for Campus Notes." + CAMPUS, 400)
     assert run.outcome.startswith("Done") and list(run.docs) == ["prd", "hld", "lld"], (run.outcome, list(run.docs))
@@ -4177,14 +4296,42 @@ def docs_detection():
     run = docs_run("Write the HLD and LLD for Campus Notes." + CAMPUS, 400)
     assert run.outcome.startswith("Done") and list(run.docs) == ["hld", "lld"] and docs_files(run) == \
         ["hld.docx", "hld.md", "lld.docx", "lld.md"], (run.outcome, docs_files(run))
-    # answers count too, before the charter exists
+    # picked explicitly (the legacy page, /api/output): kept, and the classifier isn't asked
     run = j2.J2Run()
-    run.request = "A site for a cafe"
-    run.intake = [{"asked": ["anything else?"], "answer": "Yes, an HLD as well"}]
-    run._plan_stages()
-    assert run.docset == ["hld"] and run.output == "hld"
-    print("documents on request only: set requests, single requests, other senses of 'design', a plain brief (none), "
-          "'design docs' (3), 'write a PRD' (1), 'HLD and LLD' (2) ok")
+    assert run.set_stages(["website", "prd"]) and run.stages == ["prd", "website"] and run.output == "prd"
+    assert run.set_stages(["nothing"]) is False
+    run.request = "Write an HLD for a cafe"
+    assert run._plan_stages() is False and run.stages == ["prd", "website"] and run.calls == 0
+    # unsure: a confirm decision with the reading suggested; Yes keeps it, another option changes it, words are read again
+    with env(J2_FORCE_OUTPUT_UNSURE="1"):
+        run = j2.J2Run()
+        say(run, "Docs for my site, a PRD." + CAMPUS)
+        dec = run.legacy_decision()
+        assert dec and dec["kind"] == "confirm" and dec["happening"] == "A PRD and a website, right?", dec
+        assert [o["id"] for o in dec["options"]][0] == "yes" and dec["options"][0]["suggested"]
+        assert not j2.J2Run.decision_problems(dec), j2.J2Run.decision_problems(dec)
+        assert not run.stages and run.goal is None, "nothing is decided before the answer"
+        assert run.decide(dec["id"], "make:prd")[0]
+        while run.status != "waiting":
+            time.sleep(0.02)
+        assert run.stages == ["prd"] and run.output_choice["confirmed"], run.stages
+        run = j2.J2Run()
+        say(run, "Something for my cafe." + CAMPUS)
+        dec = run.legacy_decision()
+        assert dec["kind"] == "confirm" and dec["happening"] == "A website, right?"
+        assert run.decide(dec["id"], None, "Actually I want the design docs")[0]
+        while run.status != "waiting":
+            time.sleep(0.02)
+        assert run.stages == ["prd", "hld", "lld"] and run.output_choice["confirmed"], run.stages
+        run = j2.J2Run()
+        run.set_no_questions(True)
+        say(run, "Something for my cafe." + CAMPUS)
+        assert run.output_choice and run.output_choice["stages"] == ["website"] and not (run.paused and
+                                                                                        run.paused.get("kind") == "question")
+        assert any(m.get("auto_decision") for m in run.chat), "no questions: the reading is taken, logged backstage"
+    print("documents on request only (step 8): the classifier's reading, set and single requests, other senses of "
+          "'design', a plain brief (none, call counted), 'design docs' (3), 'write a PRD' (1), 'HLD and LLD' (2), picked "
+          "outputs kept, an unsure reading confirmed (yes, another option, typed words, no questions) ok")
 
 
 def docs_chain():
@@ -4408,10 +4555,16 @@ def plain_unchanged(checkpoint=None, slim=None, board=None):
              "r = j2.J2Run()\n"
              "r.user_says(sys.stdin.read())\n"
              "while r.status != 'waiting': time.sleep(0.02)\n"
-             "rows = [json.loads(l) for l in open(os.path.join(r.dir, 'calls.jsonl'), encoding='utf-8')]\n"
+             "rows = [json.loads(l) for l in open(os.path.join(r.dir, 'calls.jsonl'), encoding='utf-8') if not json.loads(l).get('extra')]\n"
              "h = lambda t: hashlib.sha256(re.sub(r'\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d', 'T', t).encode()).hexdigest()[:12]\n"
-             "print(json.dumps({'outcome': r.outcome, 'spent': r.spent, 'site': h(r.sites[-1]), 'sections': h(json.dumps(r.sections, sort_keys=True)),\n"
-             "  'calls': [[c['fn'], h(c['system']), h(c['prompt'])] for c in rows],\n"
+             # 6a: the style guide's CSS (now with motion) is left out of the page and section hashes; the guide is
+             # compared as data elsewhere (style_guide)
+             "nostyle = lambda t: re.sub(r'<!-- J2:style head start.*?<!-- J2:style head end -->', '', t, flags=re.S)\n"
+             # the mock form input's box-sizing (an overflow fix after the checkpoint) is left out of both hashes too
+             "nofix = lambda t: t.replace(';box-sizing:border-box', '')\n"
+             "secs = {k: v for k, v in r.sections.items() if k != 'style'}\n"
+             "print(json.dumps({'outcome': r.outcome, 'spent': r.spent, 'site': h(nofix(nostyle(r.sites[-1]))), 'sections': h(nofix(json.dumps(secs, sort_keys=True))),\n"
+             "  'calls': [[c['fn'], h(c['system']), h(c['prompt']), 'STYLE GUIDE STEP' in c['prompt']] for c in rows],\n"
              "  'workflows': h(json.dumps([{k: v for k, v in w.items() if k not in ('t',)} for w in r.workflows], sort_keys=True))}))\n")
     old = tempfile.mkdtemp(prefix="j2-checkpoint-")
     tar = subprocess.run(["git", "archive", checkpoint, "--", "j2.py", "j2_check.py", "llm.py", "conditions", "agents"]
@@ -4426,9 +4579,12 @@ def plain_unchanged(checkpoint=None, slim=None, board=None):
         pass
     try:
         results = []
-        for cwd in (old, here):
+        for cwd, par in ((old, None), (here, "1"), (here, None)):
             env = {**os.environ, "STUDIO_MOCK": "1", "J2_MEMORY": "0", "J2_FIXES": os.environ.get("J2_FIXES", "0")}
             env.pop("J2_SLIM", None)
+            env.pop("J2_PARALLEL", None)
+            if par:
+                env["J2_PARALLEL"] = par
             if slim is not None:
                 env["J2_SLIM"] = slim
             if board is not None:
@@ -4436,14 +4592,22 @@ def plain_unchanged(checkpoint=None, slim=None, board=None):
             r = subprocess.run([sys.executable, "-c", probe], input=BREW_LAB, cwd=cwd, capture_output=True, text=True, env=env, timeout=300)
             assert r.returncode == 0, r.stderr[-800:]
             results.append(json.loads(r.stdout.strip().splitlines()[-1]))
-        a, b = results
-        assert a["outcome"] == b["outcome"] and a["spent"] == b["spent"] and a["site"] == b["site"] and a["sections"] == b["sections"], (a, b)
-        assert [c[:2] for c in a["calls"]] == [c[:2] for c in b["calls"]], "different agents or system prompts"
-        diff = [i for i, (x, y) in enumerate(zip(a["calls"], b["calls"])) if x != y]
-        assert not diff, f"prompts differ at calls {diff[:5]}"
-        assert a["workflows"] == b["workflows"]
-        print(f"plain brief unchanged: {len(b['calls'])} calls, every system prompt and prompt, the page, the sections, the workflows "
-              f"and the outcome are identical to checkpoint {checkpoint}" + (f" with J2_SLIM={slim}" if slim is not None else "")
+        a, b, c = results
+        # 6a: the style guide is its own step now (one more call by the first builder, before its section); 6b: with
+        # parallel building on (the default, c) independent builders share one Coordination turn. Sequential (b), the
+        # flow is the checkpoint's with the style step left out; parallel, the page, sections and outcome are the same.
+        b["calls"] = [x for x in b["calls"] if not x[3]]
+        assert c["outcome"] == b["outcome"] and c["site"] == b["site"] and c["sections"] == b["sections"], (b, c)
+        assert [x[0] for x in c["calls"] if x[0] != "coordination" and not x[3]] == \
+            [x[0] for x in b["calls"] if x[0] != "coordination"], "parallel: the same agents, apart from Coordination"
+        # The usage budget (j2-logic-fixes-plan.md steps 1-2) changed on purpose what the checkpoint's prompts say about
+        # money (tokens, token shares, no rate card, no call or retry limits) and what "spent" counts (measured usage, not
+        # credits), so prompts, system prompts, spent and the workflow records are no longer compared. The flow itself
+        # must not move: the same agents speak in the same order, and the page, its sections and the outcome are identical.
+        assert a["outcome"] == b["outcome"] and a["site"] == b["site"] and a["sections"] == b["sections"], (a, b)
+        assert [c[0] for c in a["calls"]] == [c[0] for c in b["calls"]], "different agents or a different order"
+        print(f"plain brief unchanged: {len(b['calls'])} calls by the same agents in the same order, and the page, the "
+              f"sections and the outcome identical to checkpoint {checkpoint}" + (f" with J2_SLIM={slim}" if slim is not None else "")
               + (f" with J2_BOARD={board}" if board is not None else ""))
     finally:
         shutil.rmtree(old, ignore_errors=True)
@@ -4468,7 +4632,7 @@ def charter_crash_fix():
                 "business_type": "studio", "visitor_needs": []}
 
     run = j2.J2Run()
-    run.budget = 300
+    run.budget = max(run.budget, 300)   # the token budget (20M) is already more than enough
     run.request = "A one-page site for a yoga studio called Still Point Yoga."
     calls = {"n": 0}
 
@@ -4533,7 +4697,7 @@ def board_story():
     with open(os.path.join(run.dir, "chat.jsonl"), encoding="utf-8") as f:
         assert json.loads(f.readline())["force_question"] == "order"
     with open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") as f:
-        calls = [json.loads(ln) for ln in f]
+        calls = [json.loads(ln) for ln in f if '"extra": true' not in ln]
     for c in calls:
         seen = (c["system"] + c["prompt"]).lower()
         for bad in ("j2_force_question", "test switch", "forced question"):
@@ -4560,7 +4724,7 @@ def board_run(brief=None, demo=False):
     os.environ["J2_FORCE_QUESTION"] = "identity,priority,audit"
     try:
         run = j2.J2Run()
-        run.budget = 260
+        run.budget = max(run.budget, 260)   # the token budget (20M) is already more than enough
         say(run, brief or BOUTIQUE_HOURS_BRIEF)
         finish(run)
         assert run.outcome.startswith("Done"), run.outcome
@@ -4602,7 +4766,7 @@ def board_functions():
     assert "adaptation" in b[0]["used_by"] and any(r.startswith("W-") for r in b[0]["used_by"]), b[0]
     assert "audit" in b[2]["used_by"], b[2]
     rev = next(w for w in run._all_wfs() if w["name"] == "Visiting hours")
-    assert rev["revises"] == timings and rev["cost"] == j2.RATES["fix"], rev     # a revise, priced as a fix
+    assert rev["revises"] == timings and rev["cost"] == j2.similar_usage({"parts": ["fix"]}), rev     # a revise: what a fix usually uses
     chat = [m for m in run.chat if m["who"] in ("identity", "priority", "audit", "adaptation")]
     assert any(m["who"] == "identity" and "Q-1:" in m["text"] for m in chat), "the ask is in the chat"
     assert any(m["who"] == "adaptation" and "Q-2:" in m["text"] for m in chat), "the answer is in the chat"
@@ -4626,7 +4790,7 @@ def board_functions():
         n6 = next(c for c in json.load(f) if c["id"] == "N6")
     assert n6["met"], n6                      # no invented content: the mock built from the brief only
     with open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") as f:
-        for c in (json.loads(ln) for ln in f):
+        for c in (json.loads(ln) for ln in f if '"extra": true' not in ln):
             seen = (c["system"] + c["prompt"]).lower()
             for bad in ("j2_force_question", "test switch", "identity,priority,audit"):
                 assert bad not in seen, (c["id"], c["fn"], bad)
@@ -4719,34 +4883,26 @@ def validator_fixes():
     # (2) a GRANT that echoes a workflow without its price keeps the price code computed for the table. The live
     # run had no rate card, so the price was Priority's envelope and the echo left nothing behind.
     run, run2 = j2.J2Run(), j2.J2Run()
-    j2.load_rates("website", card=False)      # the live run had no rate card: the price was Priority's envelope
-    try:
-        run.budget, run.spent = 150, 54
-        table = j2.norm([{"id": "p1", "name": "Products, filter and WhatsApp order",
-                          "estimated_resources": {"money": 30},
-                          "envelope": {"money_limit": 30, "model_call_limit": 2}}])
-        assert j2.granted(table[0]) == 30, table
-        echoed = j2.norm([{"id": "p1", "name": "Products, filter and WhatsApp order", "cost": None,
-                           "estimated_resources": None, "envelope": None}])
-        assert j2.granted(echoed[0]) == 0, "the echo as Priority sent it: no price at all"
-        kept, lost = run._kept_price(echoed, table)
-        assert not lost and j2.granted(kept[0]) == 30 and kept[0]["cost"] == 30, (kept, lost)
-        assert (kept[0].get("envelope") or {}).get("model_call_limit") == 2, kept[0]
-        assert any(m["who"] == "system" and "code keeps the price it had already computed" in m["text"] for m in run.chat)
-        lost2 = run._kept_price(j2.norm([{"id": "p9", "name": "No price anywhere"}]), table)[1]
-        assert lost2 == ["No price anywhere"], lost2       # nothing to keep: the reply is re-asked, not the workflow
-        # and the registration that used to say "its cost is 0" now goes through
-        run2.budget, run2.goal = 150, {"statement": "A site", "done_when": ["Products section lists all 8 products"],
-                                       "charter_items": ["Products section lists all 8 products"], "facts": [],
-                                       "to_be_confirmed": []}
-        wf = {**echoed[0], "goal_gap": "No products on the page", "outputs": ["#products"],
-              "completion_check": "8 product cards are on the page", "covers": [1], "atoms": ATOM}
-        assert "its cost is 0" in str(run2._register([dict(wf)])[1]), "without the fix the echo is rejected as cost 0"
-        registered, refused, _ = run2._register(run2._kept_price([wf], table)[0])
-        assert registered and not refused, (registered, refused)
-        assert registered[0]["cost"] == 30 and registered[0]["envelope"]["money_limit"] == 30, registered[0]
-    finally:
-        j2.load_rates("website")      # put the rate card back for the tests after this one
+    table = j2.norm([{"id": "p1", "name": "Products, filter and WhatsApp order",
+                      "estimated_resources": {"tokens": 30000}, "envelope": {"token_share": 30000}}])
+    assert j2.granted(table[0]) == 30000 and not table[0].get("estimated_by"), table
+    echoed = j2.norm([{"id": "p1", "name": "Products, filter and WhatsApp order", "cost": None,
+                       "estimated_resources": None, "envelope": None}])
+    assert echoed[0]["estimated_by"] == "history", "the echo as Priority sent it: no share of its own"
+    kept, lost = run._kept_price(echoed, table)
+    assert not lost and j2.granted(kept[0]) == 30000 and kept[0]["cost"] == 30000, (kept, lost)
+    assert kept[0]["envelope"]["token_share"] == 30000, kept[0]
+    assert any(m["who"] == "system" and "code keeps the price it had already computed" in m["text"] for m in run.chat)
+    alone = run._kept_price(j2.norm([{"id": "p9", "name": "No price anywhere"}]), table)
+    assert alone[1] == [] and alone[0][0]["cost"] == j2.similar_usage({}), alone     # history fills the gap: never 0
+    # and the registration goes through with the share Priority granted for the table, never "cost 0"
+    run2.goal = {"statement": "A site", "done_when": ["Products section lists all 8 products"],
+                 "charter_items": ["Products section lists all 8 products"], "facts": [], "to_be_confirmed": []}
+    wf = {**echoed[0], "goal_gap": "No products on the page", "outputs": ["#products"],
+          "completion_check": "8 product cards are on the page", "covers": [1], "atoms": ATOM}
+    registered, refused, _ = run2._register(run2._kept_price([wf], table)[0])
+    assert registered and not refused, (registered, refused)
+    assert registered[0]["cost"] == 30000 and registered[0]["envelope"]["token_share"] == 30000, registered[0]
     # (3) a board question for the Requester goes to Identity, not refused
     os.environ["J2_BOARD"] = "1"
     try:
@@ -4925,7 +5081,7 @@ def board_doc_prd():
     assert not [a for a in json.load(open(os.path.join(run.dir, "audits.json"), encoding="utf-8"))
                 if a.get("kind") == "recheck"], "no re-check: nothing changed"
     assert any(m["who"] == "system" and "never applied from the board" in m["text"] for m in run.chat), "the chat says so"
-    calls = [json.loads(ln) for ln in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8")]
+    calls = [json.loads(ln) for ln in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") if '"extra": true' not in ln]
     asked = [c for c in calls if c["fn"] == "identity" and "Q-1: the PRD's Requirements section needs changing" in c["prompt"]]
     assert len(asked) == 1, "Identity got the change request on the existing path, once"
     assert any(m["who"] == "identity" and m["text"].startswith("@W-4 Builder") for m in run.chat), \
@@ -5001,14 +5157,14 @@ def board_doc_off():
         assert not any("stale" in a or "rechecked" in a for a in atoms)
 
     def fingerprint(run):
-        calls = [json.loads(ln) for ln in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8")]
+        calls = [json.loads(ln) for ln in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") if '"extra": true' not in ln]
         h = lambda t: hashlib.sha256(re.sub(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d", "T", t).encode()).hexdigest()[:12]
         return ([[c["fn"], h(c["system"]), h(c["prompt"])] for c in calls], run.outcome,
                 [h(open(os.path.join(run.dir, f"{k}.md"), encoding="utf-8").read()) for k in ("prd", "hld", "lld")])
     a, b = fingerprint(plain), fingerprint(switched)
     assert a[1:] == b[1:] and a[0] == b[0], f"{len(a[0])} vs {len(b[0])} calls; first difference: " + str(
         next((i for i, (x, y) in enumerate(zip(a[0], b[0])) if x != y), None))
-    for c in (json.loads(ln) for ln in open(os.path.join(switched.dir, "calls.jsonl"), encoding="utf-8")):
+    for c in (json.loads(ln) for ln in open(os.path.join(switched.dir, "calls.jsonl"), encoding="utf-8") if '"extra": true' not in ln):
         for bad in ("BOARD (", "board_question", "board_used", "artifact_update"):
             assert bad not in c["system"] + c["prompt"], (c["id"], c["fn"], bad)
     print(f"board doc off: with J2_BOARD unset the switch changes nothing: {len(a[0])} calls, the three documents and "
@@ -5422,7 +5578,7 @@ def board_functions_off():
     assert not run.board["entries"] and not os.path.isfile(os.path.join(run.dir, "board.json"))
     assert not os.path.isfile(os.path.join(run.dir, "board.jsonl"))
     with open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") as f:
-        for c in (json.loads(ln) for ln in f):
+        for c in (json.loads(ln) for ln in f if '"extra": true' not in ln):
             for bad in ("BOARD (", "board_question", "board_used"):
                 assert bad not in c["system"] + c["prompt"], (c["id"], c["fn"], bad)
     print("board off: the same brief and change request with J2_BOARD unset write no board file, ask nothing, and "
@@ -5544,17 +5700,25 @@ def stage_question(run):
     return next(m for m in reversed(run.chat) if m.get("act") == "ASK_REQUESTER")["text"]
 
 
+def docs_run_credits(text, credits):
+    run = j2.J2Run()
+    run.budget = credits * CREDIT
+    say(run, text)
+    return run
+
+
+@credit_world
 def docs_funding():
     """The work credits can't cover every document and the site: nothing is skipped by code. The existing decision
     question (add credits, leave out, finish as it is) lists each as an item; the Requester's answer is what is applied."""
     # at the start: asked before anything is planned or built
-    run = docs_run(DESIGN_BRIEF, 120)
+    run = docs_run_credits(DESIGN_BRIEF, 120)
     assert run.paused and run.paused["kind"] == "limit" and not run.workflows and not run.docs, run.outcome
     assert run.stages == ["prd", "hld", "lld", "website"] and run.docset == ["prd", "hld", "lld"], run.stages
     text = stage_question(run)
     for item in ("the product requirements", "the high-level design", "the low-level design", "the website"):
         assert item in text, (item, text)
-    assert text.count("\n- ") == 4 and text.count("needs at least") == 5 and "not covered" in text and "Still not right" not in text, text
+    assert text.count("\n- ") == 4 and text.count("usually needs about") == 5 and "not covered" in text and "Still not right" not in text, text
     opts = run.paused["questions"][0]["options"]
     assert opts[0].startswith("Add ") and opts[1].startswith("Leave out the high-level design, the low-level design and the website") \
         and len(opts) == 2, opts            # nothing is written yet, so "finish as it is" isn't offered
@@ -5562,23 +5726,24 @@ def docs_funding():
     body = text.replace("@Requester ", "", 1)
     assert not SIMPLE_FORBIDDEN.search(body) and not re.search(r"\b(?:HLD|LLD|PRD|W-\d+)\b", body), body
     # leave out what doesn't fit: the PRD alone is made, the decision is recorded
-    run.budget = 120
+    run.budget = 120 * CREDIT
     say(run, "Option 2")
     assert run.outcome.startswith("Done") and run.stages == ["prd"] and list(run.docs) == ["prd"], (run.outcome, run.stages)
     assert run.decisions[-1]["decision"] == "drop" and run.decisions[-1]["left_out"] == ["hld", "lld", "website"]
     assert any(m["text"].startswith("Left out on the Requester's decision") for m in run.chat if m["who"] == "system")
     # add the credits, keep going: asked again between documents when the rest still doesn't fit
-    run = docs_run(DESIGN_BRIEF, 100)
-    assert run.paused and "Add 100 work credits (the most allowed)" in stage_question(run)
+    run = docs_run_credits(DESIGN_BRIEF, 100)
+    assert run.paused and f"Add {usage_words(100)} (the most allowed)" in stage_question(run)
     say(run, "Option 1")
-    assert run.budget == 200 and run.paused and run.stage_kind == "prd" and list(run.docs) == ["prd"], (run.budget, run.outcome)
+    assert run.budget == 200 * CREDIT and run.paused and run.stage_kind == "prd" and list(run.docs) == ["prd"], (run.budget, run.outcome)
     text = stage_question(run)
-    assert "the low-level design (needs at least 88 work credits; not covered)" in text and "the high-level design (needs at least 98 work credits)" in text, text
+    assert f"the low-level design (usually needs {usage_words(88)}; not covered)" in text \
+        and f"the high-level design (usually needs {usage_words(98)})" in text, text
     opts = run.paused["questions"][0]["options"]
     assert [o.split(":")[0] for o in opts] == ["Leave out the low-level design and the website", "Finish as it is"] and "hld.md" not in os.listdir(run.dir)
     assert not any("is left out so" in m["text"] for m in run.chat)
     # finish as it is: what is written stays, the rest is named as not made
-    fin = docs_run(DESIGN_BRIEF, 100)
+    fin = docs_run_credits(DESIGN_BRIEF, 100)
     say(fin, "Option 1")
     say(fin, "Option 2")
     assert fin.outcome.startswith("Done with open items") and "Not made: the high-level design, the low-level design and the website" in fin.outcome, fin.outcome
@@ -5588,7 +5753,7 @@ def docs_funding():
     assert run.stages == ["prd", "hld"] and not run.paused and run.outcome.startswith("Done") and list(run.docs) == ["prd", "hld"], \
         (run.stages, run.outcome)
     # enough credits: no question at all
-    run = docs_run(DESIGN_BRIEF, 900)
+    run = docs_run_credits(DESIGN_BRIEF, 900)
     assert not any(m.get("act") == "ASK_REQUESTER" for m in run.chat) and run.outcome.startswith("Done")
     print("funding: short credits ask the decision question with each document and the site as items, nothing is "
           "skipped by code; leave out, add and keep going, finish as it is, and no question when the credits cover it ok")
@@ -5616,7 +5781,7 @@ def docs_repeat_failure():
 
     def start(text, budget=900):
         run = j2.J2Run()
-        run.budget = budget
+        run.budget = max(run.budget, budget)   # the token budget (20M) is already more than enough
         run.call = lying(run, run.call)
         holder[:] = [run]
         say(run, text)
@@ -5731,8 +5896,10 @@ def milestone_emails():
     def everything(run):
         return "".join(open(os.path.join(dp, f), encoding="utf-8", errors="ignore").read() for dp, _, fs in os.walk(run.dir) for f in fs if f.endswith((".json", ".jsonl", ".md", ".txt")))
     try:
-        assert j2_send.asks_updates("Send me updates by email as you go") and j2_send.asks_updates("email me when each part is done")
-        assert j2_send.asks_updates("keep me posted by email") and not j2_send.asks_updates("an email field in the form", "show our email address", BREW_LAB)
+        # step 8: "keep me posted by email" is the output classifier's reading (updates), here its deterministic mock
+        upd = lambda *t: j2.clean_output_choice(json.loads(j2.mock_output_reply(" ".join(str(x or "") for x in t))))["updates"]
+        assert upd("Send me updates by email as you go") and upd("email me when each part is done")
+        assert upd("keep me posted by email") and not upd("an email field in the form", "show our email address", BREW_LAB)
         # on, documents and a site: one email per goal reached, in order, each a dry-run deed under its goal
         env(J2_TEST_EMAIL=addr, J2_MILESTONE_EMAILS="1")
         run = docs_run(DESIGN_BRIEF, 900)
@@ -5743,7 +5910,7 @@ def milestone_emails():
         assert addr not in everything(run), "the address is never written in full"
         wfs = {w["id"]: w for w in run.past_workflows + run.workflows}
         mails = [wfs[x["atom"].split(".")[0]] for x in run.milestone_log]
-        assert all(w["cost"] == j2.RATES_DEED().get("send_email") == 5 and w["atoms"][0]["results"][0]["pass"] is None for w in mails), "5 credits each; dry run leaves the atom open"
+        assert all(w["cost"] == 0 and w.get("usage", 0) == 0 and w["atoms"][0]["results"][0]["pass"] is None for w in mails), "code only: no usage; dry run leaves the atom open"
         mp = M.build(run.dir)
         st = {e["to"]: e["from"] for e in mp["edges"] if e["kind"] == "step" and e["from"] != "work:charter"}      # a step's recorded input (the Charter feeds every team too)
         brs = [n for n in mp["nodes"] if n["kind"] == "work" and n.get("lane") == "branch" and n["tag"] == "Send"]
@@ -5766,18 +5933,17 @@ def milestone_emails():
         env(J2_MILESTONE_EMAILS="1")
         run5 = docs_run("Write a PRD for Campus Notes." + CAMPUS, 400)
         assert run5.outcome.startswith("Done") and receipts(run5)[0]["refused"] and receipts(run5)[0]["to_masked"] is None, receipts(run5)
-        # the credits can't cover it: skipped with the reason, the run goes on
+        # almost no usage left: the email still goes (code builds and sends it, no model call, so it uses no usage)
         env(J2_TEST_EMAIL=addr, J2_MILESTONE_EMAILS="1")
-        keep_rate, j2.RATES_DEED = j2.RATES_DEED, (lambda: {"send_email": 10 ** 6})
-        try:
-            run6 = docs_run("Write a PRD for Campus Notes." + CAMPUS, 400)
-        finally:
-            j2.RATES_DEED = keep_rate
-        assert run6.outcome.startswith("Done") and run6.milestone_log[0]["result"] == "skipped" and "work credits" in run6.milestone_log[0]["why"] and receipts(run6) == [], run6.milestone_log
+        run6 = j2.J2Run()
+        orig6 = run6._goal_done
+        run6._goal_done = lambda r: (setattr(run6, "spent", run6.budget), orig6(r))[1]
+        say(run6, "Write a PRD for Campus Notes." + CAMPUS)
+        assert run6.outcome.startswith("Done") and run6.milestone_log[0]["result"] != "skipped" and len(receipts(run6)) == 1, run6.milestone_log
     finally:
         env(**{k_: v for k_, v in keep.items()})
     print("milestone emails: one per goal reached (PRD, HLD, LLD, website) and only the run's own goals, off by default, on when the brief asks "
-          "for updates by email, only to the test address and masked, dry run leaves them open, skipped (never stopping) when credits are short "
+          "for updates by email, only to the test address and masked, dry run leaves them open, never skipped for usage (code only) "
           "or refused when no address is set, one map branch under each goal, outcome line counts them ok")
 
 
@@ -6040,7 +6206,8 @@ def send_deeds():
                        if f.endswith((".json", ".jsonl", ".md")))
     try:
         # 1: a send verb near email or slack triggers; a mere mention does not
-        d = j2_send.detect_deeds
+        # step 8: the sends are the output classifier's reading (here its deterministic mock reading)
+        d = lambda *t: j2.clean_output_choice(json.loads(j2.mock_output_reply(" ".join(str(x or "") for x in t))))["asked_sends"]
         assert d("Send me an email with the PRD") == ["send_email"] and d("email it to me") == ["send_email"]
         assert d("send the PRD by email") == ["send_email"] and d("forward it by e-mail") == ["send_email"]
         assert d("Post it to Slack") == ["send_slack_message"] and d("Slack me the PRD") == ["send_slack_message"]
@@ -6084,7 +6251,7 @@ def send_deeds():
         assert "Not sent (dry run)" in run.outcome and not j2_send.SENT
         w, a = deed_of(run)
         assert a["status"] == "could not run" and a["results"][0]["pass"] is None and a["results"][0]["evidence"] == "Not sent (dry run)"
-        assert a["human_output"]["text"] == "Not sent (dry run)." and w["status"] == "done" and w["cost"] == 5
+        assert a["human_output"]["text"] == "Not sent (dry run)." and w["status"] == "done" and w["cost"] == 0
         views = json.load(open(os.path.join(run.dir, "atoms.json")))["atoms"]
         v = next(v for v in views if v["id"] == a["id"])
         assert v["status"] == "open" and v["notes"] == "Not sent (dry run)." and v["verification"][0]["met"] is None
@@ -6144,28 +6311,16 @@ def send_deeds():
         assert [m["to"] for m in j2_send.SENT] == ["me@example.invalid"], j2_send.SENT      # never the one in the brief
         assert not any("different" in m["text"] for m in docs_run("Write a PRD for Campus Notes. Email it to me@example.invalid." + CAMPUS, 400).chat
                        if m["who"] == "system")
-        # 6: budget: 5 credits each from rates_deed; J2_RATES=0 makes them free; short credits go through the stage gate
+        # 6: usage: a send is built and sent by code (no model call), so it uses no usage and never needs funding: a budget
+        # that covers the PRD covers its email too (the stage gate lists only stages that use usage)
         env()
-        base = docs_run("Write a PRD for Campus Notes." + CAMPUS, 400)
         with_email = docs_run("Write a PRD for Campus Notes. Send me an email with it." + CAMPUS, 400)
-        assert with_email.spent - base.spent == 5 == json.load(open(os.path.join(j2.J2_DIR, "rates.json")))["rates_deed"]["send_email"]
-        rates_on = j2.RATES_ON
-        j2.RATES_ON = False      # J2_RATES=0: the deed's price is 0 (a whole PRD run needs the rate card, so the price is read directly)
-        try:
-            assert j2.RATES_DEED() == {} and with_email._stage_cost("send_email") == 0 and with_email._stage_cost("send_slack_message") == 0
-        finally:
-            j2.RATES_ON = rates_on
-        assert with_email._stage_cost("send_email") == 5 and with_email._stage_cost("send_slack_message") == 5
-        run = docs_run("Write a PRD for Campus Notes. Send me an email with it." + CAMPUS, 100)
-        assert run.paused and run.paused["kind"] == "limit" and run.stages == ["prd", "send_email"], run.outcome
-        text = stage_question(run)
-        assert "the test email (needs at least 5 work credits; not covered)" in text and "the product requirements (needs at least 98" in text, text
-        say(run, "Option 1")      # add the credits: the PRD and the email are both done
-        assert run.outcome.startswith("Done") and deed_of(run)[0]["cost"] == 5, run.outcome
-        run = docs_run("Write a PRD for Campus Notes. Send me an email with it." + CAMPUS, 100)
-        say(run, "Option 2")      # leave the email out: no send workflow exists
-        assert run.stages == ["prd"] and run.outcome.startswith("Done") and not any(
-            w["name"] == "Send a test email" for w in run.past_workflows + run.workflows)
+        w_, _ = deed_of(with_email)
+        assert w_["cost"] == 0 and w_.get("usage", 0) == 0 and with_email.usage["by_workflow"].get(w_["id"], 0) == 0, w_
+        assert with_email._stage_usage("send_email") == 0 and with_email._stage_usage("send_slack_message") == 0
+        assert credit_world(lambda: j2.J2Run()._stage_usage("prd"))() == 98 * CREDIT       # the PRD's usual usage
+        run = credit_world(lambda: docs_run_credits("Write a PRD for Campus Notes. Send me an email with it." + CAMPUS, 98))()
+        assert not run.paused and run.outcome.startswith("Done") and deed_of(run)[0]["cost"] == 0, run.outcome
         # 10: no send words: no deed stage, nothing recorded; send words with no document: told, and the site is built as before
         run = docs_run("Write a PRD for Campus Notes." + CAMPUS, 400)
         assert run.stages == ["prd"] and not run.deed_log and "deed-send-record" not in run_text(run)
@@ -6186,8 +6341,9 @@ def send_deeds():
 
 def artifact_types():
     """artifacts/types.json mirrors the Python for prd, hld, lld and website, field by field: sections, file names,
-    trigger words, groups, tags, labels, colours, conditions file, builder, rate card, minimum cost and what each reads.
-    The same comparison fails when either side drifts (checked on edited copies)."""
+    groups, tags, labels, colours, conditions file, builder, rate card, minimum cost and what each reads. It carries no
+    trigger words (step 8: what to make is the output classifier's reading). The same comparison fails when either side
+    drifts (checked on edited copies)."""
     import collections
     import copy
     import j2_artifacts as A
@@ -6195,8 +6351,6 @@ def artifact_types():
     ui = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "j2_ui.html"), encoding="utf-8").read()
     kinds = {k: (tag, label) for k, tag, label in re.findall(r'\["(prd|hld|lld)", "([A-Z]+)", "([^"]+)"\]', ui)}
     site_tag = re.search(r'\["site", "([^"]+)"\]', ui).group(1)
-    corpus = ["write a PRD", "the HLD", "an LLD please", "product requirements", "high-level design", "low level design",
-              "architecture overview", "detailed design", "design docs", "a modern design", "BRD", "HLDs", "LLDs and PRDs"]
     run = j2.J2Run()
 
     def problems(T):
@@ -6204,39 +6358,38 @@ def artifact_types():
         chk = lambda ok, what: bad.append(what) if not ok else None
         types = [t for t in T["types"] if t["kind"] == "type"]
         chk([t["name"] for t in types] == [*j2.DOC_SET, "website"], "type order")
-        chk(T["site_words"] == j2._SITE_WORDS.pattern, "site words")
+        chk("site_words" not in T, "no site words")
         g = T["groups"]["design-docs"]
-        chk(g["pattern"] == j2._DOC_SET_WORDS.pattern and g["members"] == list(j2.DOC_SET), "design-docs group")
+        chk("pattern" not in g and g["members"] == list(j2.DOC_SET), "design-docs group")
         for k in j2.DOC_SET:
             t, o = by[k], j2.OUTPUTS[k]
             chk(t["workflow"]["sections"] == list(o["sections"]), f"{k} sections")
             chk(t["file"] == o["file"] and t["export"] == "docx" and bool(o["export"]) and t["form"] == "doc", f"{k} file")
             chk(t["conditions"] == o["conditions"] and os.path.isfile(os.path.join(j2.CONDITIONS_DIR, t["conditions"])), f"{k} conditions")
             chk(getattr(j2, t["workflow"]["builder"].split(":", 1)[1], None) is o["builder"], f"{k} builder")
-            chk(t["cost"]["card"] == o["rates"], f"{k} rate card")
-            chk(t["cost"]["parts"] == {"doc_section": len(o["sections"]) - 1, "requirements_section": 1}, f"{k} cost parts")
-            card = A_rates(t["cost"]["card"])
-            chk(sum(card.get(p, 0) * n for p, n in t["cost"]["parts"].items()) == run._stage_cost(k), f"{k} minimum cost")
-            chk(t["triggers"] == [j2._DOC_WORDS[k].pattern], f"{k} trigger words")
-            rx = re.compile("|".join(t["triggers"]), re.I)
-            chk(all(bool(rx.search(x)) == bool(j2._DOC_WORDS[k].search(x)) for x in corpus), f"{k} trigger behaviour")
+            chk("card" not in t["usage"] and "cost" not in t, f"{k} has no rate card")
+            chk(t["usage"]["parts"] == {"doc_section": len(o["sections"]) - 1, "requirements_section": 1}, f"{k} usage parts")
+            chk(A_usage(t["usage"]["parts"]) == run._stage_usage(k), f"{k} usual usage")
+            chk("triggers" not in t, f"{k} has no trigger words")
             chk(t["groups"] == ["design-docs"] and k in g["members"], f"{k} groups")
             chk((t["tag"], t["label"]) == (kinds[k][0], kinds[k][1]) and t["label"].lower() == j2.DOC_NAMES[k], f"{k} tag and label")
             chk(t["color"] == f"--{k}" and f"--{k}:" in ui, f"{k} colour")
         w, o = by["website"], j2.OUTPUTS["website"]
-        chk(w["file"] == "site/index.html" and w["form"] == "page" and w["triggers"] == [] and w["also_when"] == "site-words", "website file and triggers")
-        chk(w["conditions"] == o["conditions"] and w["workflow"]["builder"] == o["builder"] and w["cost"]["card"] == o["rates"], "website conditions, builder, card")
-        chk(w["cost"]["parts"] == dict(collections.Counter(j2.J2Run.SITE_ESSENTIALS)), "website cost parts")
-        chk(sum(A_rates(w["cost"]["card"]).get(p, 0) * n for p, n in w["cost"]["parts"].items()) == run._stage_cost("website"), "website minimum cost")
+        chk(w["file"] == "site/index.html" and w["form"] == "page" and "triggers" not in w and "also_when" not in w,
+            "website file, no triggers")
+        chk(w["conditions"] == o["conditions"] and w["workflow"]["builder"] == o["builder"] and "card" not in w["usage"], "website conditions, builder, no card")
+        chk(w["usage"]["parts"] == dict(collections.Counter(j2.J2Run.SITE_ESSENTIALS)), "website usage parts")
+        chk(A_usage(w["usage"]["parts"]) == run._stage_usage("website"), "website usual usage")
         chk((w["tag"], w["color"]) == (site_tag, "--site") and "--site:" in ui and w["label"] == o["label"], "website tag, colour, label")
         return bad
 
-    def A_rates(card):
-        return {k: int(v) for k, v in json.load(open(os.path.join(j2.J2_DIR, "rates.json"))).get(card, {}).items()}
+    def A_usage(parts):      # what those kinds of work usually use (j2_usage), managers included, as _stage_usage counts it
+        return j2.j2_usage.run_tokens(sum(j2.j2_usage.part_tokens(p, j2.RUNS_DIR) * n for p, n in parts.items()),
+                                      j2.RUNS_DIR, planning=False)
     assert problems(T) == [], problems(T)
     # drift on either side is caught
-    for path, val in (("types.0.workflow.sections", ["Problem"]), ("types.1.color", "--x"), ("types.2.triggers", ["\\bLLD\\b"]),
-                      ("types.3.cost.parts", {"form": 9}), ("types.0.file", "p.md"), ("types.1.tag", "H"), ("types.3.file", "x.html"),
+    for path, val in (("types.0.workflow.sections", ["Problem"]), ("types.1.color", "--x"), ("types.2.triggers", ["\\bLLD\\b"]), ("groups.design-docs.pattern", "x"),
+                      ("types.3.usage.parts", {"form": 9}), ("types.0.file", "p.md"), ("types.1.tag", "H"), ("types.3.file", "x.html"),
                       ("types.2.conditions", "none.json"), ("groups.design-docs.members", ["prd"])):
         bent, node, keys = copy.deepcopy(T), None, path.split(".")
         node = bent
@@ -6244,12 +6397,6 @@ def artifact_types():
             node = node[int(kx)] if kx.isdigit() else node[kx]
         node[keys[-1]] = val
         assert problems(bent), path
-    keep = j2._DOC_WORDS["hld"]
-    j2._DOC_WORDS["hld"] = re.compile(r"\bHLD\b", re.I)
-    try:
-        assert problems(T), "Python trigger words changed and the list did not notice"
-    finally:
-        j2._DOC_WORDS["hld"] = keep
     keep = j2.OUTPUTS["lld"]["sections"]
     j2.OUTPUTS["lld"]["sections"] = keep[:-1]
     try:
@@ -6284,7 +6431,7 @@ def artifact_types():
         # only exist under J2_REALIZATION=1
         if t["name"] not in ("screenshots", "board", "realization", "workflow_files", "workflow_files_in_folders"):
             assert os.path.isfile(os.path.join(run.dir, t["file"])), t["file"]
-    print("artifact types: prd, hld, lld and website match the Python field by field (sections, files, triggers, groups, tags, "
+    print("artifact types: prd, hld, lld and website match the Python field by field (sections, files, no triggers, groups, tags, "
           "colours, conditions, builder, rates, minimum cost, depends_on); drift on either side fails; 15 record entries ok")
 
 
@@ -6931,6 +7078,9 @@ def map_shapes():
             svg = tree[tree.index('<svg class="treesvg"'):tree.index("</svg>", tree.index('<svg class="treesvg"'))]
             for mt in re.finditer(r'<g class="tnode (t(?:charter|stage|deck))[ "][^>]*data-id="([^"]+)"[^>]*>(.*?)</g>', svg, re.S):
                 kind, nid, body = mt.group(1), htmllib.unescape(mt.group(2)), mt.group(3)
+                # a faulted output carries the "!" badge (a small red circle) beside its shape; the shape is what's checked
+                # (the first live run ending done_open with a failing site is the first saved run with one)
+                body = re.sub(r'<g><circle cx="[\d.-]+" cy="[\d.-]+" r="8" fill="var\(--bad\)"/>(?:<text[^>]*>!</text>)?', "", body)
                 n = by.get(nid)
                 if kind == "tcharter":
                     assert '<circle class="tdot"' in body and body.count('class="tglyph"') == 1 and "<rect" not in body, (name, "Charter: a circle with a centre dot")
@@ -7854,7 +8004,7 @@ def map_tab():
     assert [l["key"] for l in saved["legend"] if not l["drawn"]] == []
     assert saved == M.build(run.dir), "map.json is what the folder builds"
     # the Functions row, golden: calls, seconds and tokens per function from calls.jsonl; a finished run is never "running"
-    calls = [json.loads(x) for x in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8")]
+    calls = [json.loads(x) for x in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8") if '"extra": true' not in x]
     chat = [json.loads(x) for x in open(os.path.join(run.dir, "chat.jsonl"), encoding="utf-8")]
     fnn = [n for n in saved["nodes"] if n["kind"] == "function"]
     assert [(n["label"], n["tab"], n["color"]) for n in fnn] == [("Identity", "charter", "--identity"), ("Adaptation", "workflows", "--adaptation"),
@@ -8165,7 +8315,8 @@ def map_tab():
     assert rc.count("which other function worked on this: not recorded") == 1 and "worked on: Charter, " + lab["prd"] + " " + str(by_fn("identity", docs_rec["prd"]["calls"], calls)) in rc
     assert "worked on: " + lab["prd"] + " 1, " + lab["hld"] + " 1, " + lab["lld"] + " 1, " + lab["website"] + " 2" in rc      # Audit
     assert real.split("<svg")[1].split(">")[0].startswith(' class="mapsvg"') and real.count('<path class="mapln"') == 2 * len([x for x in lines]), "17 lines in each drawing, shown only on hover or click"
-    assert "which function made this step: not recorded" in rc and "made by Client Lead (Identity) 2, Strategist (Adaptation) 1, Prioritiser (Priority) 1, Scheduler (Coordination) 6, Quality Reviewer (Audit) 1" in rc and rc.count('data-node="fn:') == 5
+    # 6b: independent builders run in batches, so Coordination schedules fewer turns than one per builder
+    assert "which function made this step: not recorded" in rc and re.search(r"made by Client Lead \(Identity\) 2, Strategist \(Adaptation\) 1, Prioritiser \(Priority\) \d+, Scheduler \(Coordination\) [1-6], Quality Reviewer \(Audit\) 1", rc) and rc.count('data-node="fn:') == 5
     # a browser: no sideways scroll at 500px, cards shown, SVG hidden; the tab sits after Artifacts and the pane reads plain
     chrome = j2.j2_check.find_chrome()
     if chrome and BROWSER:
@@ -8687,6 +8838,10 @@ def atom_schema():
     for wid, g in slim_run.given.items():
         p = [r["prompt"] for r in rows if r["fn"] == wid and "OTHER SECTIONS" in r["prompt"]][-1]
         listed = set(re.findall(r'"atom": "([^"]+)"', p.split("OTHER SECTIONS")[1].split("\n")[0]))
+        # 6c: the sections beside it (and those it depends on) are in its prompt in full: their atoms are edges too
+        near = re.findall(r"--- section ([\w-]+) \(", p.split("NEIGHBOUR SECTIONS")[1]) if "NEIGHBOUR SECTIONS" in p else []
+        owners = {slim_run.sections[k]["owner"] for k in near if k in slim_run.sections}
+        listed |= {a["id"] for w in slim_run.workflows if w["id"] in owners for a in w.get("atoms") or []}
         assert {e["atom"] for e in g["edges"]} == listed and not g["whole"], (wid, listed, g)
         n_edges += len(g["edges"])
     assert n_edges, "later builders see earlier atoms"
@@ -8715,7 +8870,7 @@ def atom_schema():
     # status: exactly four values, mapped from today's names; kinds: from the open list, none called "section"
     st = lambda s, ws=None, ended=False, att=1: S.atom_status({"status": s, "attempts": att}, {"status": ws}, ended)
     assert S.STATUSES == ("open", "closed", "verify_failed", "abandoned")
-    assert [st("passed", "done"), st("escalated", "done"), st("failed", "failed"), st("failed", "done"), st("failed", "running", att=3),
+    assert [st("passed", "done"), st("escalated", "done"), st("failed", "failed"), st("failed", "done"), st("failed", "running", att=j2.MAX_CHECK_ATTEMPTS),
             st("failed", "running", att=1), st(None, "registered"), st(None, "held"), st(None, "running"), st("could not run", "done"),
             st(None, "held", ended=True), st(None, "registered", ended=True), st(None, "unfunded"), st(None, "done", ended=True),
             st("could not run", "held", ended=True)] == \
@@ -8841,6 +8996,573 @@ def docs_intake_and_compare():
           "the revised section (a removed field is a match) ok")
 
 
+
+
+# ---- part 2 of the revamp (j2-logic-fixes-plan.md steps 3, 4a, 4c, 10b, 10c)
+PHYSIO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "runs", "j2-20261031-115455")
+
+
+def physio_source():
+    goal = json.load(open(os.path.join(PHYSIO, "goal.json"), encoding="utf-8"))
+    chat = [json.loads(x) for x in open(os.path.join(PHYSIO, "chat.jsonl"), encoding="utf-8")]
+    return goal, j2.squash(" ".join(j2.strings(goal) + [m["text"] for m in chat if m.get("who") == "user"]))
+
+
+def env(**kv):
+    """Sets environment switches for one block, restoring them after."""
+    class E:
+        def __enter__(self):
+            self.old = {k: os.environ.get(k) for k in kv}
+            for k, v in kv.items():
+                os.environ[k] = v
+        def __exit__(self, *a):
+            for k, v in self.old.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+    return E()
+
+
+def site_wf(name, covers, deps=(), **extra):
+    return {"name": name, "goal_gap": f"No {name.lower()} yet", "outputs": ["index.html"],
+            "completion_check": f"The {name.lower()} is on the page", "covers": list(covers),
+            "dependencies": list(deps), "atoms": [j2.mock_atom({"name": name, "covers": list(covers)})],
+            "estimated_resources": {"tokens": 30000}, **extra}
+
+
+def validator_review():
+    """Step 3: the CHECK_WORK regex is gone; a batched AI work-order review (one call per batch, after code's free
+    checks, the judge's vocabulary) rejects with its note; workflows the confidence judge passed this cycle are skipped;
+    the ai-judge test type is validated, runs through one model call and is receipted by ai."""
+    assert not hasattr(j2.J2Run, "CHECK_WORK")
+    run = j2.J2Run()
+    run.goal = j2.mock_charter(BREW_LAB)
+    qa = site_wf("QA review of the menu", [1])      # once refused by the name regex; now the review reads its meaning
+    reg, ref, _ = run._register([qa])
+    assert reg and not ref, ref
+    calls = [json.loads(x) for x in open(os.path.join(run.dir, "calls.jsonl"), encoding="utf-8")]
+    assert [c["fn"] for c in calls if c.get("extra")] == ["work-order-review"] and calls[-1]["phase"] == "planning"
+    run2 = j2.J2Run()
+    run2.goal = {**j2.mock_charter(BREW_LAB), "core_items": []}       # optional work: skipped, the rest registers
+    with env(J2_FORCE_REVIEW_FAIL="hours"):
+        reg, ref, _ = run2._register([site_wf("Opening hours", [2]), site_wf("Menu", [1])])
+    assert [w["name"] for w in reg] == ["Menu"] and len(ref) == 1 and "work-order review found" in ref[0] \
+        and "tests don't prove" in ref[0], ref
+    rows = [json.loads(x) for x in open(os.path.join(run2.dir, "calls.jsonl"), encoding="utf-8")]
+    assert sum(r["fn"] == "work-order-review" for r in rows) == 1, "one review call for the whole batch"
+    assert any(m["who"] == "system" and m.get("rejected") == "Opening hours" for m in run2.chat), "backstage note"
+    # the judge passed it this cycle: no review, even with the switch on
+    run3 = j2.J2Run()
+    run3.goal = j2.mock_charter(BREW_LAB)
+    run3.real_summary, run3.real_cycle = {"proposal_brief": [{"name": "Opening hours"}]}, run3.cycle
+    with env(J2_FORCE_REVIEW_FAIL="hours"):
+        reg, ref, _ = run3._register([site_wf("Opening hours", [2])])
+    assert reg and not ref and not os.path.exists(os.path.join(run3.dir, "calls.jsonl")), ref
+    # ai-judge: types, shape rules, at least one code check, receipts by ai, signature by pass/fail only
+    assert "ai-judge" in j2.CHECK_TYPES and "ai-judge" in j2.DOC_CHECK_TYPES and j2.EXPECT_KINDS["judged"] == "ai-judge"
+    good = {"text": "The problem names who is hurt", "type": "ai-judge", "question": "Does the Problem section name "
+            "who is hurt today?", "pass_if": "It names the clinic's patients and what they lose", "looks_at": "section"}
+    head = {"text": "Problem heading", "type": "heading-present", "target": "Problem", "expect": True}
+    atom = {"goal": "The Problem section is written", "how": {"steps": "Write \"## Problem\""}, "constraints": []}
+    assert not j2.check_problems({**atom, "verification": [head, good]}, "", j2.DOC_CHECK_TYPES)
+    assert j2.check_problems({**atom, "verification": [good]}, "", j2.DOC_CHECK_TYPES) == [
+        "an ai-judge check adds to the code checks and never replaces them: keep at least one code check"]
+    bad = j2.check_problems({**atom, "verification": [head, {**good, "question": "Good?", "pass_if": "it looks good",
+                                                             "looks_at": "screenshot"}]}, "", j2.DOC_CHECK_TYPES)
+    assert len(bad) == 3 and all("ai-judge" in x for x in bad), bad
+    assert j2.expected_check({"text": "Tone fits", "kind": "judged", "target": "Is the tone warm and plain here?",
+                              "pass_if": "No jargon and every sentence is short"}, 1)["type"] == "ai-judge"
+    assert j2.run_check(good, "", "# x")["pass"] is None, "without a judge an ai-judge check could not run"
+    assert "ai-judge" in run.WF_FMT and "judged" in run.WF_FMT and "ai-judge, only" in run.ATOM_RULES
+    run.output = "prd"
+    run._apply_output("prd")
+    assert '"section"|"page" (ai-judge only)' in run.WF_FMT and "screenshot" not in run.WF_FMT
+    doc = "# P\n\n## Problem\n\nPatients can't book after hours.\n"
+    w = {"id": "W-1", "atoms": [{"id": "W-1.a1", "verification": [head, good]}]}
+    run.workflows = [w]
+    assert not run._run_checks(w, 1, doc, doc=True)
+    recs = [r for r in run.receipts if r["atom"] == "W-1.a1"]
+    assert [r["by"] for r in recs] == ["code", "ai"] and recs[1]["question"] == good["question"], recs
+    with env(J2_FORCE_AI_CHECK_FAIL="who is hurt"):
+        failed = run._run_checks(w, 2, doc, doc=True)
+    assert len(failed) == 1 and failed[0]["by"] == "ai" and failed[0]["pass"] is False, failed
+    a1 = {"results": [{"criterion": "x", "verdict": "NEEDS_REVISION", "pass": False, "by": "ai", "note": "one wording"}],
+          "rubric": [], "conditions": []}
+    a2 = {**a1, "results": [{**a1["results"][0], "verdict": "FAIL", "note": "other wording"}]}
+    assert j2.failure_signature(a1) == j2.failure_signature(a2), "an AI result compares by pass or fail only"
+    print("validator review: CHECK_WORK gone, one batched review with its note back to the planner, judge-passed work "
+          "skipped, ai-judge shape and code-check rule, receipts by ai, signature by pass/fail ok")
+
+
+def essential_rejection():
+    """Step 3.5: an essential rejection (a must-keep item, or a workflow others depend on) registers nothing of the
+    batch and sends it back once; the second time the Requester decides (add information / leave it out / stop). An
+    optional rejection is skipped with a backstage note only."""
+    run = j2.J2Run()
+    run.goal = j2.mock_charter(BREW_LAB)
+    crit = run.goal["done_when"]
+    run.goal["core_items"] = [crit[0]]
+    batch = [site_wf("Menu with prices", [1]), site_wf("Pre-order form", [3], deps=["Menu with prices"]),
+             site_wf("Opening hours", [2])]
+    with env(J2_FORCE_REVIEW_FAIL="menu"):
+        run._agree(copy.deepcopy(batch))
+    assert not run.workflows and run.turn == "adaptation" and "essential" in run.handoff["why"], run.handoff
+    assert any(m["who"] == "validator" and "Nothing in this batch is registered" in m["text"] for m in run.chat)
+    assert any("depends on Menu with prices" in r["reason"] for r in run.rejections), run.rejections
+    with env(J2_FORCE_REVIEW_FAIL="menu"):
+        run._agree(copy.deepcopy(batch))
+    d = run.legacy_decision()
+    # rejected only by the AI work-order review: "Try anyway" is offered first and suggested (live run 2026-11-04)
+    assert run.paused and d["kind"] == "problem" and [o["id"] for o in d["options"]] == \
+        ["try_anyway", "add_info", "leave_out", "stop"] and d["options"][0]["suggested"], d["options"]
+    assert not j2.J2Run.decision_problems(d) and "Menu with prices" in d["happening"], d
+    # try anyway: the batch registers past the review (code's checks still gate every build)
+    run_t = j2.J2Run()
+    run_t.goal = j2.mock_charter(BREW_LAB)
+    run_t.goal["core_items"] = [run_t.goal["done_when"][0]]
+    with env(J2_FORCE_REVIEW_FAIL="menu"):
+        run_t._agree(copy.deepcopy(batch))
+        run_t._agree(copy.deepcopy(batch))
+        assert run_t.paused and run_t.legacy_decision()["options"][0]["id"] == "try_anyway"
+        run_t.paused = None
+        run_t._identity_essential({"option": "try_anyway", "answer": "1"})
+    assert {w["name"] for w in run_t.workflows} == {"Menu with prices", "Pre-order form", "Opening hours"}, \
+        [w["name"] for w in run_t.workflows]
+    run.paused = None
+    run._identity_essential({"option": "leave_out", "answer": "3"})
+    assert [w["name"] for w in run.workflows] == ["Opening hours"], [w["name"] for w in run.workflows]
+    assert crit[0] in run.goal["dropped_by_requester"] and crit[0] not in run.goal["done_when"]
+    # optional: an item that isn't must-keep is skipped as today, the rest registers
+    run2 = j2.J2Run()
+    run2.goal = j2.mock_charter(BREW_LAB)
+    run2.goal["core_items"] = []
+    with env(J2_FORCE_REVIEW_FAIL="hours"):
+        run2._agree([site_wf("Menu with prices", [1]), site_wf("Opening hours", [2])])
+    assert [w["name"] for w in run2.workflows] == ["Menu with prices"] and run2.turn == "coordination"
+    assert not run2.paused and not any(m.get("to_user") for m in run2.chat), "an optional rejection never reaches the chat"
+    print("essential rejection: nothing registered and the batch sent back once, then a problem decision; leave it out "
+          "drops the item and registers the rest; an optional rejection is skipped backstage ok")
+
+
+def no_writing_ahead():
+    """4c: an HLD-named workflow proposed in a PRD stage is rejected; assemble_doc refuses a section that isn't the
+    document's (and logs it); Identity's doc-stage prompt says the next document waits for code."""
+    os.environ["J2_OUTPUT"] = "prd"
+    try:
+        run = j2.J2Run()
+    finally:
+        os.environ.pop("J2_OUTPUT", None)
+    run._apply_output("prd")
+    run.goal = j2.mock_prd_charter(PRD_BRIEF) if "PRD_BRIEF" in globals() else j2.mock_prd_charter(
+        "Write a PRD for LabSlot. Users: students. Problem: no booking. Must-have features: book a slot.")
+    ahead = {"name": "System overview", "goal_gap": "No HLD yet", "outputs": ["prd.md"], "completion_check": "x",
+             "covers": [1], "estimated_resources": {"tokens": 20000},
+             "atoms": [{**j2.mock_doc_atom({"name": "Problem", "covers": [1]}),
+                        "how": {"kind": "AI", "agent": "Builder", "steps": "Write the \"## System overview\" section"}}]}
+    assert run._foreign_heading(ahead) == "System overview"
+    assert run._foreign_heading({"atoms": [j2.mock_doc_atom({"name": "Requirements"})]}) is None
+    reg, ref, _ = run._register([ahead])
+    assert not reg and "isn't part of the PRD" in ref[0], ref
+    refused = []
+    md = j2.assemble_doc("X", {"W-1": {"body": "## Problem\n\nNo booking."}, "W-9": {"body": "## System overview\n\nC1."}},
+                         j2.PRD_SECTIONS, refused)
+    assert "System overview" not in md and refused == ["System overview"], (md, refused)
+    assert "next document starts only when code says" in j2.J2Run.DOC_STAGE_RULE
+    print("no writing ahead: an HLD section proposed in the PRD is rejected, assemble_doc refuses it, Identity's doc "
+          "prompt waits for code ok")
+
+
+def false_alarms():
+    """4a: the phone scanner can't cross a full stop and a newline into a list number (the physio PRD's P4 passes);
+    no invented facts is overridable, nothing structural is; the double-check clears a false alarm without asking,
+    and asks the Requester only when it disagrees with Audit."""
+    doc = open(os.path.join(PHYSIO, "prd.md"), encoding="utf-8").read()
+    goal, src = physio_source()
+    assert "91987654321010" not in j2.doc_numbers(doc) and "919876543210" in j2.doc_numbers(doc)
+    assert j2.doc_numbers("Call +91 98765 43210.\n10. Next") == {"919876543210"}
+    prd = j2.assemble_doc(goal.get("product_name") or "Still Water Physio",
+                          {f"s{i}": {"body": "## " + b} for i, b in enumerate(doc.split("\n## ")[1:])}, j2.PRD_SECTIONS)
+    p4 = next(c for c in j2.check_conditions(j2.load_conditions("prd.json"), prd, goal, src, j2.PRD_SECTIONS)
+              if c["id"] == "P4")
+    assert p4["met"] and p4["overridable"], p4
+    for f, ids in (("prd.json", {"P4"}), ("website.json", {"N6"}), ("hld.json", {"H5"}), ("lld.json", {"L6"})):
+        assert {c["id"] for c in j2.load_conditions(f) if c.get("overridable")} == ids, f
+    bad = {"id": "P4", "text": "No invented facts: every number comes from the brief", "check": "no-invented-facts",
+           "met": False, "evidence": "not in the charter: 91987654321010", "overridable": True}
+    hard = {"id": "P1", "text": "All sections present", "check": "sections-present", "met": False, "evidence": "Goals"}
+    run = j2.J2Run()
+    run.goal = goal
+    with env(J2_MOCK_FALSE_ALARM="1"):
+        conds = [dict(bad), dict(hard)]
+        assert run._double_check_conditions(conds, [{"id": "P4", "why": "the phone is the brief's"}, {"id": "P1"}],
+                                            prd) == []
+    assert conds[0]["met"] and conds[0]["overridden_by"] == "ai_double_check" and conds[0]["why"], conds[0]
+    assert not conds[1]["met"], "a structural condition is never overridden"
+    audit = {"output": "prd", "results": [], "rubric": [], "conditions": conds}
+    assert j2.workable(audit) == [f"necessary condition P1 not met: All sections present (Goals)"], j2.workable(audit)
+    saved = json.load(open(os.path.join(run.dir, "conditions.json"), encoding="utf-8"))
+    assert saved[0]["overridden_by"] == "ai_double_check"
+    line = next(m for m in run.chat if m.get("false_alarm") == "P4")
+    assert line["who"] == "system" and not line.get("to_user") and not run.paused, "backstage only, never asked"
+    # the same evidence twice (no doubt from Audit) triggers it too; the verdict is reused, never asked twice
+    run.audits = [{"conditions": [dict(bad)]}]
+    with env(J2_MOCK_FALSE_ALARM="1"):
+        again = [dict(bad)]
+        run._double_check_conditions(again, [], prd)
+    assert again[0]["met"] and sum(1 for x in open(os.path.join(run.dir, "calls.jsonl"))) == 1, "one call per evidence"
+    # Audit says false alarm, the double-check says real: the Requester decides, in plain words
+    run2 = j2.J2Run()
+    run2.goal = goal
+    conds = [dict(bad)]
+    dis = run2._double_check_conditions(conds, [{"id": "P4", "why": "a scanner slip"}], prd)
+    assert len(dis) == 1 and not conds[0]["met"], dis
+    run2.audits = [{"output": "prd", "results": [], "rubric": [], "conditions": conds}]
+    run2._condition_problem(dis[0], [])
+    d = run2.legacy_decision()
+    assert d["kind"] == "problem" and not j2.J2Run.decision_problems(d) and "P4" not in d["happening"], d
+    run2.paused = None
+    run2._identity_condition_ruling({"option": "accept", "answer": "2"})
+    assert run2.audits[-1]["conditions"][0]["overridden_by"] == "requester" and run2.handoff["kind"] == "audit"
+    print("false alarms: the physio PRD's P4 passes, only no-invented-facts is overridable, a false alarm is cleared "
+          "backstage without asking, the same evidence twice reuses one verdict, a disagreement asks the Requester ok")
+
+
+def decisions_everywhere():
+    """10b: every pause that asks the user is a decision in the one format (facts with fields, problems, confirm);
+    the converter shim is gone; no_questions (from the brief, or set on the run) takes the suggested option for
+    decisions that aren't essential and logs it backstage; the proposal and usage still ask."""
+    run = j2.J2Run()
+    run.goal = j2.mock_charter(BREW_LAB)
+    run._ask_facts("Two things.", [{"question": "What are your opening hours?"}, {"question": "Your phone number?"}],
+                   "info", {"kind": "intake"}, "A few details are missing before we start.", "Your answers go in.")
+    d = run.legacy_decision()
+    assert d["kind"] == "facts" and len(d["fields"]) == 2 and not j2.J2Run.decision_problems(d), d
+    assert run.paused["kind"] == "info" and len(run.paused["questions"]) == 1, "the legacy page sees one list"
+    run.paused = None
+    run._ask_options("problem", "Do you want a story section?", "It's your call.",
+                     {"question": "Story section?", "options": ["Add it (takes longer)", "Keep it simple"]}, "conflict",
+                     {"kind": "resolve"}, "One choice is up to you.")
+    d = run.legacy_decision()
+    assert d["kind"] == "problem" and [o["label"] for o in d["options"]] == ["Add it", "Keep it simple"], d
+    assert inspect.getsource(j2.J2Run.legacy_decision).count("\n") < 4, "the converter shim is gone"
+    run.paused = None
+    os.environ["J2_SEND_MODE"] = "live"
+    try:
+        assert run._confirm_send({"deed": None})
+    finally:
+        os.environ.pop("J2_SEND_MODE", None)
+    d = run.legacy_decision()
+    assert d["kind"] == "confirm" and next(o for o in d["options"] if o["suggested"])["id"] == "no"
+    # no_questions: a problem is decided without asking; a usage decision still asks
+    run2 = j2.J2Run()
+    run2.goal = j2.mock_charter(BREW_LAB)
+    run2.set_no_questions(True)
+    run2._decision("problem", "Pick one.", "It matters.", [
+        {"id": "a", "label": "A", "gets": "", "suggested": False}, {"id": "b", "label": "B", "gets": "", "suggested": True}],
+        handoff={"kind": "resolve"})
+    assert not run2.paused and run2.turn == "identity" and run2.handoff["option"] == "b" and run2.handoff["answer"] == "2"
+    assert run2.decisions[-1]["auto"] and any(m.get("auto_decision") and m["who"] == "system" for m in run2.chat)
+    assert json.load(open(os.path.join(run2.dir, "settings.json")))["no_questions"] is True   # settings.json also carries "model"
+    # feedback 3: "Decide for me" tops usage up by itself until the safety cap (J2_AUTO_CAP_X x the estimate), then asks
+    run2.budget_set, run2.estimate = True, 1_000_000
+    run2.budget = run2._auto_cap()
+    run2._decision("usage", "Usage is nearly used up.", "Keep going?", [
+        {"id": "continue", "label": "Keep going", "gets": "", "suggested": True},
+        {"id": "ship", "label": "Finish", "gets": "", "suggested": False}])
+    assert run2.paused and run2.legacy_decision()["kind"] == "usage", "usage at the safety cap asks"
+    # a vague brief that asks for no questions runs without a single question to the user
+    run3 = j2.J2Run()
+    say(run3, "a website for my cafe. please don't ask me any questions")
+    for _ in range(6):
+        if not run3.paused:
+            break
+        say(run3, "1")
+    assert run3.no_questions and not any(m.get("act") == "ASK_REQUESTER" for m in run3.chat), \
+        [m["text"][:80] for m in run3.chat if m.get("act") == "ASK_REQUESTER"]
+    assert run3.outcome and run3.outcome.startswith(("Done", "Stopped")), run3.outcome
+    assert any(e["type"] == "auto_decision" for e in run3.events)
+    print("decisions everywhere: facts with fields, problems from agent options, confirm for sends, no converter shim, "
+          "no_questions decides backstage (from the brief too) while usage at the safety cap asks ok")
+
+
+# ---- steps 5 to 8 (planning, building, tools, output choice)
+def coord_reply(order, holds=()):
+    """A Coordination reply that orders everything and holds nothing (or what it is told): code's waits must still
+    hold the workflows whose dependencies aren't done."""
+    return {"say": "@Priority Schedule: everything now.", "rule": "registration order", "order": list(order),
+            "holds": [{"id": i, "missing": "x"} for i in holds], "next": "Priority"}
+
+
+def dependencies_enforced():
+    """5c: dependencies resolve to W-ids (id, name, "W-n Name", any case) or the workflow is rejected; loops are
+    rejected; code holds a workflow whose dependencies aren't done whatever Coordination says; waiting on a failed one
+    goes to Adaptation once, then to the Requester (try again / skip / stop); a fix that redoes the failed one releases
+    the wait; the views show depends_on, waiting_for and the plan's waits_for by task name."""
+    run = j2.J2Run()
+    run.goal = j2.mock_charter(BREW_LAB)
+    reg, ref, _ = run._register([site_wf("Menu", [1], deps=["Loyalty widget"])])
+    assert not reg and "isn't a workflow of this run" in ref[0] and "'Loyalty widget'" in ref[0], ref
+    run = j2.J2Run()
+    run.goal = j2.mock_charter(BREW_LAB)
+    reg, ref, _ = run._register([site_wf("Menu", [1], deps=["Order form"]), site_wf("Order form", [2], deps=["menu"])])
+    assert not reg and len(ref) == 2 and all("form a loop" in r for r in ref), ref
+    run = j2.J2Run()
+    run.goal = j2.mock_charter(BREW_LAB)
+    reg, ref, _ = run._register([site_wf("Order form", [2], deps=["MENU"]), site_wf("Menu", [1])])
+    menu = next(w for w in reg if w["name"] == "Menu")
+    order = next(w for w in reg if w["name"] == "Order form")
+    assert not ref and order["depends_on"] == [menu["id"]] and menu["depends_on"] == [], (order, menu)
+    reg2, _, _ = run._register([site_wf("Hours", [3], deps=[f"{menu['id']} Menu"]), site_wf("Map", [4], deps=[menu["id"]])])
+    assert all(w["depends_on"] == [menu["id"]] for w in reg2), reg2
+    orig = run.call
+    run.call = lambda fn, fmt, task, mock, **k: coord_reply([w["id"] for w in run.workflows]) if fn == "coordination" \
+        else orig(fn, fmt, task, mock, **k)
+    run._turn_coordination({})
+    waiting = {w["id"] for w in run.workflows if w["status"] == "held"}
+    assert waiting == {order["id"]} | {w["id"] for w in reg2} and menu["status"] == "registered", waiting
+    assert run.turn == "priority" and run.handoff["wids"][0] == menu["id"] and order["id"] not in run.handoff["wids"]
+    assert order["held_reason"] == f"waits for {menu['id']} Menu to finish", order["held_reason"]
+    assert any(m["who"] == "system" and "Held by code" in m["text"] for m in run.chat), "code overruled the reply"
+    snap = {w["id"]: w for w in run.snapshot()["workflows"]}
+    assert snap[order["id"]]["depends_on"] == [menu["id"]] and snap[order["id"]]["waiting_for"] == [menu["id"]]
+    tasks = {t["id"]: t for g in run.v2_snapshot()["plan"]["groups"] for t in g["tasks"]}
+    assert tasks[order["id"]]["waits_for"] == ["Menu"] and tasks[menu["id"]]["waits_for"] == [], tasks[order["id"]]
+    # the dependency failed: held with the reason, Adaptation once, then a problem decision
+    menu["status"] = "failed"
+    for w in run.workflows:
+        if w is not menu:
+            w["status"] = "registered"
+    run._turn_coordination({})
+    assert run.turn == "adaptation" and "failed" in run.handoff["why"] and order["dep_bounced"], run.handoff
+    assert order["held_reason"] == f"waits for {menu['id']} Menu, which failed", order["held_reason"]
+    run._turn_coordination({})
+    dec = run.legacy_decision()
+    assert dec and dec["kind"] == "problem" and [o["id"] for o in dec["options"]] == ["retry", "skip", "stop"], dec
+    assert dec["options"][0]["suggested"] and not j2.J2Run.decision_problems(dec), dec
+    h = run.paused["handoff"]
+    run.paused = None
+    run._identity_dep_failed({**h, "option": "retry", "answer": "1"})
+    assert run.turn == "adaptation" and "revises" in run.handoff["why"] and order["dep_retried"]
+    run._identity_dep_failed({**h, "option": "skip", "answer": "2"})
+    assert order["status"] == "unfunded" and order["skipped"] and run.turn == "coordination"
+    # a fix that redoes the failed workflow releases what waited on it
+    order["status"] = "registered"
+    reg3, _, _ = run._register([{**site_wf("Menu again", [1]), "revises": menu["id"], "parts": ["fix"]}])
+    assert reg3[0]["redoes"] == menu["id"] and run._dep_state(menu["id"]) == "waiting"
+    reg3[0]["status"] = "done"
+    assert run._dep_state(menu["id"]) == "done" and run._waiting_for(order) == []
+    # a full mock run: every registered workflow records depends_on
+    run = j2.J2Run()
+    say(run, BREW_LAB)
+    assert run.outcome.startswith("Done") and all("depends_on" in w for w in run.workflows), run.outcome
+    print("dependencies: resolved to ids (name, id, 'W-n Name', any case), unknown and loops rejected, held by code "
+          "whatever the reply says, failed dependency to Adaptation once then a problem decision (retry, skip, stop), "
+          "a redo releases the wait, depends_on / waiting_for / waits_for in the views ok")
+
+
+def parallel_builders():
+    """6b: the style guide first (its own step), then independent ready workflows build together (J2_PARALLEL, default
+    3): one batch message, the page assembled once and every check run on the whole page after the batch; a failing
+    workflow retries alone while the others keep their result; ids and messages come out the same on every mock run;
+    lanes show several builders working; J2_PARALLEL=1 builds one at a time."""
+    assert j2.parallel_n() == 3
+
+    def one(patch=None, parallel=None):
+        with env(**({"J2_PARALLEL": parallel} if parallel else {})):
+            run = j2.J2Run()
+            if patch:
+                patch(run)
+            say(run, BREW_LAB)
+            finish(run)
+        return run
+    a, b = one(), one()
+    sig = lambda r: ([c["fn"] for c in calls_of(r)], [(m["who"], re.sub(r"\d{2}:\d{2}:\d{2}", "", m["text"])) for m in r.chat])
+    assert a.outcome.startswith("Done") and sig(a) == sig(b), "the same mock run twice: same calls, same messages"
+    batch = next(m for m in a.chat if m["who"] == "system" and m.get("batch"))
+    assert len(batch["batch"]) >= 2 and batch["text"].startswith(f"{len(batch['batch'])} builders work at the same time")
+    first_build = next(i for i, c in enumerate(calls_of(a)) if j2.is_wf_agent(c["fn"]) and "STYLE GUIDE STEP" not in c["prompt"])
+    assert "STYLE GUIDE STEP" in calls_of(a)[first_build - 1]["prompt"], "the style guide is its own step, before any section"
+    ids = [m["id"] for m in a.chat]
+    assert ids == list(range(1, len(ids) + 1)) and len({c["id"] for c in a.call_log}) == len(a.call_log)
+    after = [m for m in a.chat if m["id"] > batch["id"]]
+    checked = next(m for m in after if m["text"].startswith("Code checked the whole site after the batch"))
+    versions = [m.get("version") for m in after if m["id"] < checked["id"] and m.get("version")]
+    assert all(f"{w} " in checked["text"] for w in batch["batch"]) and not versions, "assembled once, checked after"
+    lanes = j2.lanes([], [{"id": "W-1", "name": "a", "status": "running", "section": "W-1"},
+                          {"id": "W-2", "name": "b", "status": "running", "section": "W-2"}],
+                     ["W-1", "W-2"], None, "running", None, 6, ["W-1", "W-2"])
+    assert [x["status"] for x in lanes if x["id"] in ("W-1", "W-2")] == ["working", "working"]
+    assert all(x["progress"]["write_lock"] for x in lanes if x["id"] in ("W-1", "W-2"))
+    # a failing builder retries alone; the rest of the batch keeps its result
+    def small_button(run):
+        orig, done_ = run.call, []
+
+        def call(fn, fmt, task, mock, **k):
+            raw = orig(fn, fmt, task, mock, **k)
+            if fn == "W-2" and not done_ and "```section" in str(raw):
+                done_.append(1)
+                raw = raw.replace('min-height:44px;min-width:44px">Send', 'min-height:20px;min-width:20px">Send')
+            return raw
+        run.call = call
+    c = one(small_button)
+    recs = [json.loads(x) for x in open(os.path.join(c.dir, "receipts.jsonl"), encoding="utf-8") if '"check"' in x]
+    w2 = [r for r in recs if r["atom"] == "W-2.a1"]
+    assert any(r["attempt"] == 1 and r["pass"] is False for r in w2) and any(r["attempt"] == 2 for r in w2), w2
+    assert not any(r["atom"] in ("W-1.a1", "W-3.a1") and r["attempt"] == 2 for r in recs), "the others kept their result"
+    assert any(m["text"].startswith("Code ran W-2's checks on attempt 1") for m in c.chat)
+    s = one(parallel="1")
+    assert s.outcome.startswith("Done") and not any(m["who"] == "system" and m.get("batch") for m in s.chat), \
+        "J2_PARALLEL=1: one at a time"
+    print("parallel builders: style guide first, one batch of independent builders, assembled once and checked on the "
+          "whole page, a failing one retries alone, the same ids and messages on every mock run, several lanes working, "
+          "J2_PARALLEL=1 sequential ok")
+
+
+def polish_step():
+    """6d: after every builder passes, code adds one polish workflow (kind polish, never reviewed) before the final
+    Audit; it sees the whole page and the style guide, may edit any section, and every passing check must still pass
+    afterwards or the polish is undone."""
+    with env(J2_POLISH="1"):
+        run = j2.J2Run()
+        say(run, BREW_LAB)
+        finish(run)
+        p = next(w for w in run.workflows if w.get("kind") == "polish")
+        assert run.outcome.startswith("Done") and p["status"] == "done" and p["polish"]["changed"] and not p["polish"]["undone"]
+        assert 'data-polished="1"' in run.sites[-1], "the polish edit is in the page"
+        cs = calls_of(run)
+        pi = next(i for i, c in enumerate(cs) if c["fn"] == p["id"])
+        assert "THE POLISH STEP" in cs[pi]["prompt"] and "STYLE GUIDE (follow it exactly)" in cs[pi]["prompt"]
+        assert "THE WHOLE SITE NOW" in cs[pi]["prompt"] and cs[pi + 1:] and "audit" in [c["fn"] for c in cs[pi + 1:]]
+        assert "audit" not in [c["fn"] for c in cs[:pi]] or run.audits, "before the final Audit"
+        rows = j2._jsonl(run.dir, "calls.jsonl")
+        assert not any(r.get("fn") == "work-order-review" and "Polish" in (r.get("prompt") or "") for r in rows), "never reviewed"
+        assert run.usage["by_workflow"].get(p["id"], 0) > 0, "its usage is counted"
+        assert sum(w.get("kind") == "polish" for w in run.workflows) == 1, "once per stage"
+        with env(J2_FORCE_POLISH_BREAK="1"):
+            run = j2.J2Run()
+            say(run, BREW_LAB)
+            finish(run)
+        p = next(w for w in run.workflows if w.get("kind") == "polish")
+        assert p["polish"]["undone"] and p["polish"]["broke"], p["polish"]
+        assert "Removed by the polish step" not in run.sites[-1] and "Removed by the polish step" in "".join(run.sites)
+        assert any("so every section is back as it was" in m["text"] for m in run.chat)
+        passed = [w for w in run.workflows if w.get("kind") != "polish" and w["atoms"]
+                  and all(a["status"] == "passed" for a in w["atoms"])]
+        assert passed, "the checks that passed before the polish pass again"
+    print("polish: one code-made workflow after the builders, before the final Audit, whole page and style guide, "
+          "not reviewed, usage counted; a polish that breaks a passing check is undone ok")
+
+
+def neighbour_context():
+    """6c: by default a builder sees the full text of the sections next to its own and of those it depends on, plus the
+    manifest of the rest (J2_NEIGHBOURS=0: the manifest only); recorded in what its prompt held."""
+    run = j2.J2Run()
+    say(run, BREW_LAB)
+    later = [c for c in calls_of(run) if j2.is_wf_agent(c["fn"]) and "OTHER SECTIONS" in c["prompt"]
+             and "STYLE GUIDE STEP" not in c["prompt"]]
+    near = [c for c in later if "NEIGHBOUR SECTIONS" in c["prompt"]]
+    assert near and "```section\n" in near[0]["prompt"].split("NEIGHBOUR SECTIONS", 1)[1], "full text of a neighbour"
+    assert any(e["why"] == j2.J2Run.NEIGHBOUR_WHY for g in run.given.values() for e in g["edges"]), run.given
+    with env(J2_NEIGHBOURS="0"):
+        run = j2.J2Run()
+        say(run, BREW_LAB)
+    assert not any("NEIGHBOUR SECTIONS" in c["prompt"] for c in calls_of(run))
+    print("neighbours: the sections beside a builder's own and its dependencies in full, the manifest for the rest, "
+          "recorded in what the prompt held; J2_NEIGHBOURS=0 manifest only ok")
+
+
+def doc_house_style():
+    """6a: a document chain gets a house style, written once (its own step, by the first document builder) and kept
+    for the HLD and the LLD, in doc-style.json (kind doc); every document builder is told to follow it."""
+    run = docs_run("Design docs for Campus Notes." + CAMPUS, 400)
+    assert run.outcome.startswith("Done") and list(run.docs) == ["prd", "hld", "lld"]
+    cs = calls_of(run)
+    steps = [c for c in cs if "STYLE GUIDE STEP" in c["prompt"]]
+    assert len(steps) == 1 and "house style" in steps[0]["prompt"], [c["fn"] for c in steps]
+    g = json.load(open(os.path.join(run.dir, "doc-style.json")))
+    assert g["kind"] == "doc" and g["id_formats"] and run.doc_style["tone"]
+    builders = [c for c in cs if j2.is_wf_agent(c["fn"]) and "YOU OWN SECTION" in c["prompt"]]
+    assert builders and all("HOUSE STYLE" in c["prompt"] for c in builders), "every document builder follows it"
+    try:
+        j2.parse_doc_style('```style\n{"tone": "x"}\n```')
+        raise AssertionError("an incomplete house style was accepted")
+    except ValueError as e:
+        assert "voice" in str(e)
+    print("house style: written once for the chain (PRD, HLD, LLD), doc-style.json kind doc, every document builder "
+          "follows it ok")
+
+
+def tools_and_research():
+    """7: read-only web and GitHub for Adaptation's planning and research workflows only (one tools map; J2_TOOLS=0
+    off), the exact CLI flags, a longer timeout, web counts in usage; research workflows write R-n entries to
+    research.md and the workflows that read them get them through their dependencies (mock mode)."""
+    import llm
+    assert j2.TOOLS == {"adaptation": ["web", "github"], "research": ["web", "github"], "design": ["web", "github"]}
+    cmd = llm.cli_command(["--system-prompt", "s"], ["--output-format", "json"], "high", tools=j2.tools_for("research"))
+    i = cmd.index("--tools")
+    assert cmd[i + 1] == "WebSearch,WebFetch,Bash", cmd
+    assert cmd[cmd.index("--allowedTools") + 1:cmd.index("--model")] == ["WebSearch", "WebFetch",
+                                                                         "Bash(gh repo view:*)", "Bash(gh search:*)"]
+    # no `gh api`: its prefix pattern would admit `gh api -X DELETE` (a real POST reached GitHub in a live check)
+    assert not any(w in " ".join(map(str, cmd)) for w in ("gh api", "gh pr create", "gh repo create", "Bash(*)", "Write",
+                                                          "Edit"))
+    plain = llm.cli_command(["--system-prompt", "s"], ["--output-format", "json"], "low")
+    assert plain[plain.index("--tools") + 1] == "" and "--allowedTools" not in plain and "--setting-sources" in plain
+    assert llm.TOOL_TIMEOUT > llm.PLAIN_TIMEOUT
+    with env(J2_TOOLS="0"):
+        assert j2.tools_for("research") is None and not j2.tools_on()
+    assert j2.tools_for("identity") is None and j2.tools_for("coordination") is None
+    run = j2.J2Run()
+    run._account("adaptation", {"input_tokens": 10, "output_tokens": 5, "web_searches": 2, "web_fetches": 3})
+    assert run.usage_view()["web_searches"] == 2 and run.v2_snapshot()["usage"]["web_fetches"] == 3
+    asked, real_ask = [], llm.ask
+
+    def spy(system, user, mock, **kw):
+        asked.append((user, kw.get("tools")))
+        return real_ask(system, user, mock, **kw)
+    llm.ask = spy
+    try:
+        with env(J2_REALIZATION="1", J2_MOCK_RESEARCH="1"):
+            run = j2.J2Run()
+            say(run, BREW_LAB)
+            finish(run)
+    finally:
+        llm.ask = real_ask
+    assert run.outcome.startswith("Done"), run.outcome
+    r = next(w for w in run._all_wfs() if w.get("kind") == "research")
+    assert r["status"] == "done" and r["research_entry"] == "R-1" and r["outputs"] == ["research.md"]
+    text = open(os.path.join(run.dir, "research.md"), encoding="utf-8").read()
+    entry = j2.research_entries(text)["R-1"]
+    assert entry.startswith("## R-1") and len(j2.research_sources(entry)) >= 3 and "What changes in the plan" in entry
+    builds = [u for u, _ in asked if "YOU OWN SECTION" in u]
+    assert builds and any("research.md#R-1" in u for u in builds), "readers get the entry through their dependencies"
+    assert any(t == ["web", "github"] and "RESEARCH ENTRY R-1" in u for u, t in asked), "the research builder has tools"
+    assert any(t == ["web", "github"] and "WEB ACCESS: you and the research workflows" in u for u, t in asked), \
+        "the planner has tools and is told so"
+    assert all(t is None for u, t in asked if "YOU OWN SECTION" in u), "site builders have no tools"
+    assert any("never copy code or text wholesale" in u for u, _ in asked)
+    with env(J2_REALIZATION="1", J2_TOOLS="0"):
+        run = j2.J2Run()
+        llm.ask = spy
+        asked.clear()
+        try:
+            say(run, BREW_LAB)
+        finally:
+            llm.ask = real_ask
+    assert any("WEB ACCESS: none" in u for u, _ in asked) and all(t is None for _, t in asked)
+    print("tools: read-only web and gh only for planning and research, exact --tools/--allowedTools, longer timeout, "
+          "J2_TOOLS=0 off, web counts in usage; research.md R-1 with 3 sources, read by the workflows after it ok")
+
+
+def steps_5_to_8():
+    dependencies_enforced()
+    parallel_builders()
+    polish_step()
+    neighbour_context()
+    doc_house_style()
+    tools_and_research()
+
 if __name__ == "__main__":
     if "--template-demo" in sys.argv or "--template-fail-demo" in sys.argv:
         # python3 j2_flow_test.py --fast --template-demo [--template-fail-demo]: the templates demo runs (atom
@@ -8854,7 +9576,7 @@ if __name__ == "__main__":
         for aid, t in blocks.items():
             print(f"  {aid}: prompt {t['prompt']['used']} · reply {t['reply']['valid']} "
                   f"({t['reply']['retries']} retry) · output {t['output']['match']} ({t['output']['template']})")
-        print(f"http://127.0.0.1:8773/?run={os.path.basename(demo.dir)}&view=detail")
+        print(f"http://127.0.0.1:8773/legacy?run={os.path.basename(demo.dir)}&view=detail")
         sys.exit(0)
     if "--board-doc-demo" in sys.argv:
         # python3 j2_flow_test.py --fast --board-doc-demo: the document-change demo (board_doc_change's own run),
@@ -8865,7 +9587,7 @@ if __name__ == "__main__":
         e = (demo.board["entries"] or [{}])[0]
         print(f"Board: {e.get('id')} {e.get('asked_by')} -> {e.get('to')} ({e.get('status')}); "
               f"{json.dumps(e.get('artifact_update'))}; impact {len(e.get('impact') or [])} atom(s)")
-        print(f"http://127.0.0.1:8773/?run={os.path.basename(demo.dir)}&view=detail")
+        print(f"http://127.0.0.1:8773/legacy?run={os.path.basename(demo.dir)}&view=detail")
         sys.exit(0)
     if "--board-demo" in sys.argv:
         # python3 j2_flow_test.py --fast --board-demo: the message board demo (board_functions' own run), saved to
@@ -8875,7 +9597,7 @@ if __name__ == "__main__":
         demo = board_run(demo=True)
         print(f"Board: {len(demo.board['entries'])} question(s), "
               + ", ".join(f"{e['id']} {e['asked_by']} -> {e['to']} ({e['status']})" for e in demo.board["entries"]))
-        print(f"http://127.0.0.1:8773/?run={os.path.basename(demo.dir)}&view=detail")
+        print(f"http://127.0.0.1:8773/legacy?run={os.path.basename(demo.dir)}&view=detail")
         sys.exit(0)
     if FAST:
         print("--fast: browser measurement stubbed" + ("" if BROWSER else "; tests that drive the page in Chrome are "
@@ -9032,6 +9754,12 @@ if __name__ == "__main__":
     plain_words()
     identity_prompt_is_plain()
     print("G simple view (plain words at the source and as fallback, buttons once, phone toggle, ready card) ok")
+    validator_review()
+    essential_rejection()
+    no_writing_ahead()
+    false_alarms()
+    decisions_everywhere()
+    steps_5_to_8()
     assert fingerprint(REAL_MEMORY) == REAL_BEFORE, "the tests changed the real memory/ files"
     print("playbooks: same business type only, mock memory kept from live runs; real memory/ untouched ok")
     print("j2 flow checks passed")

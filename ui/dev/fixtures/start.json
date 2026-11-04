@@ -1,0 +1,149 @@
+{
+  "run": {
+    "id": "fx-start",
+    "saved": false,
+    "title": null
+  },
+  "status": "idle",
+  "status_text": "",
+  "usage": null,
+  "decision": null,
+  "chat": [],
+  "backstage": [],
+  "working_now": null,
+  "plan": null,
+  "deliverables": [],
+  "ended": null,
+  "settings": {
+    "no_questions": false
+  },
+  "control": {
+    "paused": false,
+    "pausing": false,
+    "stopping": false
+  },
+  "map": {
+    "departments": [],
+    "units": [],
+    "buildings": [],
+    "flows": [],
+    "attention": null,
+    "counts": {
+      "done": 0,
+      "total": 0
+    }
+  },
+  "_next": {
+    "say": "proposal"
+  },
+  "_outputs": {
+    "W-1": {
+      "id": "W-1",
+      "name": "Brief",
+      "kind": "notes",
+      "points": [
+        "Hero: the clinic's name, Indiranagar, and one Book on WhatsApp button.",
+        "Services: three treatments, each with a one-line description and a price.",
+        "Opening hours: every day of the week, Sunday closed.",
+        "Booking: a WhatsApp link with a short prefilled message.",
+        "Questions people ask: cost, parking, first visit.",
+        "Footer: address, phone and a map link."
+      ],
+      "markdown": "# Still Water Physio: page plan\n\nOne page for Still Water Physio in Indiranagar. Every later part follows this document. Copy every name, price and time exactly as written here.\n\n## Section order\n\n| # | Section | Built by |\n|---|---|---|\n| 1 | Hero | hero part |\n| 2 | Services | services part |\n| 3 | Opening hours | hours part |\n| 4 | Booking | booking part |\n| 5 | Questions people ask | questions part |\n\n## Hero\n\n- The clinic's name, Indiranagar, and one **Book on WhatsApp** button that links to the booking section.\n\n## Services\n\n- Sports injury rehab: Rs 1,200 a session\n- Back and neck care: Rs 1,000 a session\n- Home visits: Rs 1,800 a visit\n\n## Opening hours\n\nMonday to Saturday, 8am to 8pm. Sunday closed."
+    },
+    "W-2": {
+      "id": "W-2",
+      "name": "Look and feel",
+      "kind": "style",
+      "look": "Warm and friendly",
+      "palette": [
+        {
+          "name": "Primary",
+          "hex": "#b5522a"
+        },
+        {
+          "name": "Secondary",
+          "hex": "#f6e7dc"
+        },
+        {
+          "name": "Accent",
+          "hex": "#2a6f5f"
+        },
+        {
+          "name": "Background",
+          "hex": "#fffaf5"
+        },
+        {
+          "name": "Text",
+          "hex": "#2b1d16"
+        },
+        {
+          "name": "Muted",
+          "hex": "#6e5a4f"
+        }
+      ],
+      "fonts": {
+        "heading": "'Trebuchet MS', sans-serif",
+        "body": "system-ui, sans-serif"
+      },
+      "radius": "18px",
+      "rules": [
+        "Warm, rounded and friendly, with one terracotta accent for every main button.",
+        "Terracotta stays an accent: buttons, icons and thin rules only.",
+        "Write facts exactly: prices and hours as the brief gives them."
+      ]
+    },
+    "W-3": {
+      "id": "W-3",
+      "name": "Services list",
+      "kind": "section",
+      "anchor": "services",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-4": {
+      "id": "W-4",
+      "name": "Opening hours",
+      "kind": "section",
+      "anchor": "hours",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-5": {
+      "id": "W-5",
+      "name": "Booking on WhatsApp",
+      "kind": "section",
+      "anchor": "book",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-6": {
+      "id": "W-6",
+      "name": "Questions people ask",
+      "kind": "section",
+      "anchor": "faq",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "W-7": {
+      "id": "W-7",
+      "name": "Phone and computer check",
+      "kind": "page",
+      "url": "/ui/dev/samples/preview-2.html"
+    },
+    "R-1": {
+      "id": "R-1",
+      "name": "Research",
+      "kind": "research",
+      "question": "What do strong physio clinic sites do?",
+      "sources": [
+        {
+          "url": "https://www.physio.co.uk/",
+          "label": "physio.co.uk",
+          "note": "A large clinic site: booking first, prices shown plainly"
+        },
+        {
+          "url": "https://land-book.com/",
+          "label": "land-book.com",
+          "note": "A gallery of clinic landing pages, for layout"
+        }
+      ]
+    }
+  }
+}
