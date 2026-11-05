@@ -350,9 +350,26 @@ let drawerFor = "";
 let drawerSig = "";
 let drawerDraft = "";
 
-function openDrawerWith(kind, nodes) {
+/** Shows the drawer's pieces in order. Each piece is [key, sig, make]: a piece whose key and sig are unchanged keeps
+ * its node (so an answer being typed, focus and scroll survive a new team line); only changed pieces are rebuilt. */
+let drawerPieces = new Map();   // key -> {sig, node}
+function openDrawerWith(kind, pieces) {
+  if (drawerFor !== kind || !drawer.classList.contains("open")) drawerPieces = new Map();
   drawerFor = kind;
-  dbody.replaceChildren(...nodes.filter(Boolean));
+  const want = [];
+  const next = new Map();
+  for (const [key, sig, make] of pieces) {
+    let e = drawerPieces.get(key);
+    if (!e || e.sig !== sig) e = { sig, node: make() };
+    if (!e.node) continue;
+    next.set(key, e);
+    want.push(e.node);
+  }
+  drawerPieces = next;
+  for (const c of [...dbody.children]) if (!want.includes(c)) c.remove();
+  want.forEach((n, i) => {
+    if (dbody.children[i] !== n) dbody.insertBefore(n, dbody.children[i] || null);
+  });
   drawer.classList.add("open");
   document.body.classList.add("with-drawer");
 }
@@ -370,11 +387,13 @@ document.addEventListener("keydown", (e) => {
 function openMate(key, { draft } = {}) {
   if (draft != null) drawerDraft = draft;
   drawerSig = "";
+  if (drawerFor !== `mate:${key}`) drawerPieces = new Map();
   drawerFor = `mate:${key}`;
   renderDrawer(true);
 }
 function openPlan() {
   drawerSig = "";
+  if (drawerFor !== "plan") drawerPieces = new Map();
   drawerFor = "plan";
   renderDrawer(true);
 }
@@ -388,47 +407,64 @@ function renderDrawer(force = false) {
     const sig = `plan|${parts.map((p) => p.id + p.step).join(",")}`;
     if (!force && sig === drawerSig) return;
     drawerSig = sig;
-    return openDrawerWith("plan", [h("h4", { class: "st-dtitle" }, "The plan ", h("span", { class: "st-counter tnum" }, planCount(parts))), h("div", { class: "st-plan" }, planList(parts))]);
+    return openDrawerWith("plan", [["plan", sig, () => h("div", null, h("h4", { class: "st-dtitle" }, "The plan ", h("span", { class: "st-counter tnum" }, planCount(parts))), h("div", { class: "st-plan" }, planList(parts)))]]);
   }
   const key = drawerFor.slice(5);
   const m = team[key];
   if (!m) return;
   const d = key === "asha" && s.decision ? s.decision : null;
   const log = logOf(key, s, parts, key === "asha" ? 5 : 4);
-  const sig = `${key}|${d?.id || ""}|${m.line}|${m.parts.map((p) => p.id + p.step).join(",")}|${log.map((l) => l.id).join(",")}`;
+  const partsSig = m.parts.map((p) => p.id + p.step + p.name).join(",");
+  const logSig = log.map((l) => l.id).join(",");
+  const sig = `${key}|${qKey}|${m.line}|${partsSig}|${logSig}|${!!s.decision}`;
   if (!force && sig === drawerSig) return;
   drawerSig = sig;
-  const headEl = h("div", { class: "st-dhead" }, h("span", { html: avatar(key, 52) }), h("div", null, h("h4", { class: "st-dtitle" }, m.name), h("small", null, TEAM[key].role)));
-  const nodes = [headEl];
-  if (d) nodes.push(questionCard(d, parts, "panel"));
-  else nodes.push(h("p", { class: "st-now" }, h("b", null, "Now: "), m.line));
+  const pieces = [["head", key, () => h("div", { class: "st-dhead" }, h("span", { html: avatar(key, 52) }), h("div", null, h("h4", { class: "st-dtitle" }, m.name), h("small", null, TEAM[key].role)))]];
+  if (d) pieces.push(["q", qKey, () => questionCard(d, parts, "panel")]);
+  else pieces.push(["now", m.line, () => h("p", { class: "st-now" }, h("b", null, "Now: "), m.line)]);
   if (m.parts.length) {
-    nodes.push(h("h3", { class: "st-dk" }, "Parts"), h("div", { class: "st-log" }, ...m.parts.map((p) => h("div", null,
-      h("button", { class: "st-link", type: "button", onclick: () => goPart(p) }, p.name), ` · ${stepWord(p)}`))));
+    pieces.push(["parts-h", "", () => h("h3", { class: "st-dk" }, "Parts")], ["parts", partsSig, () => h("div", { class: "st-log" }, ...m.parts.map((p) => h("div", null,
+      h("button", { class: "st-link", type: "button", onclick: () => goPart(p) }, p.name), ` · ${stepWord(p)}`)))]);
   }
-  if (key === "nora") nodes.push(h("p", { class: "st-dnote" }, "Nora checks every part against your brief before it counts as done."));
-  if (log.length) nodes.push(h("h3", { class: "st-dk" }, "Recent"), h("div", { class: "st-log" }, ...log.map((l) => h("div", null, h("b", null, l.to ? `${l.from} → ${l.to}: ` : `${l.from}: `), l.text))));
+  if (key === "nora") pieces.push(["note", "", () => h("p", { class: "st-dnote" }, "Nora checks every part against your brief before it counts as done.")]);
+  if (log.length) pieces.push(["log-h", "", () => h("h3", { class: "st-dk" }, "Recent")], ["log", logSig, () => h("div", { class: "st-log" }, ...log.map((l) => h("div", null, h("b", null, l.to ? `${l.from} → ${l.to}: ` : `${l.from}: `), l.text)))]);
   if (key === "asha" && !readOnly) {
-    const form = ownAnswer(async (text, btn) => {
-      btn.disabled = true;
-      const ok = await send(text);
-      if (ok) {
-        drawerDraft = "";
-        toast("Sent to Asha.");
-        form.querySelector("input").value = "";
-      }
-      btn.disabled = false;
-    }, "st-say", s.decision ? "Or tell Asha something else" : "Tell Asha something (a change, a fact)");
-    const inp = form.querySelector("input");
-    if (drawerDraft) {
+    pieces.push(["say-h", "", () => h("h3", { class: "st-dk" }, "Message")], ["say", "", sayForm]);
+    const inp = drawerPieces.get("say")?.node.querySelector("input");
+    const ph = s.decision ? "Or tell Asha something else" : "Tell Asha something (a change, a fact)";
+    if (inp && inp.placeholder !== ph) inp.placeholder = ph;
+  }
+  openDrawerWith(drawerFor, pieces);
+  if (force && drawerDraft) {
+    // "Change" on a decided line: the message box is prefilled and focused
+    const inp = dbody.querySelector("#st-say-own");
+    if (inp) {
       inp.value = drawerDraft;
-      form.querySelector("button").disabled = false;
+      inp.form.querySelector("button").disabled = false;
       setTimeout(() => inp.focus(), 60);
     }
-    inp.addEventListener("input", () => (drawerDraft = inp.value));
-    nodes.push(h("h3", { class: "st-dk" }, "Message"), form);
   }
-  openDrawerWith(drawerFor, nodes);
+}
+
+/** Asha's message box: built once per open drawer, so what is being typed stays while the drawer updates. */
+function sayForm() {
+  const form = ownAnswer(async (text, btn) => {
+    btn.disabled = true;
+    const ok = await send(text);
+    if (ok) {
+      drawerDraft = "";
+      toast("Sent to Asha.");
+      form.querySelector("input").value = "";
+    }
+    btn.disabled = false;
+  }, "st-say", store.s.decision ? "Or tell Asha something else" : "Tell Asha something (a change, a fact)");
+  const inp = form.querySelector("input");
+  if (drawerDraft) {
+    inp.value = drawerDraft;
+    form.querySelector("button").disabled = false;
+  }
+  inp.addEventListener("input", () => (drawerDraft = inp.value));
+  return form;
 }
 
 function stepWord(p) {
