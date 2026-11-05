@@ -2242,7 +2242,8 @@ body:has(.banner:not([hidden])) .sheet {
     box-shadow: none;
     transform: translateY(100%);
   }
-  .sheet.is-open {
+  .sheet.is-open,
+  body:has(.banner:not([hidden])) .sheet.is-open {
     transform: none;
   }
   .sheet-grip {
@@ -3694,7 +3695,8 @@ body:has(.banner:not([hidden])) .sheet {
     opacity: 0;
     transition: transform var(--t-panel) var(--ease-in-out), opacity var(--t-panel) var(--ease-in-out), visibility 0s linear var(--t-panel);
   }
-  .sheet.sheet-result.is-open {
+  .sheet.sheet-result.is-open,
+  body:has(.banner:not([hidden])) .sheet.sheet-result.is-open {
     transform: translate(-50%, 0);
     opacity: 1;
     transition: transform var(--t-panel) var(--ease), opacity var(--t-panel) var(--ease), visibility 0s;
