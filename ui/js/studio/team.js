@@ -38,6 +38,7 @@ export function partsOf(s, map, live) {
       kind,
       person: KIND_PERSON[kind] || "dev",
       anchor: live?.anchors?.[id] || null,
+      dept: b?.dept || null,
       output: b?.output || null,
       doing: b?.doing || "",
     };
@@ -110,7 +111,7 @@ export function teamModel(s, map, parts) {
       const done = m.parts.filter((p) => p.state === "done").length;
       const left = m.parts.filter((p) => p.state !== "done" && p.state !== "skipped").length;
       m.line = live ? (done ? `Finished ${count(done)}, free for the next` : "Free for the next part")
-        : `Finished ${count(done)}${left ? `, ${left} not built` : ""}`;
+        : `Finished ${count(done)}${left ? `, ${left} still open` : ""}`;
     }
   }
   return out;

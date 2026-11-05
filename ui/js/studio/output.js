@@ -54,6 +54,7 @@ export function createOutput({ el, onTag }) {
   let inline = { node: null, anchor: null, kind: "" };
   let docEl = null;
   let onScroll = () => {};
+  let ended = false;        // the run has ended: a part that needs a fix is left open, nobody is fixing it
   const marks = new Map();  // section id -> {state, person}
 
   /* ---------- what each section shows: who is on it, done, waits for an answer ---------- */
@@ -220,7 +221,7 @@ export function createOutput({ el, onTag }) {
         d.innerHTML = `<button class="tick" type="button" data-sec="${esc(sec)}" title="Done. See what ${esc(m.part.name.toLowerCase())} made" aria-label="Done: ${esc(m.part.name)}. See what it made">✓</button>`;
       } else {
         const soft = m.state === "wait" ? " soft" : "";
-        const verb = m.state === "wait" ? " · next" : m.state === "ask" ? " · waiting on you" : m.state === "fix" ? " · fixing" : "";
+        const verb = verbOf(m.state);
         d.innerHTML = `<button class="tag${soft}" type="button" data-sec="${esc(sec)}" style="--c:${c}" aria-label="${esc(NAME[m.person])} is on ${esc(m.part.name)}">${avatar(m.person, 22, { prop: false })}${esc(NAME[m.person])}${verb}</button>`;
       }
       kids.push(d);
@@ -262,7 +263,7 @@ export function createOutput({ el, onTag }) {
       let mark;
       if (m.state === "done") mark = h("button", { class: "st-mark st-tick", type: "button", title: `Done. See what ${m.part.name.toLowerCase()} made`, "aria-label": `Done: ${m.part.name}. See what it made` }, "✓");
       else {
-        const verb = m.state === "wait" ? " · next" : m.state === "ask" ? " · waiting on you" : m.state === "fix" ? " · fixing" : "";
+        const verb = verbOf(m.state);
         mark = h("button", { class: `st-mark st-tag${m.state === "wait" ? " soft" : ""}`, type: "button", style: `--c:${COLOR[m.person]}`, "aria-label": `${NAME[m.person]} is on ${m.part.name}` });
         mark.innerHTML = avatar(m.person, 22, { prop: false });
         mark.append(`${NAME[m.person]}${verb}`);
@@ -285,8 +286,15 @@ export function createOutput({ el, onTag }) {
   }
 
   /* ---------- public ---------- */
-  function update(l, ps) {
+  function verbOf(state) {
+    if (state === "wait") return ended ? " · not built" : " · next";
+    if (state === "fix") return ended ? " · needs a fix" : " · fixing";
+    return state === "ask" ? " · waiting on you" : "";
+  }
+
+  function update(l, ps, opts = {}) {
     parts = ps || [];
+    ended = !!opts.ended;
     const siteMode = l && l.kind === "website" && l.url && l.started;
     const nextMode = siteMode ? "site" : "doc";
     const changed = !live || l.key !== live.key || nextMode !== mode || l.kind !== live.kind || l.doc !== live.doc;

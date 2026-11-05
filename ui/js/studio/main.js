@@ -241,9 +241,11 @@ let liveSig = "";
 let liveAt = 0;
 let liveBusy = false;
 
+/** The deliverable in the centre: the one the person picked, else the one the server says is being made now. */
 function currentKind(s) {
   const ds = s.deliverables || [];
   if (chosenKind && ds.some((d) => d.kind === chosenKind)) return chosenKind;
+  if (live) return live.kind === "document" ? live.doc : "website";
   return (ds.find((d) => d.state === "working" || d.state === "draft") || [...ds].reverse().find((d) => d.state !== "todo") || ds[ds.length - 1])?.kind || "";
 }
 
@@ -258,7 +260,7 @@ async function refreshLive(force = false) {
   liveSig = sig;
   liveAt = Date.now();
   try {
-    const l = await api.live(kind && (s.deliverables || []).length > 1 ? kind : "");
+    const l = await api.live(chosenKind && (s.deliverables || []).length > 1 ? chosenKind : "");
     if (l) {
       live = l;
       render();
@@ -313,7 +315,7 @@ function decidedStrip(s) {
     const change = h("button", { class: "st-link", type: "button" }, "Change");
     change.addEventListener("click", () => openMate("asha", { draft: `About "${r.title}": I'd rather ` }));
     return h("div", { class: "st-decided" }, h("span", { class: "st-qav", html: avatar("asha", 22, { prop: false }) }),
-      h("span", null, "Decided for you: ", h("b", null, r.title), r.summary ? ` (${r.summary})` : "", " · recommended"), change);
+      h("span", { class: "st-decided-text", title: r.summary || "" }, "Decided for you: ", h("b", null, r.title), " (recommended)"), change);
   }));
   return decidedNode;
 }
@@ -409,9 +411,20 @@ function stepWord(p) {
 }
 
 /* ---------- parts: scroll the output to them, or open what they made ---------- */
+let sketchAnchors = null;
+let pendingGo = null;       // a part in another deliverable: switch to it, then scroll there once it has loaded
 function goPart(p) {
   if (isPhone()) closeDrawer();
-  if (p.anchor && output.goTo(p.anchor)) return;
+  const other = p.dept && p.dept.slice(2) !== currentKind(store.s) && (store.s.deliverables || []).some((d) => `d-${d.kind}` === p.dept);
+  if (other) {
+    chosenKind = p.dept.slice(2);
+    pendingGo = { id: p.id, until: Date.now() + 6000 };
+    live = null;
+    refreshLive(true);
+    return render();
+  }
+  const anchor = p.anchor || sketchAnchors?.[p.id];
+  if (anchor && output.goTo(anchor)) return;
   if (p.state === "done" && p.output) return openOutputOf(p);
   toast(p.anchor ? `${p.name} isn't on the page yet.` : `${p.name} is notes for the team, not a section of the page.`);
 }
@@ -441,7 +454,7 @@ function controlsFor(p) {
 /** A mark on the output was tapped: a finished section opens what it made; one in progress opens its maker. */
 function tagClicked(sid) {
   const parts = partsOf(store.s, store.map, live);
-  const mine = parts.filter((p) => p.anchor === sid);
+  const mine = parts.filter((p) => (p.anchor || sketchAnchors?.[p.id]) === sid);
   const busy = mine.find((p) => p.step === "ask") || mine.find((p) => p.step === "doing" || p.step === "fix");
   if (busy?.step === "ask") return openMate("asha");
   if (busy) return openMate(busy.person);
@@ -624,7 +637,9 @@ function render() {
   const kind = currentKind(s);
   let l = live && (!kind || (live.kind === "website" ? kind === "website" : live.doc === kind)) ? live : null;
   if (!l || (l.kind === "website" && !l.started)) l = sketch(s, parts, l, kind);
-  output.update(l, parts);
+  // in the sketch each planned part is its own block (its id is its anchor)
+  sketchAnchors = String(l.key).startsWith("sketch") ? l.anchors : null;
+  output.update(l, sketchAnchors ? parts.map((p) => ({ ...p, anchor: sketchAnchors[p.id] || null })) : parts, { ended: ENDED.includes(s.status) });
   $("#st-url").textContent = l.kind === "website" ? `${l.title || "your site"} · live preview` : `${(l.doc || "").toUpperCase()} · live`;
 
   // the question, inline at its section (or at the top), and the decided lines while Decide for me is on
@@ -639,6 +654,13 @@ function render() {
   output.setInline(inl, qInline && part?.anchor && live?.anchors && Object.values(live.anchors).includes(part.anchor) ? part.anchor : null);
   syncNudge();
   renderDrawer();
+  if (pendingGo && live) {
+    const p = parts.find((x) => x.id === pendingGo.id);
+    if (p?.anchor || Date.now() > pendingGo.until) {
+      pendingGo = null;
+      if (p) setTimeout(() => goPart(p), 120);
+    }
+  }
 
   if (d && d.id !== lastDecision) {
     announce(`Asha has a question: ${d.kind === "proposal" ? d.proposal?.summary || "the plan is ready" : d.happening}`);
@@ -654,11 +676,17 @@ function render() {
 /** Before the site exists: the planned parts as calm placeholders, each with who will make it. */
 function sketch(s, parts, l, kind) {
   const isDoc = kind && kind !== "website";
+  const depts = new Set(parts.map((p) => p.dept).filter(Boolean));
+  const mine = depts.size > 1 ? parts.filter((p) => p.dept === `d-${kind || "website"}`) : parts;
+  parts = mine;
   const blocks = parts.filter((p) => p.state !== "skipped").map((p) => ({ anchor: p.id, parts: [p.id], state: p.state === "done" ? "done" : "waiting", markdown: null, name: p.name,
     note: p.state === "done" ? "Done" : p.state === "working" ? `${TEAM[p.person].name} is on it` : "Coming up" }));
   const empty = s.status === "working" ? "Asha is reading your brief. The plan shows here in a moment." : ENDED.includes(s.status) ? "Nothing was built in this run." : "The plan shows here once Asha has it.";
   const anchors = Object.fromEntries(parts.map((p) => [p.id, p.id]));
-  if (l?.kind === "website" && kind === "website" && !parts.length && (s.deliverables || []).length > 1) return { ...l, kind: "website", blocks: [], empty: "The website starts after the documents.", anchors, key: "sketch-later" };
+  if (kind === "website" && !parts.length && (s.deliverables || []).length > 1) {
+    const e = ENDED.includes(s.status) ? "The website wasn't started in this run." : "The website starts after the documents.";
+    return { kind: "website", doc: null, title: s.run?.title || "", started: false, blocks: [], empty: e, anchors, part_kinds: {}, key: `sketch-later|${e}` };
+  }
   return { kind: isDoc ? "document" : "website", doc: isDoc ? kind : null, title: s.run?.title || "", started: false, blocks, empty, anchors, part_kinds: {},
     key: `sketch|${kind}|${blocks.map((b) => b.anchor + b.state + b.note).join(",")}|${empty}` };
 }

@@ -719,8 +719,10 @@ def deliverables(kinds, docs_done, cur_kind, cur_versions, run_dir, saved_name=N
             continue
         doc = k != "website"
         has_file = bool(run_dir) and os.path.exists(os.path.join(run_dir, f"{k}.md"))
-        if k in docs_done or (finished and k == cur_kind):
+        if k in docs_done or (finished and k == cur_kind and (cur_versions or has_file)):
             state = "done"
+        elif finished and k == cur_kind:
+            state = "todo"           # the run ended before this stage made anything (a chain's website never started)
         elif k == cur_kind:
             state = "draft" if cur_versions else "working"
         else:

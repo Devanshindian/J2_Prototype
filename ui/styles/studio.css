@@ -710,6 +710,13 @@ body.studio {
   padding: 7px 10px;
   animation: st-pop 0.35s ease;
 }
+.st-decided-text {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.st-decided .st-qav {
+  flex: none;
+}
 .st-decided b {
   color: var(--ink);
   font-weight: 600;
