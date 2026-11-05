@@ -37,6 +37,9 @@ body.studio {
   font-family: var(--display);
   font-weight: 600;
 }
+.studio .start-under.st-start-team {
+  justify-content: center;
+}
 .st-start-team {
   display: flex;
   align-items: center;

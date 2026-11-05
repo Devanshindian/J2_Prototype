@@ -209,6 +209,12 @@ export function createOutput({ el, onTag }) {
       if (!m) continue;
       const cs = win.getComputedStyle(s);
       if (/fixed|sticky/.test(cs.position)) continue; // a sticky header moves with the view; no frame around it
+      // our own placeholder says who is on it now (the page's sections are never touched)
+      const note = s.dataset.j2Wait ? s.querySelector(".j2-wait-note") : null;
+      if (note) {
+        const want = m.state === "doing" ? `${NAME[m.person]} is on it` : m.state === "ask" ? "Waiting on your answer" : ended ? "Not built in this run" : "Coming up";
+        if (note.textContent !== want) note.textContent = want;
+      }
       const r = s.getBoundingClientRect();
       if (r.height < 8) continue;
       const d = doc.createElement("div");

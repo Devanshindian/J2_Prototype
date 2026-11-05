@@ -189,6 +189,13 @@ for (const b of document.querySelectorAll("[data-try]")) {
   });
 }
 
+/** "2026-11-04T12:24:21" reads "4 Nov, 12:24". */
+function when(iso) {
+  const d = iso ? new Date(iso) : null;
+  if (!d || Number.isNaN(d.getTime())) return iso || "";
+  return `${d.getDate()} ${d.toLocaleString("en", { month: "short" })}, ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 let recentLoaded = false;
 async function loadRecent() {
   if (recentLoaded) return;
@@ -198,7 +205,7 @@ async function loadRecent() {
     $("#recent-list").replaceChildren(...runs.slice(0, 5).map((r) => {
       const href = r.fixture ? `?fixture=${encodeURIComponent(r.fixture)}` : `?run=${encodeURIComponent(r.id)}`;
       return h("li", null, h("a", { class: "recent-item", href }, h("span", { class: "recent-name" }, r.title || "Untitled"),
-        h("span", { class: "recent-meta tnum" }, [statusWord(r.status), r.spent ? fmtUsage(r.spent) : "", r.when].filter(Boolean).join(" · "))));
+        h("span", { class: "recent-meta tnum" }, [statusWord(r.status), r.spent ? fmtUsage(r.spent) : "", when(r.when)].filter(Boolean).join(" · "))));
     }));
     $("#recent").hidden = runs.length === 0;
   } catch {
