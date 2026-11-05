@@ -195,6 +195,24 @@ export function createOutput({ el, onTag }) {
     } else if (doc.body.firstElementChild !== host) doc.body.prepend(host);
   }
 
+  /** A section's area on the page: its tagged first element and the untagged elements after it (a section's markup
+   * can be several top-level elements, and one part can build the whole page), leaving out a sticky or fixed bar
+   * (it moves with the view; no frame around it). Null when nothing of it is drawn. */
+  function sectionRect(s, win) {
+    let top = Infinity, left = Infinity, right = -Infinity, bottom = -Infinity;
+    for (let n = s; n; n = n.nextElementSibling) {
+      if (n !== s && (n.hasAttribute("data-j2-section") || n.tagName === "J2-LAYER")) break;
+      if (/^(J2-ASK|SCRIPT|STYLE|TEMPLATE)$/.test(n.tagName) || /fixed|sticky/.test(win.getComputedStyle(n).position)) continue;
+      const r = n.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      top = Math.min(top, r.top);
+      left = Math.min(left, r.left);
+      right = Math.max(right, r.right);
+      bottom = Math.max(bottom, r.bottom);
+    }
+    return top === Infinity ? null : { top, left, width: right - left, height: bottom - top };
+  }
+
   function layout() {
     if (mode !== "site" || !frame) return;
     const doc = frame.contentDocument;
@@ -203,36 +221,54 @@ export function createOutput({ el, onTag }) {
     const box = layer.shadowRoot.lastElementChild;
     const base = layer.getBoundingClientRect();
     const win = frame.contentWindow;
-    const kids = [];
+    // the marks are kept per section and only redrawn when what they say changes, so a focused or hovered mark
+    // survives the poll
+    const kept = (box.__marks ||= new Map());
+    const seen = new Set();
     for (const s of doc.querySelectorAll("[data-j2-section]")) {
-      const m = marks.get(s.dataset.j2Section);
+      const sec = s.dataset.j2Section;
+      const m = marks.get(sec);
       if (!m) continue;
-      const cs = win.getComputedStyle(s);
-      if (/fixed|sticky/.test(cs.position)) continue; // a sticky header moves with the view; no frame around it
       // our own placeholder says who is on it now (the page's sections are never touched)
       const note = s.dataset.j2Wait ? s.querySelector(".j2-wait-note") : null;
       if (note) {
         const want = m.state === "doing" ? `${NAME[m.person]} is on it` : m.state === "ask" ? "Waiting on your answer" : ended ? "Not built in this run" : "Coming up";
         if (note.textContent !== want) note.textContent = want;
       }
-      const r = s.getBoundingClientRect();
-      if (r.height < 8) continue;
-      const d = doc.createElement("div");
-      d.className = `box ${m.state}`;
+      const r = sectionRect(s, win);
+      if (!r || r.height < 8) continue;
+      seen.add(sec);
       const c = COLOR[m.person] || "#3D5A80";
-      d.style.cssText = `top:${r.top - base.top}px;left:${r.left - base.left}px;width:${r.width}px;height:${r.height}px;--c:${c}`;
-      d.dataset.box = s.dataset.j2Section;
-      const sec = s.dataset.j2Section;
-      if (m.state === "done") {
-        d.innerHTML = `<button class="tick" type="button" data-sec="${esc(sec)}" title="Done. See what ${esc(m.part.name.toLowerCase())} made" aria-label="Done: ${esc(m.part.name)}. See what it made">✓</button>`;
-      } else {
-        const soft = m.state === "wait" ? " soft" : "";
-        const verb = verbOf(m.state);
-        d.innerHTML = `<button class="tag${soft}" type="button" data-sec="${esc(sec)}" style="--c:${c}" aria-label="${esc(NAME[m.person])} is on ${esc(m.part.name)}">${avatar(m.person, 22, { prop: false })}${esc(NAME[m.person])}${verb}</button>`;
+      let d = kept.get(sec);
+      if (!d) {
+        d = doc.createElement("div");
+        d.dataset.box = sec;
+        kept.set(sec, d);
+        box.append(d);
       }
-      kids.push(d);
+      const sig = `${m.state}|${m.person}|${m.part.name}|${ended}`;
+      if (d.__sig !== sig) {
+        d.__sig = sig;
+        d.className = `box ${m.state}`;
+        if (m.state === "done") {
+          d.innerHTML = `<button class="tick" type="button" data-sec="${esc(sec)}" title="Done. See what ${esc(m.part.name.toLowerCase())} made" aria-label="Done: ${esc(m.part.name)}. See what it made">✓</button>`;
+        } else {
+          const soft = m.state === "wait" ? " soft" : "";
+          const verb = verbOf(m.state);
+          d.innerHTML = `<button class="tag${soft}" type="button" data-sec="${esc(sec)}" style="--c:${c}" aria-label="${esc(NAME[m.person])} is on ${esc(m.part.name)}">${avatar(m.person, 22, { prop: false })}${esc(NAME[m.person])}${verb}</button>`;
+        }
+      }
+      d.style.top = `${r.top - base.top}px`;
+      d.style.left = `${r.left - base.left}px`;
+      d.style.width = `${r.width}px`;
+      d.style.height = `${r.height}px`;
+      d.style.setProperty("--c", c);
     }
-    box.replaceChildren(...kids);
+    for (const [sec, d] of kept) {
+      if (seen.has(sec)) continue;
+      d.remove();
+      kept.delete(sec);
+    }
     onScroll();
   }
 
@@ -257,9 +293,13 @@ export function createOutput({ el, onTag }) {
   function decorateDoc() {
     if (mode !== "doc" || !docEl) return;
     for (const sec of docEl.querySelectorAll(".st-block")) {
+      const m = marks.get(sec.dataset.anchor);
+      // redrawn only when what the mark says changes, so a focused mark survives the poll
+      const sig = m ? `${m.state}|${m.person}|${m.part.name}|${ended}` : "";
+      if (sec.__markSig === sig) continue;
+      sec.__markSig = sig;
       sec.querySelector(":scope > .st-mark")?.remove();
       sec.classList.remove("doing", "ask", "fix", "flash-keep");
-      const m = marks.get(sec.dataset.anchor);
       if (!m) continue;
       sec.classList.toggle("doing", m.state === "doing");
       sec.classList.toggle("ask", m.state === "ask");
