@@ -103,7 +103,10 @@ export function createOutput({ el, onTag }) {
   function scrollPlace(f) {
     try {
       const doc = f.contentDocument;
+      const win = f.contentWindow;
       for (const s of doc.querySelectorAll("[data-j2-section]")) {
+        // a sticky or fixed bar is always in view: anchoring on it would send the reader back to the top
+        if (/fixed|sticky/.test(win.getComputedStyle(s).position)) continue;
         const r = s.getBoundingClientRect();
         if (r.bottom > 0) return { sid: s.dataset.j2Section, top: r.top, y: f.contentWindow.scrollY };
       }
