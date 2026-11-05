@@ -544,6 +544,29 @@ body.studio {
   margin-left: 0;
   margin-right: 0;
 }
+/* a placeholder someone is on gets their colour, as on the site (the dashed line above would hide it) */
+.st-block.is-wait.doing {
+  outline: 2px solid var(--c);
+}
+.st-block.is-wait.ask {
+  outline: 2px solid var(--ask);
+}
+.st-block.is-wait.fix {
+  outline: 2px dashed var(--ask);
+}
+.st-block.is-made {
+  outline: 1px solid var(--line);
+  background: var(--surface);
+  padding: 10px 16px;
+  color: var(--ink-3);
+}
+.st-block.is-made .st-wait-note {
+  margin: 0;
+}
+.st-block.is-made .st-tick {
+  top: 50%;
+  transform: translateY(-50%);
+}
 .st-wait-name {
   margin: 0 0 2px;
   font-weight: 600;

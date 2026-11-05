@@ -279,8 +279,11 @@ export function createOutput({ el, onTag }) {
       h("p", { class: "st-doc-kicker" }, live.kind === "document" ? (live.doc || "").toUpperCase() : "Website"),
       h("h1", { class: "st-doc-title" }, live.title || (live.kind === "document" ? "Your document" : "Your website")));
     const body = blocks.map((b) => {
-      const sec = h("section", { class: `st-block ${b.markdown == null ? "is-wait" : ""}`, "data-anchor": b.anchor || "" });
-      if (b.markdown == null) sec.append(h("p", { class: "st-wait-name" }, b.name || "A part"), h("p", { class: "st-wait-note" }, b.note || "Coming up"), h("i"), h("i"), h("i"));
+      // in the sketch a finished part with no section yet (notes, the look) is a quiet line, not a skeleton
+      const made = b.markdown == null && b.state === "done";
+      const sec = h("section", { class: `st-block ${b.markdown == null ? "is-wait" : ""}${made ? " is-made" : ""}`, "data-anchor": b.anchor || "" });
+      if (made) sec.append(h("p", { class: "st-wait-name" }, b.name || "A part"), h("p", { class: "st-wait-note" }, b.note || "Done"));
+      else if (b.markdown == null) sec.append(h("p", { class: "st-wait-name" }, b.name || "A part"), h("p", { class: "st-wait-note" }, b.note || "Coming up"), h("i"), h("i"), h("i"));
       else sec.append(h("div", { class: "doc st-md", html: renderMarkdown(b.markdown) }));
       return sec;
     });

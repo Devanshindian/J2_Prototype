@@ -753,8 +753,8 @@ function sketch(s, parts, l, kind) {
   const mine = depts.size > 1 ? parts.filter((p) => p.dept === `d-${kind || "website"}`) : parts;
   parts = mine;
   const blocks = parts.filter((p) => p.state !== "skipped").map((p) => ({ anchor: p.id, parts: [p.id], state: p.state === "done" ? "done" : "waiting", markdown: null, name: p.name,
-    note: p.state === "done" ? "Done" : p.state === "working" ? `${TEAM[p.person].name} is on it` : "Coming up" }));
-  const empty = s.status === "working" ? "Asha is reading your brief. The plan shows here in a moment." : ENDED.includes(s.status) ? "Nothing was built in this run." : "The plan shows here once Asha has it.";
+    note: p.state === "done" ? `Done by ${TEAM[p.person].name}` : p.state === "working" ? `${TEAM[p.person].name} is on it` : "Coming up" }));
+  const empty = s.status === "working" ? `${firstCap(teamWords(s.status_text) || "Asha is reading your brief")} The plan shows here in a moment.` : ENDED.includes(s.status) ? "Nothing was built in this run." : "The plan shows here once Asha has it.";
   const anchors = Object.fromEntries(parts.map((p) => [p.id, p.id]));
   if (kind === "website" && !parts.length && (s.deliverables || []).length > 1) {
     const e = ENDED.includes(s.status) ? "The website wasn't started in this run." : "The website starts after the documents.";
