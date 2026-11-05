@@ -1027,7 +1027,7 @@ def map_build(wfs, chat, kinds, stage_of, cur_kind, status, working_fns, turn, u
         buildings.append({"id": w["id"], "name": names[w["id"]] or w["id"], "dept": dept, "progress": building_progress(w, st, usage_by_wf.get(w["id"], w.get("usage"))),
                           "state": st, "depends_on": [d for d in deps if d and d != w["id"]], "usage": int(usage_by_wf.get(w["id"], w.get("usage")) or 0),
                           "share": int(j2.granted(w) or 0), "doing": building_doing(w, st, waits, last_line),
-                          "output": (output_of or output_kind)(w, k) if st == "done" else None})
+                          "output": (output_of or output_kind)(w, k) if st == "done" else None, "kind": part_kind(w, k)})
         if w.get("status") == "running" or st == "needs_fix":      # a builder is on the map only while it is at its part
             bstate = "working" if st == "working" and working else "idle"
             units.append({"id": unit_id(w["id"]), "role": "builder", "label": f"Builder · {names[w['id']]}", "dept": dept,
@@ -1036,7 +1036,7 @@ def map_build(wfs, chat, kinds, stage_of, cur_kind, status, working_fns, turn, u
         for i, n in enumerate(proposal.get("parts") or [], 1):
             buildings.append({"id": f"p-{i}", "name": plain_name(n), "dept": cur, "progress": 0.0, "state": "waiting",
                               "depends_on": [f"p-{i - 1}"] if i > 1 else [], "usage": 0, "share": 0, "doing": "Planned",
-                              "output": None})
+                              "output": None, "kind": part_kind({"name": n}, cur_kind)})
     ids = {u["id"] for u in units}
     done = sum(1 for b in buildings if b["state"] == "done")
     attention = None
@@ -1335,3 +1335,253 @@ def output_saved(name, wid):
     return output_payload(wid, snap["workflows"] or [], d, j2._read(d, "sections.json", {}) or {},
                           j2._read(d, "style.json", None), lambda w: stage_of_wf.get(w["id"]) or w.get("stage"),
                           f"/site/latest?run={name}", lambda kind: doc_text(None, kind, name))
+
+
+# ------------------------------------------------------------------ the studio view: who makes each part, the live output
+
+# The studio view (ui/studio.html) shows the team as five friendly people, not six org boxes: the makers are grouped by
+# what a part is. `part_kind` is that tag, by code from the part's own metadata (its name, its output, its stage):
+# writer (copy, content, a document's prose), designer (the look, visual sections) or builder (forms, navigation, the
+# shell, technical specs). The first rule that matches wins, so "Add testimonials link to nav" is a builder's part.
+DOC_KINDS = ("prd", "hld", "lld")
+KIND_BUILD = re.compile(r"\b(?:forms?|booking|nav|navigation|navbar|header|footer|shell|integrations?|whatsapp|maps?|"
+                        r"filters?|search|scripts?|visible|links?|anchors?|overflow|responsive|interactive|engineering|"
+                        r"apis?|database|data model|data flow|schema|architecture|components?|security|hosting|deploy\w*|"
+                        r"infrastructure|file structure|performance|tests?|code)\b", re.I)
+KIND_DESIGN = re.compile(r"\b(?:hero|banner|portfolio|gallery|showcase|visuals?|imagery|images?|photos?|illustrations?|"
+                         r"style|look|palette|brand|logo|layout|design|redesign|polish|theme|empty state|scenes?|icons?|"
+                         r"wireframes?|ux|ui)\b", re.I)
+KIND_UX = re.compile(r"\b(?:wireframes?|ux|ui|visual design|look and feel|brand|style)\b", re.I)    # inside a document
+KIND_WRITE = re.compile(r"\b(?:copy|text|content|faq|questions|about|story|team|testimonials?|reviews?|services?|menu|"
+                        r"pricing|prices?|process|steps|how we work|hours|contact info|address|location|visit|scope|"
+                        r"outline|brief|requirements?|problem|users?|personas?|goals?|metrics|research|purpose|risks?)\b",
+                        re.I)
+STAGE_KIND = {"content": "writer", "product": "writer", "design": "designer", "engineering": "builder", "build": "builder"}
+
+
+def part_kind(w, stage=None):
+    """writer | designer | builder: who on the studio team makes this part (api-contract.md, map buildings `kind`).
+    By code from the part's name, its output kind and its stage; a part nothing matches falls back to its stage's
+    kind (content and product: writer, design: designer), else builder."""
+    name = str(w.get("name") or "").replace("_", " ")
+    in_doc = stage in DOC_KINDS
+    if w.get("kind") == "polish":
+        return "writer" if in_doc else "designer"
+    out = output_kind(w, stage)["kind"]
+    if out == "style":
+        return "designer"
+    if out == "document" or in_doc:          # a section of a PRD, HLD or LLD: prose, unless it is technical or visual
+        return "builder" if KIND_BUILD.search(name) else "designer" if KIND_UX.search(name) else "writer"
+    for kind, rx in (("builder", KIND_BUILD), ("designer", KIND_DESIGN), ("writer", KIND_WRITE)):
+        if rx.search(name):
+            return kind
+    if out == "research":
+        return "writer"
+    return STAGE_KIND.get(w.get("stage") or stage, "builder")
+
+
+# The live output: what the centre of the studio view shows while the team works (/api/v2/live). A website is the page
+# as assembled so far (assemble(), the same code every version uses): built sections are real, a section still to come
+# is a calm placeholder, and every section's first element carries data-j2-section="<section id>" so the page can find
+# it (a part maps to its section in `anchors`). A document is its current text in blocks, one per "## " section, each
+# with the parts that wrote it; a section still to come is a placeholder block.
+WAIT_CSS = ("<style>[data-j2-wait]{display:block;box-sizing:border-box;width:calc(100% - 32px);max-width:1080px;"
+            "margin:24px auto;padding:28px 24px 22px;border:1.5px dashed #d8cfbf;border-radius:12px;background:transparent;"
+            "color:#9b9284;font:15px/1.45 system-ui,-apple-system,sans-serif;text-align:left}"
+            "[data-j2-wait] .j2-wait-name{margin:0 0 2px;font-weight:600;color:#7d7466}"
+            "[data-j2-wait] .j2-wait-note{margin:0 0 14px;font-size:13px}"
+            "[data-j2-wait] i{display:block;height:8px;border-radius:4px;background:#ebe5da;margin:8px 0;width:72%}"
+            "[data-j2-wait] i+i{width:54%}[data-j2-wait] i+i+i{width:63%}</style>")
+SECTION_PARTS = ("section", "page")
+
+
+def _tag_first(body, sid):
+    """The section's markup with data-j2-section on its first element (layout untouched); a section that starts with
+    bare text gets a zero-size marker in front instead."""
+    attr = f' data-j2-section="{sid}"'
+    out, n = re.subn(r"^(\s*(?:<!--.*?-->\s*)*<[a-zA-Z][\w-]*)", lambda m: m.group(1) + attr, body, count=1, flags=re.S)
+    return out if n else f'<j2-mark{attr} style="display:block;height:0"></j2-mark>' + body
+
+
+def _wait_section(sid, name, ended):
+    import html as _html
+    nm = _html.escape(name or "This part")
+    note = "Not built in this run" if ended else "Coming up"
+    return (f'<section data-j2-section="{sid}" data-j2-wait="1" aria-label="{nm}: {note.lower()}">'
+            f'<p class="j2-wait-name">{nm}</p><p class="j2-wait-note">{note}</p><i></i><i></i><i></i></section>')
+
+
+def _plan_slots(wfs, has_body, is_slot):
+    """Section id -> (index of the first part that writes it, that part), for the parts that make a section; and part
+    id -> section id for every part whose section is on the page or will be."""
+    first, anchors = {}, {}
+    for i, w in enumerate(wfs):
+        sid = w.get("section")
+        if not sid or w.get("status") == "unfunded" or w.get("kind") == "polish":     # the polish revises the whole page
+            continue
+        if has_body(sid) or is_slot(w):
+            first.setdefault(sid, (i, w))
+            anchors[w["id"]] = sid
+    return first, anchors
+
+
+def _with_pending(real, first, has_body):
+    """[(sid, real-or-None)]: the real items in their own order, each section still to come placed just before the
+    first real one planned after it (so a placeholder sits where its part will land)."""
+    queue = sorted((s for s in first if not has_body(s)), key=lambda s: first[s][0])
+    out = []
+    for sid, x in real:
+        while queue and sid in first and first[queue[0]][0] < first[sid][0]:
+            out.append((queue.pop(0), None))
+        out.append((sid, x))
+    return out + [(s, None) for s in queue]
+
+
+def live_site(title, wfs, sections, ended=False):
+    """(html, anchors, pending): the website as it stands, for the studio view's centre (see above)."""
+    sections = sections or {}
+    has_body = lambda s: bool((sections.get(s) or {}).get("body"))
+    first, anchors = _plan_slots(wfs, has_body, lambda w: output_kind(w, w.get("stage"))["kind"] in SECTION_PARTS)
+    real = [(s, x) for s, x in sections.items() if s == "style" or (s in first and (x.get("body") or x.get("head")))]
+    page = {}
+    for sid, x in _with_pending(real, first, has_body):
+        if x is None:
+            page[sid] = {"owner": first[sid][1]["id"], "head": "", "body": _wait_section(sid, plain_name(first[sid][1].get("name")), ended)}
+        else:
+            page[sid] = {**x, "body": _tag_first(x["body"], sid) if x.get("body") else ""}
+    page = {"j2-wait": {"owner": "studio", "head": WAIT_CSS, "body": ""}, **page}
+    pending = [s for s in first if not has_body(s)]
+    return j2.assemble(title or "Your website", page), anchors, pending
+
+
+def _split_doc(md):
+    """[(heading or None, markdown)]: a document cut at its "## " headings; the "# title" line is left out."""
+    blocks, cur, head = [], [], None
+    for ln in str(md or "").splitlines():
+        m = j2.MD_HEADING.match(ln)
+        if m and len(m[1]) == 1 and not blocks and not any(x.strip() for x in cur):
+            continue
+        if m and len(m[1]) == 2:
+            if head is not None or any(x.strip() for x in cur):
+                blocks.append((head, "\n".join(cur).strip()))
+            head, cur = m[2], [ln]
+            continue
+        cur.append(ln)
+    if head is not None or any(x.strip() for x in cur):
+        blocks.append((head, "\n".join(cur).strip()))
+    return blocks
+
+
+def live_doc(kind, wfs, sections, doc_md, ended=False):
+    """(blocks, anchors): a PRD, HLD or LLD as it stands, one block per "## " section with the parts that wrote it;
+    sections still to come are placeholder blocks (see above)."""
+    sections = sections or {}
+    has_body = lambda s: bool((sections.get(s) or {}).get("body"))
+    is_slot = lambda w: bool({"doc_section", "requirements_section"} & set(w.get("parts") or []))
+    first, anchors = _plan_slots(wfs, has_body, is_slot)
+    key = lambda t: j2.squash(j2.strip_md(t or ""))
+    by_head = {}
+    for sid, x in sections.items():
+        h = next((m[2] for ln in (x.get("body") or "").splitlines() if (m := j2.MD_HEADING.match(ln))), None)
+        if h and sid in first:
+            by_head.setdefault(key(h), sid)
+    parts_of = {}
+    for wid, sid in anchors.items():
+        parts_of.setdefault(sid, []).append(wid)
+    text = _split_doc(doc_md) if doc_md else [(None, (sections[s].get("body") or "").strip()) for s in first if has_body(s)]
+    real = []
+    for head, md in text:
+        sid = by_head.get(key(head)) if head else None
+        if sid is None and not doc_md:
+            sid = next((s for s in first if has_body(s) and (sections[s].get("body") or "").strip() == md), None)
+        real.append((sid, md))
+    out, seen = [], set()
+    for sid, md in _with_pending([(s if s not in seen and not seen.add(s) else None, md) for s, md in real], first, has_body):
+        if md is None:
+            out.append({"anchor": sid, "parts": parts_of.get(sid, []), "state": "waiting", "markdown": None,
+                        "name": plain_name(first[sid][1].get("name")), "note": "Not written in this run" if ended else "Coming up"})
+        else:
+            out.append({"anchor": sid, "parts": parts_of.get(sid, []) if sid else [], "state": "done",
+                        "markdown": j2.reader_words(md), "name": None, "note": None})
+    return out, anchors
+
+
+def live_payload(kind, title, wfs, sections, doc_md=None, ended=False, site_url="/api/v2/live/site"):
+    """/api/v2/live for one deliverable (api-contract.md). Pure assembly from the run's own state."""
+    import hashlib
+    kinds = {w["id"]: part_kind(w, kind if kind in DOC_KINDS else w.get("stage")) for w in wfs}
+    if kind in DOC_KINDS:
+        blocks, anchors = live_doc(kind, wfs, sections, doc_md, ended)
+        body = {"kind": "document", "doc": kind, "blocks": blocks}
+    else:
+        html_out, anchors, pending = live_site(title, wfs, sections, ended)
+        has = any(s != "style" and (sections or {}).get(s, {}).get("body") for s in anchors.values())
+        body = {"kind": "website", "doc": None, "url": site_url if anchors else None, "pending": pending,
+                "started": bool(anchors), "built": bool(has)}
+        blocks = html_out
+    key = hashlib.sha1(json.dumps([body, blocks, anchors], sort_keys=True, default=str).encode("utf-8")).hexdigest()[:12]
+    return {**body, "title": title or "", "anchors": anchors, "part_kinds": kinds, "key": key}
+
+
+def _live_kinds(kinds, cur):
+    kinds = [k for k in kinds if k in LABELS] or ["website"]
+    return kinds, (cur if cur in kinds else kinds[-1])
+
+
+def studio_live(run, kind=None):
+    """(payload, html or None) for the live run: the deliverable asked for (default: the one being made now)."""
+    kinds, cur = _live_kinds(list(run.stages or [run.output]), run.stage_kind or run.output)
+    kind = kind if kind in kinds else cur
+    st, _ = run.run_status()
+    ended = STATUS.get(st) in ENDED and bool(run.chat)
+    title = (run.goal or {}).get("site_name") or (run.goal or {}).get("product_name") or \
+        (j2.short(run.request, 6) if run.request else "")
+    if kind == cur:
+        wfs, sections = list(run.workflows), run.sections or {}
+        doc_md = run.sites[-1] if kind in DOC_KINDS and run.doc and run.sites else None
+    elif kind in run.docs:
+        ids = set(run.docs[kind].get("workflows") or [])
+        wfs = [w for w in run.past_workflows if w["id"] in ids]
+        sections = next((a.get("sections") or {} for a in run.stage_archive if a.get("stage") == kind), {})
+        doc_md = doc_text(run, kind)
+    else:
+        wfs, sections, doc_md = [], {}, None
+    if kind not in DOC_KINDS:
+        html_out = live_site(title, wfs, sections, ended)[0]
+        return live_payload(kind, title, wfs, sections, None, ended), html_out
+    return live_payload(kind, title, wfs, sections, doc_md, ended), None
+
+
+def studio_saved(name, kind=None):
+    """(payload, html or None) for a saved run folder (nothing moves; a part never built reads "Not built")."""
+    d = j2.saved_dir(name)
+    if not d:
+        return None, None
+    s = j2._read(d, "summary.json", {}) or {}
+    docs = j2._read(d, "documents.json", {}) or {}
+    out = j2.saved_output(d)
+    on_disk = [k for k in DOC_KINDS if os.path.exists(os.path.join(d, f"{k}.md"))]
+    kinds = list((s.get("design_documents") or {}).get("stages") or list(docs) or [out])
+    kinds = [k for k in DOC_KINDS if k in kinds or k in on_disk] + [k for k in kinds if k not in DOC_KINDS]
+    if out == "website" and "website" not in kinds:
+        kinds.append("website")
+    wfs_all = j2._read(d, "workflows.json", []) or []
+    mapped = {wid: k for k, v in docs.items() for wid in v.get("workflows") or []}
+    unmapped = [w for w in wfs_all if w["id"] not in mapped]
+    # the deliverable shown first: the last one with something in it (a chain stopped in its LLD opens on the LLD)
+    has = lambda k: bool([w for w in wfs_all if mapped.get(w["id"]) == k] or (k in DOC_KINDS and k in on_disk)) or \
+        (k not in DOC_KINDS and bool(unmapped)) or (k in DOC_KINDS and k not in docs and bool(unmapped))
+    kinds, cur = _live_kinds(kinds, next((k for k in reversed(kinds) if has(k)), None))
+    kind = kind if kind in kinds else cur
+    goal = j2._read(d, "goal.json", {}) or {}
+    title = goal.get("site_name") or goal.get("product_name") or ""
+    if kind in docs:
+        wfs = [w for w in wfs_all if mapped.get(w["id"]) == kind]
+        sections = (j2._read(d, f"stage-{kind}.json", {}) or {}).get("sections") or j2._read(d, "sections.json", {}) or {}
+    else:
+        wfs, sections = unmapped, j2._read(d, "sections.json", {}) or {}
+    url = f"/api/v2/live/site?run={name}"
+    if kind not in DOC_KINDS:
+        html_out = live_site(title, wfs, sections, True)[0]
+        return live_payload(kind, title, wfs, sections, None, True, url), html_out
+    return live_payload(kind, title, wfs, sections, doc_text(None, kind, name), True, url), None

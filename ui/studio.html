@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>J2</title>
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='3' width='10' height='10' rx='2' fill='%233D5A80'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- The web fonts never block the first paint (the system font shows meanwhile). -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Figtree:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Figtree:wght@400;500;600&display=swap"></noscript>
+  <!-- tokens.css and app.css give the shared cards (questions, the plan approval, the look, endings, the output
+       panel); studio.css is this view's own layout and its calm light palette. -->
+  <link rel="stylesheet" href="/ui/styles/tokens.css">
+  <link rel="stylesheet" href="/ui/styles/app.css">
+  <link rel="stylesheet" href="/ui/styles/studio.css">
+</head>
+<body class="studio">
+  <a class="skip" href="#st-main">Skip to the work</a>
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- 1. Start: one box -->
+  <main id="start" class="start" hidden>
+    <div class="brand" aria-hidden="true">J2</div>
+    <div class="start-inner">
+      <h1 class="start-title" id="start-title">What should we make?</h1>
+      <form id="start-form" class="start-form" aria-labelledby="start-title">
+        <textarea id="start-input" class="start-input" rows="3" placeholder="A one-page website for my physio clinic in Indiranagar…" aria-labelledby="start-title"></textarea>
+        <div class="start-row">
+          <p class="start-try">Try: <button type="button" class="linkish" data-try="A website for a small neighbourhood cafe, with the menu and opening hours">a cafe website</button><span aria-hidden="true"> · </span><button type="button" class="linkish" data-try="A PRD for a simple appointment booking app for clinics">a PRD for a booking app</button></p>
+          <button id="start-go" class="btn btn-ink btn-go" type="submit" disabled>Go</button>
+        </div>
+      </form>
+      <div class="start-under st-start-team" id="start-team" aria-hidden="true"></div>
+      <div class="start-under">
+        <button class="st-auto" type="button" role="switch" aria-checked="false" data-decide title="When this is on, the team answers its own questions with the suggested option and keeps going.">
+          <span class="st-sw" aria-hidden="true"></span>Decide for me
+        </button>
+      </div>
+      <section id="recent" class="recent" aria-labelledby="recent-title" hidden>
+        <h2 class="recent-title" id="recent-title">Recent</h2>
+        <ul id="recent-list" class="recent-list"></ul>
+      </section>
+    </div>
+  </main>
+
+  <!-- 2. The studio: the thing being built is the screen; the team and the plan sit beside it -->
+  <div id="work" class="st-work" hidden>
+    <header class="st-top">
+      <span class="st-proj" id="st-proj">J2</span>
+      <span class="st-state"><span class="st-dot" id="st-dot" aria-hidden="true"></span><span id="st-status" role="status"></span></span>
+      <span class="st-sp" aria-hidden="true"></span>
+      <span class="st-meter" id="st-meter" hidden><span class="st-bar"><i id="st-usebar"></i></span><span id="st-usetxt" class="tnum"></span></span>
+      <button class="st-icon" type="button" id="st-pause" aria-label="Pause" title="Pause" hidden></button>
+      <button class="st-icon" type="button" id="st-stop" aria-label="Stop" title="Stop" hidden></button>
+      <button class="st-auto" type="button" role="switch" aria-checked="false" id="st-auto" data-decide title="When this is on, the team answers its own questions with the suggested option and keeps going.">
+        <span class="st-sw" aria-hidden="true"></span>Decide for me
+      </button>
+      <button class="st-openbtn" type="button" id="st-open" hidden>Open the site</button>
+    </header>
+
+    <div class="st-app">
+      <aside class="st-rail" aria-label="Your team and the plan">
+        <div>
+          <h3 class="st-h3">Your team</h3>
+          <div id="st-team"></div>
+        </div>
+        <div class="st-plan">
+          <h3 class="st-h3">The plan <span class="st-counter tnum" id="st-plancount"></span></h3>
+          <ol id="st-planlist"></ol>
+        </div>
+        <p class="st-hint"><a id="st-mapview" href="?view=kingdom">Map view</a></p>
+      </aside>
+
+      <section class="st-stage" id="st-main" tabindex="-1">
+        <div class="st-endbar" id="st-endbar" hidden></div>
+        <div class="st-switch" id="st-switch" role="tablist" aria-label="What's being made" hidden></div>
+        <div class="st-frame" id="st-frame">
+          <div class="st-chrome" aria-hidden="true"><i></i><i></i><i></i><span class="st-url" id="st-url">live preview</span></div>
+          <div class="st-out" id="st-out"></div>
+          <button class="st-nudge is-off" type="button" id="st-nudge"><span id="st-nudge-av"></span><span id="st-nudge-text">Asha has a question for you, further down</span> <span class="st-arrow" id="st-nudge-arrow" aria-hidden="true">↓</span></button>
+        </div>
+        <aside class="st-drawer" id="st-drawer" aria-live="polite" aria-label="Details">
+          <button class="st-x" type="button" id="st-dclose" aria-label="Close">×</button>
+          <div id="st-dbody"></div>
+        </aside>
+      </section>
+    </div>
+    <nav class="st-dock" id="st-dock" aria-label="Team and plan"></nav>
+  </div>
+
+  <p id="offline" class="offline" role="status" hidden>Can't reach J2 right now. Trying again…</p>
+  <div class="st-toast" id="st-toast" role="status" aria-live="polite"></div>
+  <div id="announcer" class="sr-only" aria-live="assertive"></div>
+  <noscript><p class="noscript">This page needs JavaScript.</p></noscript>
+
+  <script type="module" src="/ui/js/studio/main.js"></script>
+</body>
+</html>

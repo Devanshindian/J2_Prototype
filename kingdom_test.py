@@ -113,7 +113,7 @@ def shape(m, what):
            and u["dept"] in dids and isinstance(u["doing"], str), f"{what}: unit {u['id']} keys, role and state")
     bids = {b["id"] for b in m["buildings"]}
     for b in m["buildings"]:
-        ok(set(b) == {"id", "name", "dept", "progress", "state", "depends_on", "usage", "share", "doing", "output"} and b["state"] in B_STATES
+        ok(set(b) == {"id", "name", "dept", "progress", "state", "depends_on", "usage", "share", "doing", "output", "kind"} and b["state"] in B_STATES and b["kind"] in ("writer", "designer", "builder")
            and 0 <= b["progress"] <= 1 and b["dept"] in dids and all(d in bids for d in b["depends_on"]), f"{what}: building {b['id']} keys and state")
         ok(not j2_v2.CODES.search(b["name"]) and "W-" not in b["name"], f"{what}: building name in plain words: {b['name']}")
         ok((b["state"] == "done") == (b["progress"] == 1.0), f"{what}: done means full: {b['id']}")

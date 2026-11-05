@@ -95,8 +95,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         u = urlparse(self.path)
-        if u.path in ("/", "/index.html"):           # the new page (ui/); a placeholder until it exists
-            p = self._ui_file("index.html")
+        if u.path in ("/", "/index.html"):           # the studio view (ui/studio.html); ?view=kingdom: the map view
+            view = (parse_qs(u.query).get("view") or [""])[0]
+            p = self._ui_file("index.html" if view == "kingdom" else "studio.html") or self._ui_file("index.html")
             return self._send_ui(p) if p else self._send(200, UI_PLACEHOLDER, "text/html")
         if u.path.startswith("/ui/"):
             p = self._ui_file(u.path[len("/ui/"):])
@@ -128,6 +129,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             wid = q.get("id") or ""
             snap = j2_v2.output_saved(run, wid) if run else j2_v2.output_live(RUN, wid)
             return self._send(200, json.dumps(snap, ensure_ascii=False)) if snap else self._send(404, '{"error": "no such part"}')
+        if u.path == "/api/v2/live":    # the studio view's centre: the deliverable as it stands (api-contract.md)
+            snap, _ = j2_v2.studio_saved(run, q.get("kind")) if run else j2_v2.studio_live(RUN, q.get("kind"))
+            return self._send(200, json.dumps(snap, ensure_ascii=False)) if snap else self._send(404, '{"error": "no such run"}')
+        if u.path == "/api/v2/live/site":   # the website as it stands, for the studio view's frame
+            snap, page = j2_v2.studio_saved(run, "website") if run else j2_v2.studio_live(RUN, "website")
+            if not snap:
+                return self._send(404, "not found", "text/plain")
+            return self._send(200, page or "<!doctype html><meta charset='utf-8'><body></body>", "text/html")
         if u.path == "/api/v2/runs":
             return self._send(200, json.dumps(j2_v2.runs(), ensure_ascii=False))
         if u.path.startswith("/api/v2/doc/"):   # a document deliverable as raw markdown

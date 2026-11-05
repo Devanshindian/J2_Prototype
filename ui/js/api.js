@@ -86,6 +86,13 @@ export class HttpApi {
     if (this.run) q.set("run", this.run);
     return request("GET", `${BASE}/output?${q}`);
   }
+  /** The studio view's centre: a deliverable as it stands (api-contract.md, /api/v2/live). `kind` empty = current. */
+  live(kind) {
+    const q = new URLSearchParams();
+    if (kind) q.set("kind", kind);
+    if (this.run) q.set("run", this.run);
+    return request("GET", `${BASE}/live?${q}`);
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -396,6 +403,22 @@ export class FixtureApi {
     const o = this.s._outputs?.[id];
     if (!o) throw new ApiError(404, "no such part");
     return clone(o);
+  }
+
+  /** The studio view's centre from a fixture: its `_live` when it has one, else a sketch of the parts on the map
+   * (blocks with no text, so the page draws every part as a placeholder with who is on it). */
+  async live(kind) {
+    await this.ready;
+    const l = this.s._live?.[kind || "current"] || this.s._live?.current;
+    if (l) return clone(l);
+    const bs = this.s.map?.buildings || [];
+    const doc = (this.s.deliverables || []).find((d) => d.state === "working" || d.state === "draft")?.kind;
+    const k = kind || (doc && doc !== "website" ? doc : "website");
+    const blocks = bs.map((b) => ({ anchor: b.id, parts: [b.id], state: b.state === "done" ? "done" : "waiting",
+      markdown: b.state === "done" ? `## ${b.name}\n\n${b.doing && b.doing !== "Done" ? b.doing : "Done."}` : null, name: b.name, note: "Coming up" }));
+    return { kind: k === "website" ? "website" : "document", doc: k === "website" ? null : k, title: this.s.run?.title || "",
+      blocks, url: null, started: false, built: false, sketch: true, pending: [], anchors: Object.fromEntries(bs.map((b) => [b.id, b.id])),
+      part_kinds: {}, key: JSON.stringify(blocks.map((b) => [b.anchor, b.state])) };
   }
 
   async settings(body) {
