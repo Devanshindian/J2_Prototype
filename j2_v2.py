@@ -1440,7 +1440,7 @@ def _with_pending(real, first, has_body):
 def live_site(title, wfs, sections, ended=False):
     """(html, anchors, pending): the website as it stands, for the studio view's centre (see above)."""
     sections = sections or {}
-    has_body = lambda s: bool((sections.get(s) or {}).get("body"))
+    has_body = lambda s: bool((sections.get(s) or {}).get("body") or (sections.get(s) or {}).get("head"))   # a styling part writes only CSS
     first, anchors = _plan_slots(wfs, has_body, lambda w: output_kind(w, w.get("stage"))["kind"] in SECTION_PARTS)
     real = [(s, x) for s, x in sections.items() if s == "style" or (s in first and (x.get("body") or x.get("head")))]
     page = {}
@@ -1449,6 +1449,7 @@ def live_site(title, wfs, sections, ended=False):
             page[sid] = {"owner": first[sid][1]["id"], "head": "", "body": _wait_section(sid, plain_name(first[sid][1].get("name")), ended)}
         else:
             page[sid] = {**x, "body": _tag_first(x["body"], sid) if x.get("body") else ""}
+    anchors = {wid: sid for wid, sid in anchors.items() if (page.get(sid) or {}).get("body")}    # only what the page shows
     page = {"j2-wait": {"owner": "studio", "head": WAIT_CSS, "body": ""}, **page}
     pending = [s for s in first if not has_body(s)]
     return j2.assemble(title or "Your website", page), anchors, pending

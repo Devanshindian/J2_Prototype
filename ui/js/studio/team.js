@@ -15,7 +15,9 @@ const NAME = { asha: "Asha", mira: "Mira", kabir: "Kabir", dev: "Dev", nora: "No
 const STEP = { done: "done", working: "doing", needs_fix: "fix", waiting: "next", skipped: "skip" };
 
 export const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
-const lower1 = (s) => (s ? s[0].toLowerCase() + s.slice(1) : s);
+const count = (n) => (n === 1 ? "one part" : `${n} parts`);
+/** "Team section" reads "Team" in a one-line "On Team and FAQ" (the plan keeps the full name). */
+const short = (name) => name.replace(/\s+(section|part)$/i, "") || name;
 
 /** Every part in plan order, joined with its map building: id, name, state, step, kind, person, anchor, output. */
 export function partsOf(s, map, live) {
@@ -100,12 +102,16 @@ export function teamModel(s, map, parts) {
       m.line = "Waiting on your answer";
       m.busy = true;
     } else if (on.length) {
-      m.line = `On ${andList(on.slice(0, 3).map((p) => p.name))}${on.length > 3 ? ` and ${on.length - 3} more` : ""}`;
+      m.line = `On ${andList(on.slice(0, 3).map((p) => short(p.name)))}${on.length > 3 ? ` and ${on.length - 3} more` : ""}`;
       m.busy = true;
-    } else if (fix.length && live) m.line = `Fixing ${lower1(fix[0].name)}`;
+    } else if (fix.length && live) m.line = `${fix[0].name} needs a fix`;
     else if (!m.parts.length) m.line = live ? "Free for the next part" : "Nothing for this run";
-    else if (m.parts.every((p) => p.state === "done" || p.state === "skipped")) m.line = `Finished ${m.parts.length === 1 ? "one part" : `${m.parts.length} parts`}`;
-    else m.line = live ? "Free for the next part" : "Some parts not built";
+    else {
+      const done = m.parts.filter((p) => p.state === "done").length;
+      const left = m.parts.filter((p) => p.state !== "done" && p.state !== "skipped").length;
+      m.line = live ? (done ? `Finished ${count(done)}, free for the next` : "Free for the next part")
+        : `Finished ${count(done)}${left ? `, ${left} not built` : ""}`;
+    }
   }
   return out;
 }

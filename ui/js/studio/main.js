@@ -286,7 +286,7 @@ let decidedNode = null;
 
 function questionAbout(d, parts) {
   const p = parts.find((x) => x.step === "ask");
-  return { part: p || null, about: p ? `about ${lower1(p.name)}` : d.kind === "proposal" ? "about the plan" : d.kind === "style" || d.kind === "design" ? "about the look" : d.kind === "facts" ? "about your details" : d.kind === "usage" ? "about usage" : "for you" };
+  return { part: p || null, about: p ? `about the ${lower1(p.name)}` : d.kind === "proposal" ? "about the plan" : d.kind === "style" || d.kind === "design" ? "about the look" : d.kind === "facts" ? "about your details" : d.kind === "usage" ? "about usage" : "for you" };
 }
 
 function questionCard(d, parts, where) {
@@ -295,8 +295,9 @@ function questionCard(d, parts, where) {
   const inner = d.kind === "proposal" ? renderProposal(d, opts) : renderDecision(d, opts);
   const waits = part ? `${TEAM[part.person].name} waits on this. Everything else keeps going.` : d.kind === "proposal" ? "Nothing is built until you say go." : "The team waits on this.";
   const show = where === "panel" && part?.anchor ? h("button", { class: "st-link", type: "button", onclick: () => goPart(part) }, "Show me where") : null;
-  const head = h("div", { class: "st-qhead" }, h("span", { class: "st-qav", html: avatar("asha", 34) }),
-    h("div", null, h("b", null, "Asha"), h("small", null, about)));
+  // in Asha's own panel her name is already the heading: the card just says what it is about
+  const head = where === "panel" ? h("p", { class: "st-qabout" }, `A question ${about}`)
+    : h("div", { class: "st-qhead" }, h("span", { class: "st-qav", html: avatar("asha", 34) }), h("div", null, h("b", null, "Asha"), h("small", null, about)));
   return h("div", { class: `st-qcard kind-${d.kind}`, "data-no-gesture": "" }, head, inner, h("p", { class: "st-qnote" }, show, show ? " · " : null, waits));
 }
 
@@ -471,7 +472,7 @@ function planList(parts) {
 
 let railSig = "";
 function renderRail(s, parts, team) {
-  const sig = JSON.stringify([PEOPLE.map((k) => [team[k].line, team[k].asks, team[k].busy]), parts.map((p) => [p.id, p.step, p.person, p.name])]);
+  const sig = JSON.stringify([PEOPLE.map((k) => [team[k].line, team[k].asks, team[k].busy]), parts.map((p) => [p.id, p.step, p.person, p.name, p.anchor, p.state])]);
   if (sig === railSig) return;
   railSig = sig;
   $("#st-team").replaceChildren(...PEOPLE.map((k) => {
@@ -628,7 +629,7 @@ function render() {
 
   // the question, inline at its section (or at the top), and the decided lines while Decide for me is on
   const d = s.decision;
-  const k = d ? `${d.id}|${d.kind}|${d.proposal?.estimate ?? ""}` : "";
+  const k = d ? `${d.id}|${d.kind}|${d.proposal?.estimate ?? ""}|${parts.find((x) => x.step === "ask")?.id || ""}` : "";
   if (k !== qKey) {
     qKey = k;
     qInline = d ? questionCard(d, parts, "inline") : null;

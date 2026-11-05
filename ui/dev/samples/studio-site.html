@@ -1,0 +1,1583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Neel Studio</title>
+<!-- J2:j2-wait head start (owner studio) -->
+<style>[data-j2-wait]{display:block;box-sizing:border-box;width:calc(100% - 32px);max-width:1080px;margin:24px auto;padding:28px 24px 22px;border:1.5px dashed #d8cfbf;border-radius:12px;background:transparent;color:#9b9284;font:15px/1.45 system-ui,-apple-system,sans-serif;text-align:left}[data-j2-wait] .j2-wait-name{margin:0 0 2px;font-weight:600;color:#7d7466}[data-j2-wait] .j2-wait-note{margin:0 0 14px;font-size:13px}[data-j2-wait] i{display:block;height:8px;border-radius:4px;background:#ebe5da;margin:8px 0;width:72%}[data-j2-wait] i+i{width:54%}[data-j2-wait] i+i+i{width:63%}</style>
+<!-- J2:j2-wait head end -->
+<!-- J2:style head start (owner W-5) -->
+<meta name="viewport" content="width=device-width, initial-scale=1"><style>:root{--j2-primary:#1F2F6B;--j2-secondary:#3C4A7D;--j2-accent:#8A5A2E;--j2-background:#FAF7F2;--j2-surface:#FFFFFF;--j2-text:#2B2A28;--j2-muted:#6B665E;--j2-font-heading:'Avenir Next', 'Helvetica Neue', Arial, sans-serif;--j2-font-body:system-ui, -apple-system, 'Segoe UI', sans-serif;--j2-space:8px;--j2-section:96px;--j2-radius:4px;--j2-duration:400ms;--j2-ease:ease-out;}*,*::before,*::after{box-sizing:border-box;min-width:0}img,video,canvas,iframe{max-width:100%;height:auto}svg{max-width:100%}section *,header *,footer *,nav *,main *{max-width:100%}body{overflow-wrap:anywhere}body{margin:0;font-family:var(--j2-font-body);color:var(--j2-text);background:var(--j2-background)}h1,h2,h3,h4{font-family:var(--j2-font-heading)}.j2-btn{display:inline-block;background:#1F2F6B; color:#FFFFFF; min-height:48px; padding:14px 28px; border:none; border-radius:4px; font-family:'Inter', sans-serif; font-weight:500; font-size:15px; letter-spacing:0.02em;}.j2-btn-secondary{display:inline-block;background:transparent; color:#1F2F6B; min-height:48px; padding:13px 27px; border:1px solid #1F2F6B; border-radius:4px; font-family:'Inter', sans-serif; font-weight:500; font-size:15px;}.j2-card{background:#FFFFFF; border:1px solid #E8E1D6; border-radius:4px; padding:32px; box-shadow:none;}@keyframes j2-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}.j2-reveal{animation:j2-in var(--j2-duration) var(--j2-ease) both}.j2-btn,.j2-btn-secondary,.j2-card,.j2-hover{transition:transform var(--j2-duration) var(--j2-ease),box-shadow var(--j2-duration) var(--j2-ease)}.j2-btn:hover,.j2-btn-secondary:hover,.j2-hover:hover{buttons: background:#2A3C80; cards: border-color:#1F2F6B; project images: transform:scale(1.03) over 400ms with caption fading in}html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}</style>
+<!-- J2:style head end -->
+<!-- J2:W-14 head start (owner W-19) -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Reveal fix: content inside every .j2-reveal is visible by default; motion only enhances it */
+html .j2-reveal{opacity:1!important;visibility:visible!important;transform:none!important}
+@keyframes j2-rise{from{translate:0 12px}to{translate:0 0}}
+@media (prefers-reduced-motion:no-preference){html .j2-reveal{animation:j2-rise var(--j2-duration,400ms) var(--j2-ease,ease-out) both}}
+@media (prefers-reduced-motion:reduce){html .j2-reveal{animation:none!important;translate:none}}
+</style>
+<!-- J2:W-14 head end -->
+</head>
+<body>
+<!-- J2:W-14 start (owner W-19) -->
+<nav data-j2-section="W-14" id="site-nav" aria-label="Main">
+<style>
+#site-nav{position:sticky;top:0;z-index:60;width:100%;background:var(--j2-bg,#FAF7F2);border-bottom:1px solid transparent;color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#site-nav *{box-sizing:border-box;min-width:0;max-width:100%}
+#site-nav.sn-scrolled,#site-nav.sn-open{border-bottom-color:var(--j2-line,#E8E1D6)}
+#site-nav .sn-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;max-width:1100px;min-height:64px;margin:0 auto;padding:8px 24px}
+#site-nav .sn-brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;flex:none;color:var(--j2-primary,#1F2F6B);text-decoration:none}
+#site-nav .sn-mark{width:32px;height:32px;flex:none;display:block}
+#site-nav .sn-m-bg{fill:var(--j2-primary,#1F2F6B)}
+#site-nav .sn-m-line{fill:none;stroke:var(--j2-surface,#FFFFFF);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#site-nav .sn-m-dot{fill:var(--j2-surface,#FFFFFF);fill-opacity:.7}
+#site-nav .sn-name{display:flex;flex-direction:column;gap:2px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:1.125rem;font-weight:600;line-height:1.1;letter-spacing:-.01em;white-space:nowrap}
+#site-nav .sn-tag{font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);font-size:.6875rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#site-nav .sn-right{display:flex;align-items:center;gap:12px;flex:none}
+#site-nav .sn-cta{display:none;align-items:center;justify-content:center;min-height:48px;padding:12px 22px;text-decoration:none;white-space:nowrap}
+#site-nav .sn-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 14px;background:transparent;border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);color:var(--j2-primary,#1F2F6B);font:inherit;font-size:.9375rem;font-weight:500;cursor:pointer;transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#site-nav .sn-toggle:hover{border-color:var(--j2-primary,#1F2F6B)}
+#site-nav .sn-toggle svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+#site-nav .sn-i-close{display:none}
+#site-nav.sn-open .sn-i-open{display:none}
+#site-nav.sn-open .sn-i-close{display:block}
+#site-nav .sn-panel{display:none;position:absolute;top:100%;left:0;right:0;width:100%;max-height:calc(100vh - 64px);overflow-y:auto;background:var(--j2-bg,#FAF7F2);border-bottom:1px solid var(--j2-line,#E8E1D6)}
+#site-nav.sn-open .sn-panel{display:block}
+#site-nav .sn-panel-in{width:100%;max-width:1100px;margin:0 auto;padding:8px 24px 32px}
+#site-nav .sn-list{list-style:none;margin:0;padding:0}
+#site-nav .sn-list li{border-bottom:1px solid var(--j2-line,#E8E1D6)}
+#site-nav .nav-link{position:relative;display:flex;align-items:center;gap:16px;min-height:52px;padding:8px 0;color:var(--j2-text,#2B2A28);text-decoration:none;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:1.125rem;font-weight:500;line-height:1.3;transition:color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#site-nav .nav-link:hover,#site-nav .nav-link[aria-current="location"]{color:var(--j2-primary,#1F2F6B)}
+#site-nav .sn-num{flex:none;width:28px;font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);font-size:.8125rem;font-weight:600;letter-spacing:.14em;color:var(--j2-accent,#8A5A2E)}
+#site-nav .sn-label{flex:1 1 auto}
+#site-nav .sn-arrow{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#site-nav .sn-extra{display:flex;flex-direction:column;gap:24px;margin-top:24px}
+#site-nav .sn-actions{display:flex;flex-direction:column;gap:12px;width:100%}
+#site-nav .sn-actions a{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;text-decoration:none;text-align:center}
+#site-nav .sn-actions svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#site-nav .sn-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:16px;margin:0;padding:20px;background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px)}
+#site-nav .sn-info div{display:flex;gap:12px;align-items:flex-start}
+#site-nav .sn-info svg{width:20px;height:20px;flex:none;margin-top:2px;fill:none;stroke:var(--j2-primary,#1F2F6B);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#site-nav .sn-info dt{margin:0 0 2px;font-size:.8125rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#site-nav .sn-info dd{margin:0;font-size:1rem;line-height:1.5;color:var(--j2-text,#2B2A28)}
+#site-nav a:focus-visible,#site-nav button:focus-visible{outline:2px solid var(--j2-primary,#1F2F6B);outline-offset:3px}
+@media (min-width:560px){
+#site-nav .sn-cta{display:inline-flex}
+#site-nav .sn-actions .sn-pcta{display:none}
+}
+@media (min-width:1120px){
+#site-nav .sn-toggle{display:none}
+#site-nav .sn-panel{display:flex;justify-content:center;flex:1 1 auto;position:static;width:auto;max-height:none;overflow:visible;background:transparent;border:0}
+#site-nav .sn-panel-in{width:auto;max-width:none;margin:0;padding:0}
+#site-nav .sn-list{display:flex;align-items:center;gap:4px}
+#site-nav .sn-list li{border:0}
+#site-nav .nav-link{justify-content:center;min-height:44px;padding:8px 12px;font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);font-size:.9375rem;white-space:nowrap}
+#site-nav .nav-link::after{content:"";position:absolute;left:12px;right:12px;bottom:6px;height:1px;background:var(--j2-accent,#8A5A2E);transform:scaleX(0);transform-origin:left;transition:transform var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#site-nav .nav-link:hover::after,#site-nav .nav-link[aria-current="location"]::after{transform:scaleX(1)}
+#site-nav .sn-num,#site-nav .sn-arrow,#site-nav .sn-extra{display:none}
+}
+@media (prefers-reduced-motion:reduce){#site-nav,#site-nav .nav-link,#site-nav .nav-link::after,#site-nav .sn-toggle{transition:none}}
+</style>
+<div class="sn-inner">
+  <a class="sn-brand" href="#hero" aria-label="Neel Studio, back to the top">
+    <svg class="sn-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <rect class="sn-m-bg" x="0" y="0" width="32" height="32" rx="4"/>
+      <path class="sn-m-line" d="M10 25V14a6 6 0 0 1 12 0v11M7 25h18"/>
+      <path class="sn-m-line" d="M16 8v17M10 17h12"/>
+      <circle class="sn-m-dot" cx="24.5" cy="7.5" r="2"/>
+    </svg>
+    <span class="sn-name">Neel Studio<span class="sn-tag">Interior design</span></span>
+  </a>
+
+  <div class="sn-panel" id="sn-panel">
+    <div class="sn-panel-in">
+      <ul class="sn-list">
+        <li><a class="nav-link" href="#services"><span class="sn-num" aria-hidden="true">01</span><span class="sn-label">Services</span><svg class="sn-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg></a></li>
+        <li><a class="nav-link" href="#portfolio"><span class="sn-num" aria-hidden="true">02</span><span class="sn-label">Portfolio</span><svg class="sn-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg></a></li>
+        <li><a class="nav-link" href="#process"><span class="sn-num" aria-hidden="true">03</span><span class="sn-label">Process</span><svg class="sn-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg></a></li>
+        <li><a class="nav-link" href="#team"><span class="sn-num" aria-hidden="true">04</span><span class="sn-label">Team</span><svg class="sn-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg></a></li>
+        <li><a class="nav-link" href="#faq"><span class="sn-num" aria-hidden="true">05</span><span class="sn-label">FAQ</span><svg class="sn-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg></a></li>
+        <li><a class="nav-link" href="#contact-info"><span class="sn-num" aria-hidden="true">06</span><span class="sn-label">Visit us</span><svg class="sn-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg></a></li>
+        <li><a class="nav-link nav-testimonials-link" href="#testimonials"><span class="sn-num" aria-hidden="true">07</span><span class="sn-label">Testimonials</span><svg class="sn-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg></a></li>
+      </ul>
+
+      <div class="sn-extra">
+        <div class="sn-actions">
+          <a class="j2-btn j2-hover sn-pcta" href="#contact-form">Book a free consultation</a>
+          <a class="j2-btn-secondary j2-hover" href="https://wa.me/919886055443" target="_blank" rel="noopener" aria-label="Message Neel Studio on WhatsApp at +91 98860 55443"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.8z"/><path d="M9.5 9.5c.3 1.8 2.2 3.8 4 4.2"/></svg>WhatsApp +91 98860 55443</a>
+        </div>
+        <dl class="sn-info">
+          <div>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+            <span><dt>Studio</dt><dd>12, 100 Feet Road, Indiranagar</dd></span>
+          </div>
+          <div>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+            <span><dt>Open</dt><dd>Mon-Sat 10am to 7pm</dd></span>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="sn-right">
+    <a class="j2-btn j2-hover sn-cta" href="#contact-form">Book a free consultation</a>
+    <button type="button" class="sn-toggle" aria-expanded="false" aria-controls="sn-panel">
+      <svg class="sn-i-open" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
+      <svg class="sn-i-close" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg>
+      <span class="sn-toggle-text">Menu</span>
+    </button>
+  </div>
+</div>
+<script>
+(function () {
+  /* Reveal fix: keep every .j2-reveal element visible even if another script hides it inline */
+  function showReveals() {
+    try {
+      var els = document.querySelectorAll('.j2-reveal');
+      for (var i = 0; i < els.length; i++) {
+        var s = els[i].style;
+        if (s.getPropertyValue('opacity') !== '1' || s.getPropertyPriority('opacity') !== 'important') s.setProperty('opacity', '1', 'important');
+        if (s.getPropertyValue('visibility') !== 'visible' || s.getPropertyPriority('visibility') !== 'important') s.setProperty('visibility', 'visible', 'important');
+        if (s.getPropertyValue('transform') !== 'none' || s.getPropertyPriority('transform') !== 'important') s.setProperty('transform', 'none', 'important');
+      }
+    } catch (err) {}
+  }
+  showReveals();
+  function watchReveals() {
+    showReveals();
+    try {
+      if ('MutationObserver' in window && document.body) {
+        var mo = new MutationObserver(function () { showReveals(); });
+        mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class'] });
+      }
+    } catch (err) {}
+  }
+  window.addEventListener('load', showReveals);
+
+  function init() {
+    watchReveals();
+    var nav = document.getElementById('site-nav');
+    if (!nav) return;
+    try {
+      if (document.body && document.body.firstElementChild !== nav) {
+        document.body.insertBefore(nav, document.body.firstChild);
+      }
+    } catch (err) {}
+
+    var btn = nav.querySelector('.sn-toggle');
+    var label = nav.querySelector('.sn-toggle-text');
+    function setOpen(open) {
+      if (open) { nav.classList.add('sn-open'); } else { nav.classList.remove('sn-open'); }
+      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (label) label.textContent = open ? 'Close' : 'Menu';
+    }
+    if (btn) {
+      btn.addEventListener('click', function () { setOpen(!nav.classList.contains('sn-open')); });
+    }
+    nav.addEventListener('click', function (e) {
+      var t = e.target;
+      var a = t && t.closest ? t.closest('a') : null;
+      var href = a ? (a.getAttribute('href') || '') : '';
+      if (href.charAt(0) === '#') setOpen(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && nav.classList.contains('sn-open')) {
+        setOpen(false);
+        if (btn) btn.focus();
+      }
+    });
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(min-width: 1120px)');
+      var onChange = function () { if (mq.matches) setOpen(false); };
+      if (mq.addEventListener) { mq.addEventListener('change', onChange); }
+      else if (mq.addListener) { mq.addListener(onChange); }
+    }
+
+    function onScroll() {
+      var y = window.scrollY || window.pageYOffset || 0;
+      if (y > 8) { nav.classList.add('sn-scrolled'); } else { nav.classList.remove('sn-scrolled'); }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    if ('IntersectionObserver' in window) {
+      var links = nav.querySelectorAll('.nav-link');
+      var map = {};
+      for (var i = 0; i < links.length; i++) {
+        var h = links[i].getAttribute('href') || '';
+        if (h.charAt(0) === '#') map[h.slice(1)] = links[i];
+      }
+      var ids = ['hero', 'services', 'portfolio', 'process', 'team', 'testimonials', 'faq', 'contact-info', 'contact-form'];
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) return;
+          for (var j = 0; j < links.length; j++) links[j].removeAttribute('aria-current');
+          var cur = map[en.target.id];
+          if (cur) cur.setAttribute('aria-current', 'location');
+        });
+      }, { rootMargin: '-45% 0px -50% 0px' });
+      ids.forEach(function (id) {
+        var s = document.getElementById(id);
+        if (s) io.observe(s);
+      });
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</nav>
+<!-- J2:W-14 end -->
+<!-- J2:W-5 start (owner W-5) -->
+<section data-j2-section="W-5" id="hero" class="j2-section j2-reveal" aria-labelledby="hero-title">
+  <style>
+    #hero{position:relative;overflow:hidden;background:var(--j2-background,#FAF7F2);color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);padding:clamp(56px,10vw,var(--j2-section,96px)) 0;}
+    #hero .hero-shape{position:absolute;pointer-events:none;z-index:0;}
+    #hero .hero-shape-a{top:-140px;right:-180px;width:560px;height:560px;}
+    #hero .hero-shape-b{bottom:-160px;left:-200px;width:460px;height:460px;}
+    #hero .hero-inner{position:relative;z-index:1;width:100%;max-width:1100px;margin:0 auto;padding:0 24px;}
+    #hero .hero-copy{width:100%;max-width:760px;}
+    #hero .hero-eyebrow{margin:0 0 24px;font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);font-size:0.8125rem;font-weight:600;line-height:1.6;letter-spacing:0.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E);}
+    #hero .hero-title{margin:0;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(2.4rem,8vw,4.75rem);font-weight:500;line-height:1.05;letter-spacing:-0.02em;color:var(--j2-primary,#1F2F6B);overflow-wrap:break-word;}
+    #hero .hero-lead{margin:24px 0 0;max-width:62ch;font-size:clamp(1.125rem,2.4vw,1.3125rem);line-height:1.6;color:var(--j2-muted,#6B665E);}
+    #hero .hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-top:40px;}
+    #hero .hero-actions .j2-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:44px;text-align:center;text-decoration:none;}
+    #hero .hero-note{margin:16px 0 0;font-size:0.875rem;line-height:1.5;color:var(--j2-muted,#6B665E);}
+    #hero .hero-visual{margin:64px 0 0;width:100%;border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);background:linear-gradient(180deg,var(--j2-surface,#FFFFFF) 0%,var(--j2-background,#FAF7F2) 100%);overflow:hidden;}
+    #hero .hero-visual svg{display:block;width:100%;height:auto;}
+    #hero .ill-primary{fill:var(--j2-primary,#1F2F6B);}
+    #hero .ill-secondary{fill:var(--j2-secondary,#3C4A7D);}
+    #hero .ill-accent{fill:var(--j2-accent,#8A5A2E);}
+    #hero .ill-surface{fill:var(--j2-surface,#FFFFFF);}
+    #hero .ill-text{fill:var(--j2-text,#2B2A28);}
+    #hero .ill-stroke-primary{fill:none;stroke:var(--j2-primary,#1F2F6B);}
+    #hero .ill-stroke-text{fill:none;stroke:var(--j2-text,#2B2A28);}
+    #hero .ill-stroke-accent{fill:none;stroke:var(--j2-accent,#8A5A2E);}
+    #hero .hero-points{list-style:none;margin:40px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:24px;}
+    #hero .hero-point{display:flex;align-items:flex-start;gap:16px;width:100%;padding-top:20px;border-top:1px solid var(--j2-line,#E8E1D6);}
+    #hero .hero-point-icon{flex:0 0 40px;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);color:var(--j2-accent,#8A5A2E);}
+    #hero .hero-point-icon svg{width:20px;height:20px;}
+    #hero .hero-point-text{flex:1 1 auto;min-width:0;}
+    #hero .hero-point-title{margin:0;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:1rem;font-weight:600;line-height:1.4;color:var(--j2-text,#2B2A28);}
+    #hero .hero-point-body{margin:4px 0 0;font-size:0.9375rem;line-height:1.55;color:var(--j2-muted,#6B665E);}
+    @media (max-width:519px){
+      #hero .hero-actions{flex-direction:column;align-items:stretch;}
+      #hero .hero-actions .j2-btn{width:100%;max-width:100%;}
+      #hero .hero-visual{margin-top:48px;}
+    }
+  </style>
+
+  <svg class="hero-shape hero-shape-a" viewBox="0 0 560 560" aria-hidden="true" focusable="false">
+    <circle class="ill-primary" cx="280" cy="280" r="280" fill-opacity="0.05"/>
+    <circle class="ill-primary" cx="300" cy="260" r="190" fill-opacity="0.04"/>
+  </svg>
+  <svg class="hero-shape hero-shape-b" viewBox="0 0 460 460" aria-hidden="true" focusable="false">
+    <circle class="ill-accent" cx="230" cy="230" r="230" fill-opacity="0.06"/>
+  </svg>
+
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <p class="hero-eyebrow">Neel Studio · Interior design · Indiranagar, Bengaluru</p>
+      <h1 id="hero-title" class="hero-title">Homes that feel like you</h1>
+      <p class="hero-lead">Calm, considered interiors for homes, kitchens and workspaces across Bengaluru.</p>
+      <div class="hero-actions">
+        <a id="hero-cta" class="j2-btn j2-hover" href="#contact-form">Book a free consultation</a>
+        <a class="j2-btn j2-btn-secondary j2-hover" href="#portfolio">See our work</a>
+      </div>
+      <p class="hero-note">Your first consultation is free.</p>
+    </div>
+
+    <figure class="hero-visual">
+      <svg viewBox="0 0 960 420" role="img" aria-label="A drawing of a calm living room with an arched window, a deep blue sofa, a floor lamp, a side table and a plant">
+        <!-- floor and rug -->
+        <rect class="ill-accent" x="0" y="340" width="960" height="80" fill-opacity="0.07"/>
+        <line class="ill-stroke-text" x1="0" y1="340" x2="960" y2="340" stroke-width="1.5" stroke-opacity="0.15"/>
+        <ellipse class="ill-primary" cx="480" cy="374" rx="280" ry="22" fill-opacity="0.08"/>
+
+        <!-- soft sun behind window -->
+        <circle class="ill-accent" cx="540" cy="130" r="46" fill-opacity="0.16"/>
+
+        <!-- arched window -->
+        <path class="ill-primary" d="M380 300 V170 A100 100 0 0 1 580 170 V300 Z" fill-opacity="0.06"/>
+        <path class="ill-stroke-primary" d="M380 300 V170 A100 100 0 0 1 580 170 V300" stroke-width="2.5" stroke-opacity="0.4"/>
+        <line class="ill-stroke-primary" x1="480" y1="70" x2="480" y2="300" stroke-width="2" stroke-opacity="0.3"/>
+        <line class="ill-stroke-primary" x1="380" y1="200" x2="580" y2="200" stroke-width="2" stroke-opacity="0.3"/>
+
+        <!-- framed artwork -->
+        <rect class="ill-surface" x="130" y="110" width="120" height="150" rx="2"/>
+        <rect class="ill-stroke-text" x="130" y="110" width="120" height="150" rx="2" stroke-width="2" stroke-opacity="0.25"/>
+        <path class="ill-secondary" d="M146 230 C170 180 200 210 214 170 C222 150 236 160 234 176 L234 244 L146 244 Z" fill-opacity="0.3"/>
+        <circle class="ill-accent" cx="206" cy="146" r="12" fill-opacity="0.55"/>
+
+        <!-- plant -->
+        <ellipse class="ill-secondary" cx="186" cy="262" rx="14" ry="34" fill-opacity="0.5" transform="rotate(-24 186 262)"/>
+        <ellipse class="ill-secondary" cx="218" cy="252" rx="14" ry="40" fill-opacity="0.6" transform="rotate(16 218 252)"/>
+        <ellipse class="ill-secondary" cx="202" cy="246" rx="12" ry="44" fill-opacity="0.75"/>
+        <path class="ill-accent" d="M178 292 H230 L224 340 H184 Z"/>
+
+        <!-- sofa -->
+        <rect class="ill-secondary" x="306" y="236" width="348" height="74" rx="30"/>
+        <rect class="ill-primary" x="286" y="284" width="388" height="50" rx="20"/>
+        <rect class="ill-primary" x="276" y="262" width="44" height="72" rx="20"/>
+        <rect class="ill-primary" x="640" y="262" width="44" height="72" rx="20"/>
+        <rect class="ill-accent" x="340" y="252" width="74" height="50" rx="16" fill-opacity="0.75"/>
+        <rect class="ill-surface" x="548" y="252" width="74" height="50" rx="16"/>
+        <line class="ill-stroke-text" x1="306" y1="334" x2="306" y2="342" stroke-width="4" stroke-linecap="round" stroke-opacity="0.6"/>
+        <line class="ill-stroke-text" x1="654" y1="334" x2="654" y2="342" stroke-width="4" stroke-linecap="round" stroke-opacity="0.6"/>
+
+        <!-- side table with vase -->
+        <ellipse class="ill-accent" cx="736" cy="290" rx="34" ry="6"/>
+        <line class="ill-stroke-accent" x1="736" y1="294" x2="736" y2="340" stroke-width="4"/>
+        <line class="ill-stroke-accent" x1="716" y1="340" x2="756" y2="340" stroke-width="4" stroke-linecap="round"/>
+        <path class="ill-surface" d="M728 284 C722 272 726 262 732 258 H740 C746 262 750 272 744 284 Z"/>
+        <path class="ill-stroke-text" d="M728 284 C722 272 726 262 732 258 H740 C746 262 750 272 744 284 Z" stroke-width="1.5" stroke-opacity="0.3"/>
+
+        <!-- floor lamp -->
+        <circle class="ill-accent" cx="830" cy="176" r="70" fill-opacity="0.08"/>
+        <line class="ill-stroke-text" x1="830" y1="168" x2="830" y2="338" stroke-width="3" stroke-opacity="0.7"/>
+        <line class="ill-stroke-text" x1="810" y1="340" x2="850" y2="340" stroke-width="4" stroke-linecap="round" stroke-opacity="0.7"/>
+        <path class="ill-accent" d="M796 168 H864 L850 126 H810 Z" fill-opacity="0.9"/>
+      </svg>
+    </figure>
+
+    <ul class="hero-points">
+      <li class="hero-point">
+        <span class="hero-point-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4z"/><path d="M4 9h16"/><path d="M8 4v4M16 4v4"/><path d="M9 14l2 2 4-4"/></svg>
+        </span>
+        <div class="hero-point-text">
+          <p class="hero-point-title">A free first visit</p>
+          <p class="hero-point-body">Your first consultation is free, so you can talk through your space before deciding anything.</p>
+        </div>
+      </li>
+      <li class="hero-point">
+        <span class="hero-point-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+        </span>
+        <div class="hero-point-text">
+          <p class="hero-point-title">Homes, kitchens and workspaces</p>
+          <p class="hero-point-body">Full homes, single rooms, kitchens, cafes and offices.</p>
+        </div>
+      </li>
+      <li class="hero-point">
+        <span class="hero-point-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.5-6-10a6 6 0 0 1 12 0c0 4.5-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>
+        </span>
+        <div class="hero-point-text">
+          <p class="hero-point-title">A studio in Indiranagar</p>
+          <p class="hero-point-body">Based in Indiranagar, Bengaluru, working with the same small team from start to finish.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+</section>
+<!-- J2:W-5 end -->
+<!-- J2:W-6 start (owner W-6) -->
+<section data-j2-section="W-6" id="services" class="j2-reveal" aria-labelledby="services-title">
+  <style>
+    #services{background:var(--j2-surface,#FFFFFF);color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);padding:var(--j2-section,96px) 0;width:100%;overflow:hidden;position:relative}
+    #services *{box-sizing:border-box;min-width:0;max-width:100%}
+    #services .svc-inner{max-width:1100px;width:100%;margin:0 auto;padding:0 24px;position:relative}
+    #services .svc-shape{position:absolute;top:-40px;right:-60px;width:320px;height:320px;pointer-events:none;opacity:.6}
+    #services .svc-head{max-width:760px;margin:0 0 48px}
+    #services .svc-eyebrow{font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:.8125rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E);margin:0 0 16px}
+    #services .svc-title{font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.75rem,5vw,2.75rem);font-weight:500;line-height:1.15;letter-spacing:-.015em;color:var(--j2-primary,#1F2F6B);margin:0 0 16px}
+    #services .svc-lead{font-size:clamp(1.0625rem,2.4vw,1.25rem);line-height:1.6;color:var(--j2-muted,#6B665E);margin:0;max-width:62ch}
+    #services .svc-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;list-style:none;margin:0;padding:0}
+    #services .svc-grid>li{display:flex;width:100%}
+    #services .j2-card{display:flex;flex-direction:column;width:100%;background:var(--j2-surface,#FFFFFF);border:1px solid #E8E1D6;border-radius:4px;padding:24px;box-shadow:none;transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+    #services .j2-card:hover,#services .j2-card:focus-within{border-color:var(--j2-primary,#1F2F6B)}
+    #services .svc-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin:0 0 24px}
+    #services .svc-icon{width:64px;height:64px;flex:0 0 64px;display:block}
+    #services .svc-tag{font-size:.8125rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-muted,#6B665E)}
+    #services .svc-badge{display:inline-block;font-size:.8125rem;font-weight:600;color:var(--j2-accent,#8A5A2E);border:1px solid var(--j2-accent,#8A5A2E);border-radius:4px;padding:4px 10px;line-height:1.4}
+    #services .svc-name{font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.35;letter-spacing:-.005em;color:var(--j2-text,#2B2A28);margin:0 0 12px}
+    #services .svc-price{display:inline;color:var(--j2-primary,#1F2F6B);font-weight:600;white-space:normal}
+    #services .svc-desc{font-size:1.0625rem;line-height:1.65;color:var(--j2-muted,#6B665E);margin:0 0 24px;flex:1 1 auto}
+    #services .svc-rule{height:1px;background:#E8E1D6;border:0;margin:0 0 8px;width:100%}
+    #services .svc-link{display:inline-flex;align-items:center;gap:8px;min-height:48px;font-weight:500;font-size:15px;color:var(--j2-primary,#1F2F6B);text-decoration:none;align-self:flex-start}
+    #services .svc-link:hover,#services .svc-link:focus-visible{text-decoration:underline;text-underline-offset:4px}
+    #services .svc-link svg{width:18px;height:18px;flex:0 0 18px;transition:transform var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+    #services .svc-link:hover svg{transform:translateX(3px)}
+    #services .svc-foot{margin:48px 0 0;padding:32px 0 0;border-top:1px solid #E8E1D6;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px}
+    #services .svc-note{margin:0;font-size:1.0625rem;line-height:1.6;color:var(--j2-text,#2B2A28);max-width:46ch}
+    #services .svc-note strong{color:var(--j2-primary,#1F2F6B);font-weight:600}
+    #services .svc-actions{display:flex;flex-wrap:wrap;gap:16px}
+    #services .svc-actions .j2-btn,#services .svc-actions .j2-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;text-decoration:none;text-align:center}
+    #services .svc-actions svg{width:18px;height:18px;flex:0 0 18px}
+    @media (max-width:479px){
+      #services .svc-actions{width:100%}
+      #services .svc-actions .j2-btn,#services .svc-actions .j2-btn-secondary{width:100%}
+      #services .svc-shape{width:220px;height:220px;right:-90px}
+    }
+    @media (min-width:720px){
+      #services .svc-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}
+      #services .j2-card{padding:32px}
+    }
+  </style>
+
+  <svg class="svc-shape" viewBox="0 0 320 320" aria-hidden="true" focusable="false">
+    <defs>
+      <radialGradient id="svc-soft" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FAF7F2"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <circle cx="170" cy="150" r="150" fill="url(#svc-soft)"/>
+    <path d="M60 210 C 90 120, 200 90, 270 150" fill="none" stroke="#E8E1D6" stroke-width="1.5"/>
+    <path d="M80 240 C 120 170, 220 150, 290 200" fill="none" stroke="#E8E1D6" stroke-width="1.5"/>
+  </svg>
+
+  <div class="svc-inner">
+    <header class="svc-head">
+      <p class="svc-eyebrow">What we do</p>
+      <h2 id="services-title" class="svc-title">Services</h2>
+      <p class="svc-lead">Four ways to work with us, from a single conversation to a whole home.</p>
+    </header>
+
+    <ul class="svc-grid">
+      <li>
+        <article class="j2-card j2-hover" aria-labelledby="svc-full">
+          <div class="svc-top">
+            <svg class="svc-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <circle cx="32" cy="32" r="31" fill="#FAF7F2"/>
+              <path d="M16 31 L32 18 L48 31" fill="none" stroke="#1F2F6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 28 V46 H44 V28" fill="none" stroke="#1F2F6B" stroke-width="2" stroke-linejoin="round"/>
+              <rect x="28" y="35" width="8" height="11" fill="none" stroke="#8A5A2E" stroke-width="2"/>
+              <path d="M24 33 h4 M36 33 h4" stroke="#8A5A2E" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span class="svc-tag">Whole home</span>
+          </div>
+          <h3 id="svc-full" class="svc-name">Full home design <span class="svc-price">Rs 2,50,000 onwards</span></h3>
+          <p class="svc-desc">Every room planned together, from layout to the last finish.</p>
+          <hr class="svc-rule">
+          <a class="svc-link" href="#contact-form">Ask about this
+            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </article>
+      </li>
+
+      <li>
+        <article class="j2-card j2-hover" aria-labelledby="svc-room">
+          <div class="svc-top">
+            <svg class="svc-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <circle cx="32" cy="32" r="31" fill="#FAF7F2"/>
+              <path d="M20 34 V27 a4 4 0 0 1 4 -4 H40 a4 4 0 0 1 4 4 V34" fill="none" stroke="#1F2F6B" stroke-width="2" stroke-linejoin="round"/>
+              <rect x="16" y="33" width="32" height="9" rx="3" fill="none" stroke="#1F2F6B" stroke-width="2"/>
+              <path d="M20 42 V46 M44 42 V46" stroke="#1F2F6B" stroke-width="2" stroke-linecap="round"/>
+              <path d="M32 23 V33" stroke="#8A5A2E" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="48" cy="18" r="3" fill="none" stroke="#8A5A2E" stroke-width="2"/>
+            </svg>
+            <span class="svc-tag">One room</span>
+          </div>
+          <h3 id="svc-room" class="svc-name">Single room makeover <span class="svc-price">Rs 60,000</span></h3>
+          <p class="svc-desc">One room, rethought around how you live in it.</p>
+          <hr class="svc-rule">
+          <a class="svc-link" href="#contact-form">Ask about this
+            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </article>
+      </li>
+
+      <li>
+        <article class="j2-card j2-hover" aria-labelledby="svc-kitchen">
+          <div class="svc-top">
+            <svg class="svc-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <circle cx="32" cy="32" r="31" fill="#FAF7F2"/>
+              <rect x="16" y="30" width="32" height="16" rx="2" fill="none" stroke="#1F2F6B" stroke-width="2"/>
+              <path d="M32 30 V46 M16 36 H48" stroke="#1F2F6B" stroke-width="2"/>
+              <path d="M22 41 h4 M38 41 h4" stroke="#8A5A2E" stroke-width="2" stroke-linecap="round"/>
+              <path d="M24 26 c0 -3 3 -3 3 -6 M32 26 c0 -3 3 -3 3 -6" fill="none" stroke="#8A5A2E" stroke-width="2" stroke-linecap="round"/>
+              <path d="M40 18 V26 M44 18 V26" stroke="#1F2F6B" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span class="svc-tag">Kitchens</span>
+          </div>
+          <h3 id="svc-kitchen" class="svc-name">Kitchen design <span class="svc-price">Rs 1,20,000</span></h3>
+          <p class="svc-desc">A kitchen planned for the way you cook and gather.</p>
+          <hr class="svc-rule">
+          <a class="svc-link" href="#contact-form">Ask about this
+            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </article>
+      </li>
+
+      <li>
+        <article class="j2-card j2-hover" aria-labelledby="svc-consult">
+          <div class="svc-top">
+            <svg class="svc-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <circle cx="32" cy="32" r="31" fill="#FAF7F2"/>
+              <path d="M16 22 h22 a3 3 0 0 1 3 3 v10 a3 3 0 0 1 -3 3 H26 l-6 5 v-5 h-4 a3 3 0 0 1 -3 -3 V25 a3 3 0 0 1 3 -3 z" fill="none" stroke="#1F2F6B" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M44 30 h4 a3 3 0 0 1 3 3 v8 a3 3 0 0 1 -3 3 h-2 v4 l-5 -4 h-7" fill="none" stroke="#8A5A2E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              <path d="M21 29 h14 M21 33 h9" stroke="#1F2F6B" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span class="svc-badge">First visit free</span>
+          </div>
+          <h3 id="svc-consult" class="svc-name">Consultation <span class="svc-price">Rs 3,000 (free for the first visit)</span></h3>
+          <p class="svc-desc">Sit down with us to talk through your space and ideas.</p>
+          <hr class="svc-rule">
+          <a class="svc-link" href="#contact-form">Ask about this
+            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </article>
+      </li>
+    </ul>
+
+    <div class="svc-foot">
+      <p class="svc-note">Not sure where to start? Your <strong>first consultation is free</strong>, so you can talk it through with us before you decide.</p>
+      <div class="svc-actions">
+        <a class="j2-btn j2-hover" href="#contact-form">Book a free consultation</a>
+        <a class="j2-btn-secondary j2-hover" href="https://wa.me/919886055443" target="_blank" rel="noopener">
+          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 2.5a7.5 7.5 0 0 0-6.4 11.4L2.5 17.5l3.7-1.1A7.5 7.5 0 1 0 10 2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M7.4 7.2c.3 1.9 1.6 3.4 3.5 4.1l1-.9 1.4.7c-.2 1-1 1.5-1.9 1.4-2.6-.4-4.6-2.4-5-5-.1-.9.4-1.7 1.4-1.9l.7 1.4z" fill="currentColor"/></svg>
+          WhatsApp us
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- J2:W-6 end -->
+<!-- J2:W-7 start (owner W-24) -->
+<section data-j2-section="W-7" id="portfolio" class="j2-reveal">
+<style>
+#portfolio{background:var(--j2-bg,#FAF7F2);color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);padding:var(--j2-section,96px) 0;scroll-margin-top:72px;overflow-x:clip}
+#portfolio [hidden]{display:none!important}
+#portfolio .pf-wrap{width:100%;max-width:1100px;margin:0 auto;padding:0 24px}
+#portfolio .pf-head{width:100%;max-width:760px;margin:0 auto 40px;text-align:center}
+#portfolio .pf-eyebrow{margin:0 0 12px;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#portfolio .pf-title{margin:0 0 16px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.75rem,5vw,2.75rem);font-weight:500;line-height:1.15;letter-spacing:-.015em;color:var(--j2-text,#2B2A28)}
+#portfolio .pf-lead{margin:0 auto;max-width:62ch;font-size:clamp(1.125rem,2.4vw,1.3125rem);line-height:1.6;color:var(--j2-muted,#6B665E)}
+#portfolio .pf-filters{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:0 0 16px}
+#portfolio .pf-chip{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:10px 20px;border-radius:var(--j2-radius,4px);cursor:pointer;transition:background-color var(--j2-duration,400ms) var(--j2-ease,ease-out),color var(--j2-duration,400ms) var(--j2-ease,ease-out),border-color var(--j2-duration,400ms) var(--j2-ease,ease-out),transform var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#portfolio .pf-chip[aria-pressed="true"]{background:var(--j2-primary,#1F2F6B);color:var(--j2-surface,#FFFFFF);border-color:var(--j2-primary,#1F2F6B)}
+#portfolio .pf-chip:focus-visible,#portfolio .pf-more:focus-visible{outline:2px solid var(--j2-primary,#1F2F6B);outline-offset:3px}
+#portfolio .pf-count{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border:1px solid currentColor;border-radius:var(--j2-radius,4px);font-size:.8125rem;line-height:1}
+#portfolio .pf-status{margin:0;text-align:center;font-size:.875rem;line-height:1.5;color:var(--j2-muted,#6B665E)}
+#portfolio .pf-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;margin:32px 0 0}
+#portfolio .portfolio-item{display:flex;flex-direction:column;margin:0;background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);overflow:hidden;transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out),transform var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#portfolio .portfolio-item:hover{border-color:var(--j2-primary,#1F2F6B)}
+#portfolio .pf-art{position:relative;width:100%;aspect-ratio:4/3;margin:0;overflow:hidden;background:var(--j2-bg,#FAF7F2)}
+#portfolio .pf-art svg{display:block;width:100%;height:100%;transition:transform var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+@media (hover:hover){#portfolio .portfolio-item:hover .pf-art svg{transform:scale(1.03)}}
+#portfolio .pf-art .w{fill:var(--j2-bg,#FAF7F2)}
+#portfolio .pf-art .sf{fill:var(--j2-surface,#FFFFFF)}
+#portfolio .pf-art .p{fill:var(--j2-primary,#1F2F6B)}
+#portfolio .pf-art .s{fill:var(--j2-secondary,#3C4A7D)}
+#portfolio .pf-art .a{fill:var(--j2-accent,#8A5A2E)}
+#portfolio .pf-art .m{fill:var(--j2-muted,#6B665E)}
+#portfolio .pf-art .k{stroke:var(--j2-text,#2B2A28);stroke-opacity:.45;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#portfolio .pf-art .n{fill:none}
+#portfolio .pf-art .lt{fill:none;stroke:var(--j2-surface,#FFFFFF);stroke-opacity:.8;stroke-width:2;stroke-linecap:round}
+#portfolio .pf-cap{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:24px}
+#portfolio .pf-cap-text{display:flex;flex-direction:column;gap:6px;max-width:100%}
+#portfolio .pf-tag{display:inline-flex;align-items:center;gap:8px;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#portfolio .pf-tag svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#portfolio .pf-name{margin:0;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.3;letter-spacing:-.005em;color:var(--j2-text,#2B2A28)}
+#portfolio .pf-more{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:.9375rem;font-weight:500;color:var(--j2-primary,#1F2F6B);text-decoration:underline;text-decoration-color:transparent;text-underline-offset:4px;transition:text-decoration-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#portfolio .pf-more:hover{text-decoration-color:currentColor}
+#portfolio .pf-note{margin:24px 0 0;text-align:center;font-size:.875rem;line-height:1.5;color:var(--j2-muted,#6B665E)}
+@media (min-width:720px){
+#portfolio .pf-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}
+#portfolio .portfolio-item.pf-wide{grid-column:1/-1}
+#portfolio .pf-wide .pf-art{aspect-ratio:2/1}
+#portfolio .pf-cap{padding:28px 32px 32px}
+#portfolio .pf-wide .pf-cap{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+}
+@media (prefers-reduced-motion:reduce){#portfolio .pf-art svg,#portfolio .portfolio-item,#portfolio .pf-chip{transition:none}#portfolio .portfolio-item:hover .pf-art svg{transform:none}}
+</style>
+<div class="pf-wrap">
+  <header class="pf-head">
+    <p class="pf-eyebrow">Selected work</p>
+    <h2 class="pf-title">Portfolio</h2>
+    <p class="pf-lead">A selection of homes, kitchens and commercial spaces we have designed in Bengaluru.</p>
+  </header>
+
+  <div class="pf-filters" role="group" aria-label="Filter projects by type">
+    <button type="button" class="j2-btn-secondary j2-hover pf-chip" data-filter="all" aria-pressed="true">All <span class="pf-count" aria-hidden="true">6</span></button>
+    <button type="button" id="filter-homes" class="j2-btn-secondary j2-hover pf-chip" data-filter="Homes" aria-pressed="false">Homes <span class="pf-count" aria-hidden="true">3</span></button>
+    <button type="button" id="filter-kitchens" class="j2-btn-secondary j2-hover pf-chip" data-filter="Kitchens" aria-pressed="false">Kitchens <span class="pf-count" aria-hidden="true">1</span></button>
+    <button type="button" id="filter-commercial" class="j2-btn-secondary j2-hover pf-chip" data-filter="Commercial" aria-pressed="false">Commercial <span class="pf-count" aria-hidden="true">2</span></button>
+  </div>
+  <p class="pf-status" aria-live="polite">Showing all 6 projects</p>
+
+  <div class="pf-grid">
+    <article class="portfolio-item j2-hover" data-category="Homes">
+      <figure class="pf-art">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Drawn sketch of a calm living room with an arched window and a deep blue sofa">
+          <rect class="w" width="400" height="300"/><circle class="p" cx="330" cy="60" r="110" fill-opacity=".06"/><rect class="a" y="222" width="400" height="78" fill-opacity=".14"/>
+          <path class="sf k" d="M160 150V78a40 40 0 0 1 80 0v72z"/><path class="k n" d="M200 38v112M160 112h80"/>
+          <ellipse class="a" cx="200" cy="244" rx="140" ry="14" fill-opacity=".2"/>
+          <rect class="p" x="124" y="138" width="152" height="44" rx="10" fill-opacity=".8"/><rect class="p" x="110" y="168" width="180" height="46" rx="10"/>
+          <rect class="p" x="96" y="156" width="26" height="58" rx="9"/><rect class="p" x="278" y="156" width="26" height="58" rx="9"/>
+          <rect class="a" x="136" y="148" width="38" height="28" rx="6"/><rect class="sf" x="226" y="148" width="38" height="28" rx="6"/>
+          <path class="k n" d="M114 214v12M286 214v12M340 96v128M326 226h28"/><path class="a" d="M324 96h32l-7-26h-18z"/>
+          <rect class="a" x="44" y="192" width="28" height="32" rx="4" fill-opacity=".7"/>
+          <path class="s" fill-opacity=".55" d="M58 192c-18-14-24-40-12-60 12 14 16 40 12 60zM58 192c14-18 34-24 46-14-10 14-30 18-46 14z"/>
+        </svg>
+      </figure>
+      <div class="pf-cap">
+        <div class="pf-cap-text">
+          <span class="pf-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4zM10 20v-5h4v5"/></svg>Homes</span>
+          <h3 class="pf-name">Koramangala 3BHK</h3>
+        </div>
+        <a class="pf-more" href="#contact-form" aria-label="Ask about a project like Koramangala 3BHK">Ask about a similar project <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+
+    <article class="portfolio-item j2-hover" data-category="Homes">
+      <figure class="pf-art">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Drawn sketch of a villa dining room between two tall arched doors">
+          <rect class="w" width="400" height="300"/><circle class="a" cx="70" cy="50" r="100" fill-opacity=".07"/><rect class="a" y="222" width="400" height="78" fill-opacity=".14"/>
+          <path class="sf k" d="M48 222V100a38 38 0 0 1 76 0v122z"/><path class="s" fill-opacity=".14" d="M58 222V102a28 28 0 0 1 56 0v120z"/>
+          <path class="sf k" d="M276 222V100a38 38 0 0 1 76 0v122z"/><path class="s" fill-opacity=".14" d="M286 222V102a28 28 0 0 1 56 0v120z"/>
+          <path class="k n" d="M176 40v20M224 40v20"/><path class="a" d="M164 74h24l-5-14h-14zM212 74h24l-5-14h-14z"/>
+          <rect class="a" x="134" y="160" width="132" height="9" rx="3"/><path class="k n" d="M146 169v52M254 169v52"/>
+          <ellipse class="s" cx="200" cy="152" rx="10" ry="8" fill-opacity=".6"/><path class="s" fill-opacity=".5" d="M200 146c-4-12 0-22 8-26 2 10-2 20-8 26z"/>
+          <path class="p" d="M114 136h8v86h-8zM114 180h32v7h-32zM142 187h4v35h-4zM278 136h8v86h-8zM254 180h32v7h-32zM254 187h4v35h-4z"/>
+        </svg>
+      </figure>
+      <div class="pf-cap">
+        <div class="pf-cap-text">
+          <span class="pf-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4zM10 20v-5h4v5"/></svg>Homes</span>
+          <h3 class="pf-name">Whitefield villa</h3>
+        </div>
+        <a class="pf-more" href="#contact-form" aria-label="Ask about a project like Whitefield villa">Ask about a similar project <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+
+    <article class="portfolio-item j2-hover pf-wide" data-category="Kitchens">
+      <figure class="pf-art">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Drawn sketch of a kitchen with deep blue lower cabinets, a wooden counter and a cooker hood">
+          <rect class="w" width="400" height="300"/><circle class="s" cx="200" cy="40" r="120" fill-opacity=".05"/><rect class="a" y="222" width="400" height="78" fill-opacity=".14"/>
+          <rect class="sf k" x="36" y="56" width="196" height="56" rx="4"/><path class="k n" d="M101 56v56M167 56v56M92 96v8M110 96v8M158 96v8M176 96v8"/>
+          <path class="p" fill-opacity=".85" d="M282 52h56v30l22 26H260l22-26z"/>
+          <rect class="a" x="24" y="144" width="352" height="10" rx="3"/><rect class="p" x="30" y="154" width="340" height="68" rx="3"/>
+          <path class="lt" d="M115 164v50M200 164v50M285 164v50"/>
+          <ellipse class="m" cx="298" cy="142" rx="14" ry="3" fill-opacity=".6"/><ellipse class="m" cx="334" cy="142" rx="14" ry="3" fill-opacity=".6"/>
+          <rect class="sf k" x="52" y="118" width="20" height="26" rx="3"/><path class="s" fill-opacity=".55" d="M62 118c-10-10-12-26-4-36 8 10 10 24 4 36zM62 118c8-10 22-14 30-8-6 8-20 12-30 8z"/>
+          <rect class="a" x="150" y="124" width="14" height="20" rx="3" fill-opacity=".7"/><rect class="s" x="170" y="130" width="12" height="14" rx="3" fill-opacity=".5"/>
+        </svg>
+      </figure>
+      <div class="pf-cap">
+        <div class="pf-cap-text">
+          <span class="pf-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4zM2 10h2M20 10h2M9 7c0-1 1-1 1-2M14 7c0-1 1-1 1-2"/></svg>Kitchens</span>
+          <h3 class="pf-name">Jayanagar kitchen</h3>
+        </div>
+        <a class="pf-more" href="#contact-form" aria-label="Ask about a project like Jayanagar kitchen">Ask about a similar project <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+
+    <article class="portfolio-item j2-hover" data-category="Homes">
+      <figure class="pf-art">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Drawn sketch of a studio flat with a soft bed, a round mirror and a bookshelf">
+          <rect class="w" width="400" height="300"/><circle class="a" cx="320" cy="250" r="120" fill-opacity=".07"/><rect class="a" y="222" width="400" height="78" fill-opacity=".14"/>
+          <path class="k n" d="M48 86h104"/><rect class="p" x="58" y="58" width="10" height="28" rx="2"/><rect class="a" x="72" y="64" width="10" height="22" rx="2"/><rect class="s" x="86" y="60" width="10" height="26" rx="2" fill-opacity=".6"/><ellipse class="s" cx="128" cy="78" rx="12" ry="8" fill-opacity=".4"/>
+          <circle class="sf k" cx="330" cy="92" r="32"/>
+          <path class="a" fill-opacity=".55" d="M120 200v-50a30 30 0 0 1 30-30h100a30 30 0 0 1 30 30v50z"/>
+          <rect class="sf k" x="100" y="176" width="200" height="40" rx="8"/><rect class="p" x="100" y="192" width="200" height="26" rx="6"/>
+          <ellipse class="sf k" cx="160" cy="172" rx="26" ry="9"/><ellipse class="sf k" cx="240" cy="172" rx="26" ry="9"/>
+          <path class="k n" d="M108 218v8M292 218v8M336 184v-22"/>
+          <rect class="a" x="314" y="184" width="44" height="38" rx="4" fill-opacity=".8"/><path class="s" fill-opacity=".6" d="M324 162h24l-5-16h-14z"/>
+        </svg>
+      </figure>
+      <div class="pf-cap">
+        <div class="pf-cap-text">
+          <span class="pf-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4zM10 20v-5h4v5"/></svg>Homes</span>
+          <h3 class="pf-name">HSR studio flat</h3>
+        </div>
+        <a class="pf-more" href="#contact-form" aria-label="Ask about a project like HSR studio flat">Ask about a similar project <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+
+    <article class="portfolio-item j2-hover" data-category="Commercial">
+      <figure class="pf-art">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Drawn sketch of a cafe with a menu board, a wooden counter, globe lights and a round table">
+          <rect class="w" width="400" height="300"/><circle class="p" cx="80" cy="60" r="100" fill-opacity=".06"/><rect class="a" y="222" width="400" height="78" fill-opacity=".14"/>
+          <rect class="p" x="48" y="56" width="96" height="70" rx="4"/><path class="lt" d="M62 76h52M62 92h68M62 108h40"/>
+          <path class="k n" d="M236 40v38M300 40v38"/><circle class="a" cx="236" cy="88" r="10" fill-opacity=".75"/><circle class="a" cx="300" cy="88" r="10" fill-opacity=".75"/>
+          <rect class="p" x="194" y="142" width="182" height="10" rx="3"/><rect class="a" x="200" y="152" width="170" height="70" rx="3" fill-opacity=".85"/>
+          <path class="lt" d="M228 166v44M285 166v44M342 166v44"/>
+          <rect class="m" x="318" y="112" width="40" height="30" rx="4" fill-opacity=".7"/><rect class="sf k" x="214" y="126" width="12" height="16" rx="2"/>
+          <ellipse class="p" cx="110" cy="176" rx="42" ry="7"/><path class="k n" d="M110 183v38M92 222h36"/><rect class="sf k" x="102" y="160" width="12" height="14" rx="2"/>
+          <path class="s" fill-opacity=".7" d="M44 190h28v6H44zM154 190h28v6h-28z"/><path class="k n" d="M50 196v26M66 196v26M160 196v26M176 196v26"/>
+        </svg>
+      </figure>
+      <div class="pf-cap">
+        <div class="pf-cap-text">
+          <span class="pf-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V6l8-3v17M12 9h8v11M2 20h20M7 9h2M7 13h2M15 13h2M15 16h2"/></svg>Commercial</span>
+          <h3 class="pf-name">Indiranagar cafe</h3>
+        </div>
+        <a class="pf-more" href="#contact-form" aria-label="Ask about a project like Indiranagar cafe">Ask about a similar project <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+
+    <article class="portfolio-item j2-hover pf-wide" data-category="Commercial">
+      <figure class="pf-art">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Drawn sketch of a bright office with a wide window, a shared desk and two workstations">
+          <rect class="w" width="400" height="300"/><circle class="a" cx="330" cy="40" r="110" fill-opacity=".07"/><rect class="a" y="222" width="400" height="78" fill-opacity=".14"/>
+          <rect class="sf k" x="40" y="48" width="320" height="100" rx="4"/><rect class="s" x="46" y="54" width="308" height="88" fill-opacity=".07"/><path class="k n" d="M120 48v100M200 48v100M280 48v100"/>
+          <rect class="a" x="56" y="166" width="288" height="9" rx="3"/><path class="k n" d="M70 175v47M330 175v47M200 175v47"/>
+          <rect class="p" x="96" y="126" width="56" height="34" rx="3"/><rect class="p" x="248" y="126" width="56" height="34" rx="3"/><path class="k n" d="M124 160v6M276 160v6"/>
+          <rect class="s" x="108" y="184" width="32" height="26" rx="8" fill-opacity=".8"/><rect class="s" x="260" y="184" width="32" height="26" rx="8" fill-opacity=".8"/><path class="k n" d="M124 210v12M276 210v12"/>
+          <rect class="a" x="356" y="190" width="24" height="32" rx="4" fill-opacity=".7"/><path class="s" fill-opacity=".55" d="M368 190c-14-12-16-32-8-46 10 12 12 32 8 46zM368 190c10-14 24-18 28-12-4 8-16 14-28 12z"/>
+        </svg>
+      </figure>
+      <div class="pf-cap">
+        <div class="pf-cap-text">
+          <span class="pf-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V6l8-3v17M12 9h8v11M2 20h20M7 9h2M7 13h2M15 13h2M15 16h2"/></svg>Commercial</span>
+          <h3 class="pf-name">Hebbal office</h3>
+        </div>
+        <a class="pf-more" href="#contact-form" aria-label="Ask about a project like Hebbal office">Ask about a similar project <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+  </div>
+
+  <p class="pf-empty pf-note" hidden>No projects in this category yet.</p>
+  <p class="pf-note">Each project is shown as a drawn sketch of the space.</p>
+</div>
+<script>
+(function(){
+  var root=document.getElementById('portfolio');
+  if(!root){return;}
+  var chips=root.querySelectorAll('.pf-chip');
+  var items=Array.prototype.slice.call(root.querySelectorAll('.portfolio-item'));
+  var status=root.querySelector('.pf-status');
+  var empty=root.querySelector('.pf-empty');
+  var words={Homes:'home',Kitchens:'kitchen',Commercial:'commercial'};
+  function layout(){
+    var vis=items.filter(function(it){return !it.hidden;});
+    var n=vis.length;
+    items.forEach(function(it){it.classList.remove('pf-wide');});
+    vis.forEach(function(it,i){
+      if(i%3===2||(i%3===0&&i===n-1)){it.classList.add('pf-wide');}
+    });
+    return n;
+  }
+  function apply(f){
+    items.forEach(function(it){
+      it.hidden=!(f==='all'||it.getAttribute('data-category')===f);
+    });
+    for(var i=0;i<chips.length;i++){
+      chips[i].setAttribute('aria-pressed',chips[i].getAttribute('data-filter')===f?'true':'false');
+    }
+    var n=layout();
+    if(empty){empty.hidden=n>0;}
+    if(status){
+      status.textContent=f==='all'?'Showing all '+n+' projects':'Showing '+n+' '+(words[f]||'')+' project'+(n===1?'':'s');
+    }
+  }
+  for(var j=0;j<chips.length;j++){
+    chips[j].addEventListener('click',function(){apply(this.getAttribute('data-filter'));});
+  }
+  apply('all');
+})();
+</script>
+</section>
+<!-- J2:W-7 end -->
+<!-- J2:W-8 start (owner W-25) -->
+<section data-j2-section="W-8" id="process" class="j2-reveal" aria-labelledby="process-title">
+<style>
+#process{position:relative;overflow:hidden;background:linear-gradient(180deg,var(--j2-surface,#FFFFFF) 0%,var(--j2-bg,#FAF7F2) 100%);color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);padding:var(--j2-section,96px) 0;scroll-margin-top:72px}
+#process .pr-shape{position:absolute;top:-40px;right:-60px;width:320px;max-width:70%;height:auto;pointer-events:none}
+#process .pr-shape .pr-fill-p{fill:var(--j2-primary,#1F2F6B);fill-opacity:.05}
+#process .pr-shape .pr-fill-a{fill:var(--j2-accent,#8A5A2E);fill-opacity:.06}
+#process .pr-wrap{position:relative;width:100%;max-width:1100px;margin:0 auto;padding:0 24px}
+#process .pr-head{width:100%;max-width:760px;margin:0 auto 48px;text-align:center}
+#process .pr-eyebrow{margin:0 0 12px;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#process .pr-title{margin:0 0 16px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.75rem,5vw,2.75rem);font-weight:500;line-height:1.15;letter-spacing:-.015em;color:var(--j2-text,#2B2A28)}
+#process .pr-lead{margin:0 auto;max-width:62ch;font-size:clamp(1.125rem,2.4vw,1.3125rem);line-height:1.6;color:var(--j2-muted,#6B665E)}
+#process .pr-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+#process .process-step{position:relative;display:flex;flex-direction:column;gap:16px;width:100%;margin:0;padding:32px 24px;background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out),transform var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#process .process-step:hover{border-color:var(--j2-primary,#1F2F6B)}
+#process .process-step:not(:last-child)::after{content:"";position:absolute;left:47px;bottom:-25px;width:1px;height:24px;background:var(--j2-line,#E8E1D6)}
+#process .pr-top{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%}
+#process .pr-num{display:inline-grid;place-items:center;width:48px;height:48px;flex:none;border-radius:50%;background:var(--j2-primary,#1F2F6B);color:var(--j2-surface,#FFFFFF);font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:1rem;font-weight:600;letter-spacing:.02em}
+#process .pr-icon{width:56px;height:56px;flex:none;color:var(--j2-primary,#1F2F6B)}
+#process .pr-icon .pr-stroke{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#process .pr-icon .pr-soft{fill:var(--j2-accent,#8A5A2E);fill-opacity:.14}
+#process .pr-icon .pr-warm{fill:none;stroke:var(--j2-accent,#8A5A2E);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#process .pr-kicker{margin:0;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#process .pr-name{margin:0;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.3;letter-spacing:-.005em;color:var(--j2-text,#2B2A28)}
+#process .pr-text{margin:0;max-width:62ch;font-size:1.0625rem;line-height:1.65;color:var(--j2-muted,#6B665E)}
+@media (min-width:720px){
+#process .pr-steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}
+#process .process-step{padding:32px}
+#process .process-step:not(:last-child)::after{display:none}
+}
+@media (prefers-reduced-motion:reduce){#process .process-step{transition:none}}
+</style>
+<svg class="pr-shape" viewBox="0 0 320 320" aria-hidden="true" focusable="false"><circle class="pr-fill-p" cx="200" cy="120" r="120"/><circle class="pr-fill-a" cx="110" cy="210" r="80"/></svg>
+<div class="pr-wrap">
+  <header class="pr-head">
+    <p class="pr-eyebrow">How we work</p>
+    <h2 class="pr-title" id="process-title">Process</h2>
+    <p class="pr-lead">Four clear steps, from the first conversation to the day you move in.</p>
+  </header>
+
+  <ol class="pr-steps" aria-label="Our four steps, in order">
+    <li class="process-step j2-card j2-hover">
+      <div class="pr-top">
+        <span class="pr-num" aria-hidden="true">01</span>
+        <svg class="pr-icon" viewBox="0 0 56 56" aria-hidden="true" focusable="false">
+          <circle class="pr-soft" cx="28" cy="28" r="24"/>
+          <path class="pr-stroke" d="M12 18h20a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H21l-6 5v-5h-3a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3z"/>
+          <path class="pr-warm" d="M39 24h5a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-2v4l-5-4h-6"/>
+          <path class="pr-stroke" d="M16 24h12M16 28h8"/>
+        </svg>
+      </div>
+      <p class="pr-kicker">Step 1</p>
+      <h3 class="pr-name">Meet</h3>
+      <p class="pr-text">We visit, listen and learn how you want your space to feel.</p>
+    </li>
+
+    <li class="process-step j2-card j2-hover">
+      <div class="pr-top">
+        <span class="pr-num" aria-hidden="true">02</span>
+        <svg class="pr-icon" viewBox="0 0 56 56" aria-hidden="true" focusable="false">
+          <circle class="pr-soft" cx="28" cy="28" r="24"/>
+          <rect class="pr-stroke" x="11" y="13" width="28" height="30" rx="2"/>
+          <path class="pr-stroke" d="M11 27h14v16M25 21h14"/>
+          <path class="pr-warm" d="M44 12l3 3-14 14-4 1 1-4z"/>
+        </svg>
+      </div>
+      <p class="pr-kicker">Step 2</p>
+      <h3 class="pr-name">Design</h3>
+      <p class="pr-text">We shape layouts, materials and colours, and refine them with you.</p>
+    </li>
+
+    <li class="process-step j2-card j2-hover">
+      <div class="pr-top">
+        <span class="pr-num" aria-hidden="true">03</span>
+        <svg class="pr-icon" viewBox="0 0 56 56" aria-hidden="true" focusable="false">
+          <circle class="pr-soft" cx="28" cy="28" r="24"/>
+          <path class="pr-stroke" d="M10 44h36M14 44V26l14-10 14 10v18"/>
+          <path class="pr-stroke" d="M23 44v-9h10v9"/>
+          <path class="pr-warm" d="M8 20l6-6 4 4-6 6zM14 18l10 10"/>
+        </svg>
+      </div>
+      <p class="pr-kicker">Step 3</p>
+      <h3 class="pr-name">Build</h3>
+      <p class="pr-text">We oversee the work on site with our trusted partners.</p>
+    </li>
+
+    <li class="process-step j2-card j2-hover">
+      <div class="pr-top">
+        <span class="pr-num" aria-hidden="true">04</span>
+        <svg class="pr-icon" viewBox="0 0 56 56" aria-hidden="true" focusable="false">
+          <circle class="pr-soft" cx="28" cy="28" r="24"/>
+          <path class="pr-stroke" d="M14 44V14h20v30M10 44h32"/>
+          <circle class="pr-stroke" cx="29" cy="30" r="1.4"/>
+          <path class="pr-warm" d="M38 22a5 5 0 1 1 0 .1zM42 26l6 6M46 30l-2 2M48 32l-2 2"/>
+        </svg>
+      </div>
+      <p class="pr-kicker">Step 4</p>
+      <h3 class="pr-name">Move in</h3>
+      <p class="pr-text">We finish the details and hand over a space that is ready to live in.</p>
+    </li>
+  </ol>
+</div>
+</section>
+<!-- J2:W-8 end -->
+<!-- J2:W-9 start (owner W-9) -->
+<section data-j2-section="W-9" id="team" class="j2-reveal" aria-labelledby="team-title">
+<style>
+#team{background:var(--j2-bg,#FAF7F2);color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);padding:var(--j2-section,96px) 0;scroll-margin-top:72px;overflow-x:clip}
+#team .tm-wrap{width:100%;max-width:1100px;margin:0 auto;padding:0 24px}
+#team .tm-head{width:100%;max-width:760px;margin:0 auto 48px;text-align:center}
+#team .tm-eyebrow{margin:0 0 12px;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#team .tm-title{margin:0 0 16px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.75rem,5vw,2.75rem);font-weight:500;line-height:1.15;letter-spacing:-.015em;color:var(--j2-text,#2B2A28)}
+#team .tm-lead{margin:0 auto;max-width:62ch;font-size:clamp(1.125rem,2.4vw,1.3125rem);line-height:1.6;color:var(--j2-muted,#6B665E)}
+#team .tm-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;margin:0;padding:0;list-style:none}
+#team .team-member{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;margin:0;padding:32px 24px;text-align:center;background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out),transform var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#team .team-member:hover{border-color:var(--j2-primary,#1F2F6B)}
+#team .tm-avatar{flex:none;width:128px;max-width:100%;height:auto;aspect-ratio:1/1}
+#team .tm-avatar svg{display:block;width:100%;height:100%}
+#team .tm-avatar .ga{stop-color:var(--j2-surface,#FFFFFF)}
+#team .tm-avatar .gb{stop-color:var(--j2-bg,#FAF7F2)}
+#team .tm-avatar .arch{stroke:var(--j2-line,#E8E1D6);stroke-width:1.5}
+#team .tm-avatar .fp{fill:var(--j2-primary,#1F2F6B)}
+#team .tm-avatar .fs{fill:var(--j2-secondary,#3C4A7D)}
+#team .tm-avatar .fa{fill:var(--j2-accent,#8A5A2E)}
+#team .tm-avatar .ln{fill:none;stroke:var(--j2-accent,#8A5A2E);stroke-width:1.5;stroke-linecap:round;stroke-opacity:.6}
+#team .tm-avatar .ini{font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:34px;font-weight:500;letter-spacing:.04em;fill:var(--j2-primary,#1F2F6B)}
+#team .tm-body{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:100%}
+#team .tm-name{margin:0;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.3;letter-spacing:-.005em;color:var(--j2-text,#2B2A28)}
+#team .tm-role{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:1.0625rem;line-height:1.5;color:var(--j2-muted,#6B665E)}
+#team .tm-role svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--j2-accent,#8A5A2E);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#team .tm-rule{display:block;width:40px;height:1px;margin:8px 0 0;background:var(--j2-accent,#8A5A2E);opacity:.5}
+#team .tm-years{display:inline-flex;align-items:baseline;gap:8px;margin:4px 0 0;font-size:.875rem;line-height:1.5;color:var(--j2-muted,#6B665E)}
+#team .tm-years strong{font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:1.25rem;font-weight:600;color:var(--j2-primary,#1F2F6B)}
+#team .tm-cta{display:flex;flex-direction:column;align-items:stretch;gap:24px;margin-top:56px;padding:32px 24px;text-align:center;background:linear-gradient(135deg,var(--j2-surface,#FFFFFF),var(--j2-bg,#FAF7F2));border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px)}
+#team .tm-cta-text{width:100%}
+#team .tm-cta-title{margin:0 0 8px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.3;color:var(--j2-text,#2B2A28)}
+#team .tm-cta-text p{margin:0 auto;max-width:62ch;font-size:1.0625rem;line-height:1.65;color:var(--j2-muted,#6B665E)}
+#team .tm-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%}
+#team .tm-actions a{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;text-decoration:none;text-align:center}
+#team .tm-actions a svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#team .tm-actions a:focus-visible{outline:2px solid var(--j2-primary,#1F2F6B);outline-offset:3px}
+@media (min-width:560px){
+#team .tm-actions a{width:auto}
+#team .team-member{flex-direction:row;align-items:center;gap:28px;padding:28px 32px;text-align:left}
+#team .tm-avatar{width:112px}
+#team .tm-body{align-items:flex-start}
+}
+@media (min-width:880px){
+#team .tm-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:32px}
+#team .team-member{flex-direction:column;align-items:center;gap:24px;padding:40px 32px;text-align:center}
+#team .tm-avatar{width:136px}
+#team .tm-body{align-items:center}
+#team .tm-cta{flex-direction:row;align-items:center;justify-content:space-between;text-align:left;padding:40px 48px}
+#team .tm-cta-text p{margin:0}
+#team .tm-actions{width:auto;flex-wrap:nowrap;justify-content:flex-end}
+}
+@media (prefers-reduced-motion:reduce){#team .team-member{transition:none}}
+</style>
+<div class="tm-wrap">
+  <header class="tm-head">
+    <p class="tm-eyebrow">The people behind the studio</p>
+    <h2 id="team-title" class="tm-title">Team</h2>
+    <p class="tm-lead">A small studio, so you work with the same people from start to finish.</p>
+  </header>
+
+  <ul class="tm-grid">
+    <li class="team-member j2-card j2-hover">
+      <div class="tm-avatar">
+        <svg viewBox="0 0 120 120" role="img" aria-label="Drawn portrait mark with the initials NM">
+          <defs><linearGradient id="tm-grad-nm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ga"/><stop offset="1" class="gb"/></linearGradient></defs>
+          <circle class="fp" cx="60" cy="60" r="58" fill-opacity=".07"/>
+          <path class="arch" fill="url(#tm-grad-nm)" d="M24 104V58a36 36 0 0 1 72 0v46z"/>
+          <path class="ln" d="M34 104h52"/>
+          <circle class="fa" cx="92" cy="28" r="7" fill-opacity=".35"/>
+          <text class="ini" x="60" y="84" text-anchor="middle">NM</text>
+        </svg>
+      </div>
+      <div class="tm-body">
+        <h3 class="tm-name">Neel Mehta</h3>
+        <p class="tm-role"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Founder · 12 years</p>
+        <span class="tm-rule" aria-hidden="true"></span>
+        <p class="tm-years"><strong>12 years</strong> in interior design</p>
+      </div>
+    </li>
+
+    <li class="team-member j2-card j2-hover">
+      <div class="tm-avatar">
+        <svg viewBox="0 0 120 120" role="img" aria-label="Drawn portrait mark with the initials RK">
+          <defs><linearGradient id="tm-grad-rk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ga"/><stop offset="1" class="gb"/></linearGradient></defs>
+          <circle class="fa" cx="60" cy="60" r="58" fill-opacity=".08"/>
+          <path class="arch" fill="url(#tm-grad-rk)" d="M24 104V58a36 36 0 0 1 72 0v46z"/>
+          <path class="ln" d="M34 104h52"/>
+          <circle class="fs" cx="26" cy="30" r="6" fill-opacity=".3"/>
+          <text class="ini" x="60" y="84" text-anchor="middle">RK</text>
+        </svg>
+      </div>
+      <div class="tm-body">
+        <h3 class="tm-name">Ria Kapoor</h3>
+        <p class="tm-role"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l3.5-1 11-11-2.5-2.5-11 11zM14.5 6.5l2.5 2.5"/></svg>Lead designer</p>
+        <span class="tm-rule" aria-hidden="true"></span>
+      </div>
+    </li>
+
+    <li class="team-member j2-card j2-hover">
+      <div class="tm-avatar">
+        <svg viewBox="0 0 120 120" role="img" aria-label="Drawn portrait mark with the initials AS">
+          <defs><linearGradient id="tm-grad-as" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ga"/><stop offset="1" class="gb"/></linearGradient></defs>
+          <circle class="fs" cx="60" cy="60" r="58" fill-opacity=".07"/>
+          <path class="arch" fill="url(#tm-grad-as)" d="M24 104V58a36 36 0 0 1 72 0v46z"/>
+          <path class="ln" d="M34 104h52"/>
+          <circle class="fp" cx="94" cy="32" r="6" fill-opacity=".25"/>
+          <text class="ini" x="60" y="84" text-anchor="middle">AS</text>
+        </svg>
+      </div>
+      <div class="tm-body">
+        <h3 class="tm-name">Arjun Shah</h3>
+        <p class="tm-role"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16" rx="2"/><path d="M9 4.5V3h6v1.5M8.5 11l2 2 4-4M8.5 16.5h7"/></svg>Project manager</p>
+        <span class="tm-rule" aria-hidden="true"></span>
+      </div>
+    </li>
+  </ul>
+
+  <div class="tm-cta">
+    <div class="tm-cta-text">
+      <h3 class="tm-cta-title">Meet us in person</h3>
+      <p>Your first consultation is free.</p>
+    </div>
+    <div class="tm-actions">
+      <a class="j2-btn j2-hover" href="#contact-form">Book a free consultation</a>
+      <a class="j2-btn-secondary j2-hover" href="https://wa.me/919886055443" target="_blank" rel="noopener" aria-label="Message Neel Studio on WhatsApp at +91 98860 55443"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-4A8 8 0 1 1 8.2 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8a4 4 0 0 1-1.8-1.8l.8-1-1-2z"/></svg>WhatsApp us</a>
+    </div>
+  </div>
+</div>
+</section>
+<!-- J2:W-9 end -->
+<!-- J2:W-11 start (owner W-11) -->
+<section data-j2-section="W-11" id="faq" class="j2-reveal" aria-labelledby="faq-title">
+<style>
+#faq{position:relative;background:var(--j2-bg,#FAF7F2);color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);padding:var(--j2-section,96px) 0;scroll-margin-top:72px;overflow-x:clip}
+#faq .faq-wrap{position:relative;width:100%;max-width:1100px;margin:0 auto;padding:0 24px}
+#faq .faq-col{width:100%;max-width:760px;margin:0 auto}
+#faq .faq-glow{position:absolute;top:24px;right:-80px;width:320px;max-width:60%;height:320px;border-radius:50%;background:radial-gradient(circle,var(--j2-surface,#FFFFFF) 0%,var(--j2-bg,#FAF7F2) 70%);opacity:.9;pointer-events:none}
+#faq .faq-head{position:relative;width:100%;margin:0 0 40px;text-align:center}
+#faq .faq-mark{display:block;width:72px;max-width:100%;height:auto;margin:0 auto 20px}
+#faq .faq-mark .fm-arch{fill:var(--j2-surface,#FFFFFF);stroke:var(--j2-primary,#1F2F6B);stroke-opacity:.5;stroke-width:1.5}
+#faq .faq-mark .fm-floor{fill:var(--j2-accent,#8A5A2E);fill-opacity:.18}
+#faq .faq-mark .fm-dot{fill:var(--j2-accent,#8A5A2E)}
+#faq .faq-mark .fm-line{fill:none;stroke:var(--j2-primary,#1F2F6B);stroke-width:1.8;stroke-linecap:round}
+#faq .faq-eyebrow{margin:0 0 12px;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#faq .faq-title{margin:0 0 16px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.75rem,5vw,2.75rem);font-weight:500;line-height:1.15;letter-spacing:-.015em;color:var(--j2-text,#2B2A28)}
+#faq .faq-lead{margin:0 auto;max-width:62ch;font-size:clamp(1.125rem,2.4vw,1.3125rem);line-height:1.6;color:var(--j2-muted,#6B665E)}
+#faq .faq-list{display:flex;flex-direction:column;gap:16px;width:100%;margin:0;padding:0}
+#faq .faq-item{width:100%;max-width:100%;margin:0;padding:0;background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#faq .faq-item:hover,#faq .faq-item[open]{border-color:var(--j2-primary,#1F2F6B)}
+#faq .faq-q{display:flex;align-items:center;gap:16px;min-height:44px;padding:20px;cursor:pointer;list-style:none;border-radius:var(--j2-radius,4px)}
+#faq .faq-q::-webkit-details-marker{display:none}
+#faq .faq-q::marker{content:""}
+#faq .faq-q:focus-visible{outline:2px solid var(--j2-primary,#1F2F6B);outline-offset:3px}
+#faq .faq-icon{display:inline-grid;place-items:center;flex:none;width:48px;height:48px;border-radius:50%;background:var(--j2-bg,#FAF7F2);border:1px solid var(--j2-line,#E8E1D6)}
+#faq .faq-icon svg{width:24px;height:24px;fill:none;stroke:var(--j2-primary,#1F2F6B);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#faq .faq-q-text{display:flex;flex-direction:column;gap:4px;flex:1 1 auto;min-width:0}
+#faq .faq-label{font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#faq .faq-question{margin:0;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.3;letter-spacing:-.005em;color:var(--j2-text,#2B2A28)}
+#faq .faq-toggle{display:inline-grid;place-items:center;flex:none;width:44px;height:44px}
+#faq .faq-toggle svg{width:20px;height:20px;fill:none;stroke:var(--j2-primary,#1F2F6B);stroke-width:1.8;stroke-linecap:round}
+#faq .faq-toggle .v{transform-origin:center;transform-box:fill-box;transition:transform var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#faq .faq-item[open] .faq-toggle .v{transform:scaleY(0)}
+#faq .faq-a{padding:0 20px 24px 84px}
+#faq .faq-a p{margin:0 0 12px;max-width:62ch;font-size:1.0625rem;line-height:1.65;color:var(--j2-text,#2B2A28)}
+#faq .faq-link{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:.9375rem;font-weight:500;color:var(--j2-primary,#1F2F6B);text-decoration:underline;text-decoration-color:transparent;text-underline-offset:4px;transition:text-decoration-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#faq .faq-link:hover{text-decoration-color:currentColor}
+#faq .faq-link:focus-visible,#faq .faq-cta a:focus-visible{outline:2px solid var(--j2-primary,#1F2F6B);outline-offset:3px}
+#faq .faq-cta{display:flex;flex-direction:column;align-items:stretch;gap:24px;width:100%;margin-top:48px;padding:32px 24px;text-align:center;background:linear-gradient(135deg,var(--j2-surface,#FFFFFF),var(--j2-bg,#FAF7F2));border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px)}
+#faq .faq-cta-text{width:100%}
+#faq .faq-cta-title{margin:0 0 8px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.3;color:var(--j2-text,#2B2A28)}
+#faq .faq-cta-text p{margin:0 auto;max-width:62ch;font-size:1.0625rem;line-height:1.65;color:var(--j2-muted,#6B665E)}
+#faq .faq-cta-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%}
+#faq .faq-cta-actions a{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;text-decoration:none;text-align:center}
+#faq .faq-cta-actions svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:479px){#faq .faq-q{padding:16px;gap:12px}#faq .faq-icon{width:40px;height:40px}#faq .faq-a{padding:0 16px 20px 16px}}
+@media (min-width:560px){#faq .faq-cta-actions a{width:auto}}
+@media (min-width:720px){
+#faq .faq-q{padding:24px 28px}
+#faq .faq-a{padding:0 28px 28px 92px}
+#faq .faq-cta{flex-direction:row;align-items:center;justify-content:space-between;text-align:left;padding:36px 40px}
+#faq .faq-cta-text p{margin:0}
+#faq .faq-cta-actions{width:auto;flex-wrap:nowrap;justify-content:flex-end}
+}
+@media (prefers-reduced-motion:reduce){#faq .faq-item,#faq .faq-toggle .v,#faq .faq-link{transition:none}}
+</style>
+<div class="faq-glow" aria-hidden="true"></div>
+<div class="faq-wrap">
+  <div class="faq-col">
+    <header class="faq-head">
+      <svg class="faq-mark" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
+        <ellipse class="fm-floor" cx="36" cy="62" rx="30" ry="6"/>
+        <path class="fm-arch" d="M14 62V30a22 22 0 0 1 44 0v32z"/>
+        <path class="fm-line" d="M30 28a6 6 0 1 1 8 5.6c-1.4.6-2 1.6-2 3V39"/>
+        <circle class="fm-dot" cx="36" cy="46" r="2"/>
+      </svg>
+      <p class="faq-eyebrow">Good to know</p>
+      <h2 class="faq-title" id="faq-title">FAQ</h2>
+      <p class="faq-lead">Short answers to the questions we hear most often before a project begins.</p>
+    </header>
+
+    <div class="faq-list">
+      <details class="faq-item j2-card j2-hover" open>
+        <summary class="faq-q">
+          <span class="faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+          <span class="faq-q-text">
+            <span class="faq-label">Timing</span>
+            <h3 class="faq-question">How long does a project take?</h3>
+          </span>
+          <span class="faq-toggle" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M4 10h12"/><path class="v" d="M10 4v12"/></svg></span>
+        </summary>
+        <div class="faq-a">
+          <p>A project takes 8 to 16 weeks, depending on its size and scope.</p>
+          <a class="faq-link" href="#process">See the four steps of our process <span aria-hidden="true">→</span></a>
+        </div>
+      </details>
+
+      <details class="faq-item j2-card j2-hover" open>
+        <summary class="faq-q">
+          <span class="faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17h16v2.5H4z"/><path d="M6 17v-3a6 6 0 0 1 12 0v3"/><path d="M12 8V5.5M10 6h4"/></svg></span>
+          <span class="faq-q-text">
+            <span class="faq-label">Construction</span>
+            <h3 class="faq-question">Do you handle construction?</h3>
+          </span>
+          <span class="faq-toggle" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M4 10h12"/><path class="v" d="M10 4v12"/></svg></span>
+        </summary>
+        <div class="faq-a">
+          <p>We do, yes, with trusted partners who we work with on every build.</p>
+          <a class="faq-link" href="#process">How the build step works <span aria-hidden="true">→</span></a>
+        </div>
+      </details>
+
+      <details class="faq-item j2-card j2-hover" open>
+        <summary class="faq-q">
+          <span class="faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>
+          <span class="faq-q-text">
+            <span class="faq-label">Location</span>
+            <h3 class="faq-question">Do you work outside Bengaluru?</h3>
+          </span>
+          <span class="faq-toggle" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M4 10h12"/><path class="v" d="M10 4v12"/></svg></span>
+        </summary>
+        <div class="faq-a">
+          <p>We take on projects outside Bengaluru only for full home projects.</p>
+          <a class="faq-link" href="#services">See full home design <span aria-hidden="true">→</span></a>
+        </div>
+      </details>
+    </div>
+
+    <div class="faq-cta">
+      <div class="faq-cta-text">
+        <h3 class="faq-cta-title">Still have a question?</h3>
+        <p>Ask us directly. Your first consultation is free.</p>
+      </div>
+      <div class="faq-cta-actions">
+        <a class="j2-btn j2-hover" href="#contact-form">Book a free consultation</a>
+        <a class="j2-btn-secondary j2-hover" href="https://wa.me/919886055443" target="_blank" rel="noopener" aria-label="Message Neel Studio on WhatsApp at +91 98860 55443"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.8z"/><path d="M9.5 9.5c.3 1.8 2.2 3.8 4 4.2"/></svg>WhatsApp us</a>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- J2:W-11 end -->
+<!-- J2:W-12 start (owner W-20) -->
+<section data-j2-section="W-12" id="contact-info" class="j2-reveal" aria-labelledby="ci-title">
+<style>
+#contact-info{position:relative;background:linear-gradient(180deg,var(--j2-bg,#FAF7F2) 0%,var(--j2-surface,#FFFFFF) 100%);color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);padding:var(--j2-section,96px) 0;scroll-margin-top:72px;overflow-x:clip}
+#contact-info .ci-wrap{width:100%;max-width:1100px;margin:0 auto;padding:0 24px}
+#contact-info .ci-head{width:100%;max-width:760px;margin:0 auto 40px;text-align:center}
+#contact-info .ci-eyebrow{margin:0 0 12px;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#contact-info .ci-title{margin:0 0 16px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.75rem,5vw,2.75rem);font-weight:500;line-height:1.15;letter-spacing:-.015em;color:var(--j2-text,#2B2A28)}
+#contact-info .ci-lead{margin:0 auto;max-width:62ch;font-size:clamp(1.125rem,2.4vw,1.3125rem);line-height:1.6;color:var(--j2-muted,#6B665E)}
+#contact-info .ci-map{display:block;width:100%;max-width:100%;margin:0 0 24px;border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);background:var(--j2-surface,#FFFFFF);overflow:hidden}
+#contact-info .ci-map svg{display:block;width:100%;max-width:100%;height:auto}
+#contact-info .m-ground{fill:var(--j2-bg,#FAF7F2)}
+#contact-info .m-block{fill:var(--j2-surface,#FFFFFF);stroke:var(--j2-line,#E8E1D6);stroke-width:1.5}
+#contact-info .m-road{fill:none;stroke:var(--j2-surface,#FFFFFF);stroke-width:26;stroke-linecap:round}
+#contact-info .m-edge{fill:none;stroke:var(--j2-line,#E8E1D6);stroke-width:30;stroke-linecap:round}
+#contact-info .m-dash{fill:none;stroke:var(--j2-muted,#6B665E);stroke-opacity:.35;stroke-width:1.5;stroke-dasharray:6 8}
+#contact-info .m-green{fill:var(--j2-accent,#8A5A2E);fill-opacity:.12}
+#contact-info .m-pin{fill:var(--j2-primary,#1F2F6B)}
+#contact-info .m-pin-dot{fill:var(--j2-surface,#FFFFFF)}
+#contact-info .m-halo{fill:var(--j2-primary,#1F2F6B);fill-opacity:.12}
+#contact-info .ci-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:24px;width:100%;margin:0;padding:0;list-style:none}
+#contact-info .ci-card{display:flex;flex-direction:column;gap:12px;width:100%;max-width:100%;margin:0;padding:28px 24px;background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#contact-info .ci-card:hover{border-color:var(--j2-primary,#1F2F6B)}
+#contact-info .ci-icon{display:inline-grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--j2-bg,#FAF7F2);border:1px solid var(--j2-line,#E8E1D6)}
+#contact-info .ci-icon svg{width:24px;height:24px;fill:none;stroke:var(--j2-primary,#1F2F6B);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#contact-info .ci-label{margin:0;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#contact-info .ci-value{margin:0;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.35;letter-spacing:-.005em;color:var(--j2-text,#2B2A28);font-style:normal}
+#contact-info .ci-sub{display:block;margin-top:4px;font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);font-size:1rem;font-weight:400;color:var(--j2-muted,#6B665E)}
+#contact-info .ci-note{margin:0;font-size:.9375rem;line-height:1.6;color:var(--j2-muted,#6B665E)}
+#contact-info .ci-week{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0;padding:0;list-style:none}
+#contact-info .ci-week li{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;font-size:.75rem;font-weight:600;color:var(--j2-primary,#1F2F6B);background:var(--j2-bg,#FAF7F2);border:1px solid var(--j2-line,#E8E1D6)}
+#contact-info .ci-week li.off{color:var(--j2-muted,#6B665E);background:transparent;border-style:dashed}
+#contact-info .ci-link{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin-top:auto;font-size:.9375rem;font-weight:500;color:var(--j2-primary,#1F2F6B);text-decoration:underline;text-decoration-color:transparent;text-underline-offset:4px;transition:text-decoration-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#contact-info .ci-link:hover{text-decoration-color:currentColor}
+#contact-info a:focus-visible{outline:2px solid var(--j2-primary,#1F2F6B);outline-offset:3px}
+@media (min-width:768px){#contact-info .ci-card{padding:32px}#contact-info .ci-grid{gap:32px}}
+@media (prefers-reduced-motion:reduce){#contact-info .ci-card,#contact-info .ci-link{transition:none}}
+</style>
+<div class="ci-wrap">
+  <header class="ci-head">
+    <p class="ci-eyebrow">Contact</p>
+    <h2 class="ci-title" id="ci-title">Visit the studio</h2>
+    <p class="ci-lead">Drop in to see materials and talk through your space, or message us first so we are ready for you.</p>
+  </header>
+
+  <div class="ci-map" aria-hidden="true">
+    <svg viewBox="0 0 640 200" preserveAspectRatio="xMidYMid slice" focusable="false">
+      <rect class="m-ground" width="640" height="200"/>
+      <rect class="m-block" x="24" y="20" width="120" height="58" rx="4"/>
+      <rect class="m-block" x="164" y="20" width="90" height="58" rx="4"/>
+      <rect class="m-block" x="380" y="20" width="110" height="58" rx="4"/>
+      <rect class="m-block" x="510" y="20" width="106" height="58" rx="4"/>
+      <rect class="m-block" x="24" y="132" width="150" height="50" rx="4"/>
+      <rect class="m-block" x="196" y="132" width="96" height="50" rx="4"/>
+      <rect class="m-block" x="440" y="132" width="176" height="50" rx="4"/>
+      <ellipse class="m-green" cx="366" cy="158" rx="54" ry="24"/>
+      <path class="m-edge" d="M-10 105H650"/>
+      <path class="m-road" d="M-10 105H650"/>
+      <path class="m-dash" d="M0 105H640"/>
+      <path class="m-edge" d="M318 -10V105"/>
+      <path class="m-road" d="M318 -10V105"/>
+      <circle class="m-halo" cx="318" cy="78" r="30"/>
+      <path class="m-pin" d="M318 92s-16-15-16-27a16 16 0 0 1 32 0c0 12-16 27-16 27z"/>
+      <circle class="m-pin-dot" cx="318" cy="65" r="5.5"/>
+    </svg>
+  </div>
+
+  <ul class="ci-grid">
+    <li class="ci-card j2-card j2-hover">
+      <span class="ci-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>
+      <h3 class="ci-label">Address</h3>
+      <address class="ci-value">12, 100 Feet Road, Indiranagar<span class="ci-sub">Bengaluru</span></address>
+      <a class="ci-link" href="https://www.google.com/maps/search/?api=1&amp;query=12%2C%20100%20Feet%20Road%2C%20Indiranagar%2C%20Bengaluru" target="_blank" rel="noopener">Get directions <span aria-hidden="true">→</span></a>
+    </li>
+    <li class="ci-card j2-card j2-hover">
+      <span class="ci-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+      <h3 class="ci-label">Open</h3>
+      <p class="ci-value">Mon-Sat 10am to 7pm</p>
+      <ul class="ci-week" aria-hidden="true">
+        <li>M</li><li>T</li><li>W</li><li>T</li><li>F</li><li>S</li><li class="off">S</li>
+      </ul>
+      <p class="ci-note">Your first consultation at the studio is free.</p>
+    </li>
+    <li class="ci-card j2-card j2-hover">
+      <span class="ci-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.8z"/><path d="M9.5 9.5c.3 1.8 2.2 3.8 4 4.2"/></svg></span>
+      <h3 class="ci-label">WhatsApp</h3>
+      <p class="ci-value">+91 98860 55443</p>
+      <p class="ci-note">Send a message to ask a question or plan a visit.</p>
+      <a class="ci-link" href="https://wa.me/919886055443" target="_blank" rel="noopener" aria-label="Message Neel Studio on WhatsApp at +91 98860 55443">Message us <span aria-hidden="true">→</span></a>
+    </li>
+  </ul>
+</div>
+</section>
+<!-- J2:W-12 end -->
+<!-- J2:W-13 start (owner W-18) -->
+<section data-j2-section="W-13" id="contact-form" class="j2-reveal" aria-labelledby="cf-title">
+<style>
+#contact-form{position:relative;background:linear-gradient(180deg,var(--j2-bg,#FAF7F2) 0%,var(--j2-surface,#FFFFFF) 100%);color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif);padding:var(--j2-section,96px) 0;scroll-margin-top:72px;overflow-x:clip}
+#contact-form .cf-wrap{position:relative;width:100%;max-width:1100px;margin:0 auto;padding:0 24px}
+#contact-form .cf-glow{position:absolute;left:-90px;bottom:40px;width:300px;max-width:60%;height:300px;border-radius:50%;background:radial-gradient(circle,var(--j2-surface,#FFFFFF) 0%,var(--j2-bg,#FAF7F2) 70%);pointer-events:none}
+#contact-form .cf-head{width:100%;max-width:760px;margin:0 auto 48px;text-align:center}
+#contact-form .cf-eyebrow{margin:0 0 12px;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#contact-form .cf-title{margin:0 0 16px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.75rem,5vw,2.75rem);font-weight:500;line-height:1.15;letter-spacing:-.015em;color:var(--j2-text,#2B2A28)}
+#contact-form .cf-lead{margin:0 auto;max-width:62ch;font-size:clamp(1.125rem,2.4vw,1.3125rem);line-height:1.6;color:var(--j2-muted,#6B665E)}
+#contact-form .cf-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;width:100%}
+#contact-form .cf-card{width:100%;background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);padding:24px;transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#contact-form .cf-card:hover{border-color:var(--j2-primary,#1F2F6B)}
+#contact-form .cf-form{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;width:100%;margin:0}
+#contact-form .cf-field{display:flex;flex-direction:column;gap:8px;width:100%}
+#contact-form .cf-field label{font-size:.9375rem;font-weight:600;line-height:1.4;color:var(--j2-text,#2B2A28)}
+#contact-form .cf-opt{font-weight:400;color:var(--j2-muted,#6B665E)}
+#contact-form .cf-field input,#contact-form .cf-field textarea{width:100%;max-width:100%;min-height:48px;padding:12px 14px;font:inherit;font-size:1rem;line-height:1.5;color:var(--j2-text,#2B2A28);background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#contact-form .cf-field textarea{min-height:128px;resize:vertical}
+#contact-form .cf-field input:focus,#contact-form .cf-field textarea:focus{outline:2px solid var(--j2-primary,#1F2F6B);outline-offset:1px;border-color:var(--j2-primary,#1F2F6B)}
+#contact-form .cf-field [aria-invalid="true"]{border-color:var(--j2-accent,#8A5A2E)}
+#contact-form .cf-hint{margin:0;font-size:.875rem;line-height:1.5;color:var(--j2-muted,#6B665E)}
+#contact-form .cf-error{margin:0;font-size:.875rem;line-height:1.5;font-weight:500;color:var(--j2-accent,#8A5A2E)}
+#contact-form .cf-error:empty{display:none}
+#contact-form .cf-actions{display:flex;flex-wrap:wrap;align-items:center;gap:16px;width:100%}
+#contact-form .cf-actions .j2-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;cursor:pointer}
+#contact-form .cf-actions svg,#contact-form .cf-direct svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#contact-form .cf-note{margin:0;font-size:.875rem;line-height:1.5;color:var(--j2-muted,#6B665E)}
+#contact-form .cf-result{width:100%;font-size:1rem;line-height:1.6}
+#contact-form .cf-result:empty{display:none}
+#contact-form .cf-result p{margin:0 0 12px}
+#contact-form .cf-result .cf-pending{margin:0;color:var(--j2-muted,#6B665E)}
+#contact-form .cf-result .cf-ok{padding:16px;border:1px solid var(--j2-primary,#1F2F6B);border-radius:var(--j2-radius,4px);background:var(--j2-bg,#FAF7F2)}
+#contact-form .cf-result .cf-bad{margin:0;font-weight:500;color:var(--j2-accent,#8A5A2E)}
+#contact-form .cf-result a{display:inline-flex;align-items:center;justify-content:center;min-height:48px;max-width:100%;text-align:center;text-decoration:none}
+#contact-form .cf-aside{display:flex;flex-direction:column;gap:24px}
+#contact-form .cf-art{display:block;width:100%;max-width:220px;height:auto;margin:0 auto}
+#contact-form .cf-art .a1{fill:var(--j2-bg,#FAF7F2)}
+#contact-form .cf-art .a2{fill:var(--j2-accent,#8A5A2E);fill-opacity:.16}
+#contact-form .cf-art .a3{fill:none;stroke:var(--j2-primary,#1F2F6B);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#contact-form .cf-art .a4{fill:var(--j2-surface,#FFFFFF);stroke:var(--j2-primary,#1F2F6B);stroke-width:1.6}
+#contact-form .cf-art .a5{fill:var(--j2-accent,#8A5A2E)}
+#contact-form .cf-aside h3{margin:0 0 8px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.3;color:var(--j2-text,#2B2A28)}
+#contact-form .cf-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px}
+#contact-form .cf-steps li{display:flex;gap:14px;align-items:flex-start}
+#contact-form .cf-num{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border-radius:50%;border:1px solid var(--j2-line,#E8E1D6);background:var(--j2-bg,#FAF7F2);font-size:.875rem;font-weight:600;color:var(--j2-primary,#1F2F6B)}
+#contact-form .cf-steps p{margin:4px 0 0;font-size:1rem;line-height:1.55;color:var(--j2-text,#2B2A28)}
+#contact-form .cf-rule{height:1px;width:100%;background:var(--j2-line,#E8E1D6);border:0;margin:0}
+#contact-form .cf-direct p{margin:0 0 12px;font-size:1rem;line-height:1.55;color:var(--j2-muted,#6B665E)}
+#contact-form .cf-direct a{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;text-decoration:none}
+#contact-form .cf-free{margin:0;font-size:.875rem;line-height:1.5;color:var(--j2-muted,#6B665E)}
+#contact-form a:focus-visible,#contact-form button:focus-visible{outline:2px solid var(--j2-primary,#1F2F6B);outline-offset:3px}
+@media (min-width:600px){
+#contact-form .cf-card{padding:32px}
+#contact-form .cf-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+#contact-form .cf-wide{grid-column:1/-1}
+#contact-form .cf-actions .j2-btn{width:auto}
+}
+@media (min-width:900px){
+#contact-form .cf-grid{grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:32px;align-items:start}
+}
+@media (prefers-reduced-motion:reduce){#contact-form .cf-card,#contact-form .cf-field input,#contact-form .cf-field textarea{transition:none}}
+</style>
+<div class="cf-glow" aria-hidden="true"></div>
+<div class="cf-wrap">
+  <header class="cf-head">
+    <p class="cf-eyebrow">Book a consultation</p>
+    <h2 class="cf-title" id="cf-title">Tell us about your space</h2>
+    <p class="cf-lead">Share a few details and your request opens in WhatsApp, ready to send. Your first consultation is free.</p>
+  </header>
+
+  <div class="cf-grid">
+    <div class="cf-card j2-card j2-hover">
+      <form id="cf-form" class="cf-form cf-has-fallback" action="https://wa.me/919886055443" method="get" target="_blank" novalidate>
+        <div class="cf-field">
+          <label for="cf-name">Name</label>
+          <input id="cf-name" name="name" type="text" autocomplete="name" maxlength="80" aria-required="true" aria-describedby="cf-name-error">
+          <p class="cf-error" id="cf-name-error"></p>
+        </div>
+        <div class="cf-field">
+          <label for="cf-phone">Phone</label>
+          <input id="cf-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" aria-required="true" aria-describedby="cf-phone-hint cf-phone-error">
+          <p class="cf-hint" id="cf-phone-hint">A 10-digit mobile number.</p>
+          <p class="cf-error" id="cf-phone-error"></p>
+        </div>
+        <div class="cf-field">
+          <label for="cf-project">Project type</label>
+          <input id="cf-project" name="project" type="text" list="cf-project-list" maxlength="60" aria-required="true" aria-describedby="cf-project-error" placeholder="e.g. Kitchen">
+          <datalist id="cf-project-list">
+            <option value="Full home"></option>
+            <option value="Single room"></option>
+            <option value="Kitchen"></option>
+            <option value="Commercial"></option>
+            <option value="Other"></option>
+          </datalist>
+          <p class="cf-error" id="cf-project-error"></p>
+        </div>
+        <div class="cf-field">
+          <label for="cf-budget">Budget range <span class="cf-opt">(optional)</span></label>
+          <input id="cf-budget" name="budget" type="text" list="cf-budget-list" maxlength="60">
+          <datalist id="cf-budget-list">
+            <option value="Around Rs 60,000"></option>
+            <option value="Around Rs 1,20,000"></option>
+            <option value="Rs 2,50,000 onwards"></option>
+            <option value="Not sure yet"></option>
+          </datalist>
+        </div>
+        <div class="cf-field cf-wide">
+          <label for="cf-message">Message <span class="cf-opt">(optional)</span></label>
+          <textarea id="cf-message" name="message" rows="4" maxlength="1000" placeholder="The rooms, the timing, anything you'd like us to know."></textarea>
+        </div>
+        <div class="cf-actions cf-wide">
+          <button type="submit" id="cf-submit" class="j2-btn j2-hover"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.8z"/><path d="M9.5 9.5c.3 1.8 2.2 3.8 4 4.2"/></svg>Send on WhatsApp</button>
+          <p class="cf-note">Nothing is sent until you press send in WhatsApp.</p>
+        </div>
+        <div id="cf-result" class="cf-result cf-wide" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+
+    <aside class="cf-aside cf-card j2-card j2-hover" aria-label="What happens next">
+      <svg class="cf-art" viewBox="0 0 220 140" aria-hidden="true" focusable="false">
+        <ellipse class="a2" cx="110" cy="128" rx="96" ry="9"/>
+        <rect class="a1" x="18" y="18" width="184" height="104" rx="6"/>
+        <path class="a3" d="M44 118V86a10 10 0 0 1 10-10h40a10 10 0 0 1 10 10v32M38 96h72M48 118v6M100 118v6"/>
+        <path class="a3" d="M150 118V70M138 70h24l-4-22h-16z"/>
+        <path class="a4" d="M126 22h68a8 8 0 0 1 8 8v24a8 8 0 0 1-8 8h-48l-12 10v-10h-8a8 8 0 0 1-8-8V30a8 8 0 0 1 8-8z"/>
+        <circle class="a5" cx="146" cy="42" r="3"/><circle class="a5" cx="160" cy="42" r="3"/><circle class="a5" cx="174" cy="42" r="3"/>
+      </svg>
+      <div>
+        <h3>What happens next</h3>
+        <ol class="cf-steps">
+          <li><span class="cf-num">1</span><p>WhatsApp opens with your details already written out.</p></li>
+          <li><span class="cf-num">2</span><p>You check the message and press send.</p></li>
+          <li><span class="cf-num">3</span><p>We reply to set a time for your free first consultation.</p></li>
+        </ol>
+      </div>
+      <hr class="cf-rule">
+      <div class="cf-direct">
+        <p>Or message us directly on WhatsApp: +91 98860 55443</p>
+        <a class="j2-btn-secondary j2-hover" href="https://wa.me/919886055443" target="_blank" rel="noopener" aria-label="Message Neel Studio on WhatsApp at +91 98860 55443"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.8z"/><path d="M9.5 9.5c.3 1.8 2.2 3.8 4 4.2"/></svg>WhatsApp us</a>
+      </div>
+      <p class="cf-free">Consultation Rs 3,000 (free for the first visit)</p>
+    </aside>
+  </div>
+</div>
+<script>
+(function () {
+  var form = document.getElementById('cf-form');
+  var result = document.getElementById('cf-result');
+  if (!form || !result) return;
+  var WA_BASE = 'https://wa.me/919886055443?text=';
+  var FIELDS = ['cf-name', 'cf-phone', 'cf-project'];
+  var timer = null;
+  function val(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+  function phoneOk(raw) {
+    var d = raw.replace(/[\s\-()]/g, '');
+    if (d.indexOf('+91') === 0) d = d.slice(3);
+    else if (d.length === 12 && d.indexOf('91') === 0) d = d.slice(2);
+    else if (d.length === 11 && d.charAt(0) === '0') d = d.slice(1);
+    return /^[6-9]\d{9}$/.test(d);
+  }
+  function show(node) { result.textContent = ''; result.appendChild(node); }
+  function clearErrors() {
+    FIELDS.forEach(function (id) {
+      var el = document.getElementById(id), err = document.getElementById(id + '-error');
+      if (el) el.removeAttribute('aria-invalid');
+      if (err) err.textContent = '';
+    });
+  }
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (timer) { clearTimeout(timer); timer = null; }
+    clearErrors();
+    var name = val('cf-name'), phone = val('cf-phone'), project = val('cf-project');
+    var budget = val('cf-budget'), message = val('cf-message');
+    var errors = [];
+    if (name.length < 2) errors.push(['cf-name', 'Please enter your name.']);
+    if (!phoneOk(phone)) errors.push(['cf-phone', 'Please enter a 10-digit mobile number.']);
+    if (project.length < 2) errors.push(['cf-project', 'Please tell us the project type.']);
+    if (errors.length) {
+      errors.forEach(function (pair) {
+        var el = document.getElementById(pair[0]), err = document.getElementById(pair[0] + '-error');
+        if (el) el.setAttribute('aria-invalid', 'true');
+        if (err) err.textContent = pair[1];
+      });
+      var bad = document.createElement('p');
+      bad.className = 'cf-bad';
+      bad.textContent = 'Please check the highlighted fields.';
+      show(bad);
+      var first = document.getElementById(errors[0][0]);
+      if (first) first.focus();
+      return;
+    }
+    var text = [
+      'Hello Neel Studio, I would like to book a consultation.',
+      'Name: ' + name, 'Phone: ' + phone, 'Project type: ' + project,
+      'Budget range: ' + (budget || 'Not specified'), 'Message: ' + (message || 'No message')
+    ].join('\n');
+    var url = WA_BASE + encodeURIComponent(text);
+    var pending = document.createElement('p');
+    pending.className = 'cf-pending';
+    pending.textContent = 'Preparing your message for WhatsApp...';
+    show(pending);
+    try { window.open(url, '_blank', 'noopener'); } catch (err) { /* the link below still works */ }
+    timer = setTimeout(function () {
+      timer = null;
+      var box = document.createElement('div');
+      box.className = 'cf-ok';
+      var p = document.createElement('p');
+      p.textContent = 'Thank you, ' + name + '. Your message to Neel Studio is ready in WhatsApp. If it did not open, tap the link below.';
+      var a = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.rel = 'noopener';
+      a.className = 'j2-btn-secondary j2-hover';
+      a.textContent = 'Open WhatsApp to +91 98860 55443';
+      box.appendChild(p); box.appendChild(a);
+      show(box);
+    }, 350);
+  });
+})();
+</script>
+</section>
+<!-- J2:W-13 end -->
+<!-- J2:W-16 start (owner W-21) -->
+<section data-j2-section="W-16" id="testimonials" class="j2-reveal" aria-labelledby="testimonials-title">
+<style>
+#testimonials{position:relative;overflow:hidden;width:100%;padding:var(--j2-section,96px) 0;background:var(--j2-surface,#FFFFFF);color:var(--j2-text,#2B2A28);font-family:var(--j2-font-body,system-ui,-apple-system,'Segoe UI',sans-serif)}
+#testimonials *{box-sizing:border-box;min-width:0;max-width:100%}
+#testimonials .ts-shape{position:absolute;top:-60px;right:-80px;width:min(420px,80vw);height:auto;pointer-events:none}
+#testimonials .ts-shape-a{fill:var(--j2-primary,#1F2F6B);fill-opacity:.05}
+#testimonials .ts-shape-b{fill:var(--j2-accent,#8A5A2E);fill-opacity:.07}
+#testimonials .ts-wrap{position:relative;width:100%;max-width:1100px;margin:0 auto;padding:0 24px}
+#testimonials .ts-head{width:100%;max-width:760px;margin:0 auto 48px;text-align:center}
+#testimonials .ts-eyebrow{margin:0 0 12px;font-size:.8125rem;font-weight:600;line-height:1.4;letter-spacing:.14em;text-transform:uppercase;color:var(--j2-accent,#8A5A2E)}
+#testimonials .ts-title{margin:0 0 16px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.75rem,5vw,2.75rem);font-weight:500;line-height:1.15;letter-spacing:-.015em;color:var(--j2-text,#2B2A28)}
+#testimonials .ts-lead{max-width:62ch;margin:0 auto;font-size:clamp(1.125rem,2.4vw,1.3125rem);line-height:1.6;color:var(--j2-muted,#6B665E)}
+#testimonials .ts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:24px;width:100%;margin:0;padding:0;list-style:none}
+#testimonials .testimonial-slot{position:relative;display:flex;flex-direction:column;gap:20px;width:100%;padding:24px;background:var(--j2-surface,#FFFFFF);border:1px solid var(--j2-line,#E8E1D6);border-radius:var(--j2-radius,4px);transition:border-color var(--j2-duration,400ms) var(--j2-ease,ease-out)}
+#testimonials .testimonial-slot::before{content:"";position:absolute;top:-1px;left:24px;width:48px;height:2px;background:var(--j2-accent,#8A5A2E)}
+#testimonials .testimonial-slot:hover{border-color:var(--j2-primary,#1F2F6B)}
+#testimonials .ts-art{display:block;width:100%;height:auto;border-radius:var(--j2-radius,4px);background:linear-gradient(160deg,var(--j2-bg,#FAF7F2),var(--j2-surface,#FFFFFF))}
+#testimonials .ts-disc{fill:var(--j2-primary,#1F2F6B);fill-opacity:.06}
+#testimonials .ts-warm{fill:var(--j2-accent,#8A5A2E);fill-opacity:.14}
+#testimonials .ts-q{fill:var(--j2-accent,#8A5A2E);fill-opacity:.9}
+#testimonials .ts-draw{fill:none;stroke:var(--j2-primary,#1F2F6B);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:.75}
+#testimonials .ts-floor{fill:none;stroke:var(--j2-accent,#8A5A2E);stroke-width:1.2;stroke-linecap:round;stroke-opacity:.45}
+#testimonials .ts-body{display:flex;flex-direction:column;gap:8px;width:100%}
+#testimonials .ts-placeholder{margin:0;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-style:italic;font-weight:500;line-height:1.35;color:var(--j2-text,#2B2A28)}
+#testimonials .ts-note{margin:0;font-size:.875rem;line-height:1.5;color:var(--j2-muted,#6B665E)}
+#testimonials .ts-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;width:100%;margin-top:48px;padding-top:40px;border-top:1px solid var(--j2-line,#E8E1D6)}
+#testimonials .ts-foot-text{flex:1 1 320px;width:100%}
+#testimonials .ts-foot-title{margin:0 0 8px;font-family:var(--j2-font-heading,'Avenir Next','Helvetica Neue',Arial,sans-serif);font-size:clamp(1.125rem,2.6vw,1.375rem);font-weight:600;line-height:1.3;color:var(--j2-text,#2B2A28)}
+#testimonials .ts-foot-body{max-width:62ch;margin:0;font-size:1.0625rem;line-height:1.65;color:var(--j2-muted,#6B665E)}
+#testimonials .ts-actions{display:flex;flex-wrap:wrap;gap:12px;width:100%}
+#testimonials .ts-actions a{display:inline-flex;align-items:center;justify-content:center;flex:1 1 220px;min-height:48px;text-align:center;text-decoration:none}
+#testimonials a:focus-visible{outline:2px solid var(--j2-primary,#1F2F6B);outline-offset:3px}
+@media (min-width:768px){
+#testimonials .ts-grid{gap:32px}
+#testimonials .testimonial-slot{padding:32px}
+#testimonials .testimonial-slot::before{left:32px}
+#testimonials .ts-actions{width:auto;flex:0 0 auto}
+#testimonials .ts-actions a{flex:0 0 auto}
+}
+@media (prefers-reduced-motion:reduce){#testimonials .testimonial-slot{transition:none}}
+</style>
+<svg class="ts-shape" viewBox="0 0 420 420" aria-hidden="true" focusable="false">
+  <circle class="ts-shape-a" cx="250" cy="170" r="170"/>
+  <circle class="ts-shape-b" cx="150" cy="260" r="110"/>
+</svg>
+<div class="ts-wrap">
+  <div class="ts-head">
+    <p class="ts-eyebrow">Client stories</p>
+    <h2 class="ts-title" id="testimonials-title">What our clients say</h2>
+    <p class="ts-lead">Real quotes from Neel Studio clients will appear here soon, in their own words.</p>
+  </div>
+
+  <ul class="ts-grid">
+    <li class="testimonial-slot ts-designed-empty j2-hover">
+      <svg class="ts-art" viewBox="0 0 240 140" aria-hidden="true" focusable="false">
+        <circle class="ts-disc" cx="62" cy="64" r="44"/>
+        <circle class="ts-warm" cx="184" cy="96" r="30"/>
+        <path class="ts-q" d="M38 62c0-15 9-26 23-29l3 8c-8 3-12 9-12 15h11v21H38zM70 62c0-15 9-26 23-29l3 8c-8 3-12 9-12 15h11v21H70z"/>
+        <path class="ts-draw" d="M158 106V84a9 9 0 0 1 9-9h34a9 9 0 0 1 9 9v22"/>
+        <path class="ts-draw" d="M150 92h68v16h-68z"/>
+        <path class="ts-draw" d="M156 108v8M212 108v8"/>
+        <path class="ts-floor" d="M134 118h92"/>
+      </svg>
+      <div class="ts-body">
+        <p class="ts-placeholder">Client quote coming soon</p>
+        <p class="ts-note">Kept free for a client to share their own words.</p>
+      </div>
+    </li>
+    <li class="testimonial-slot ts-designed-empty j2-hover">
+      <svg class="ts-art" viewBox="0 0 240 140" aria-hidden="true" focusable="false">
+        <circle class="ts-disc" cx="62" cy="64" r="44"/>
+        <circle class="ts-warm" cx="182" cy="74" r="30"/>
+        <path class="ts-q" d="M38 62c0-15 9-26 23-29l3 8c-8 3-12 9-12 15h11v21H38zM70 62c0-15 9-26 23-29l3 8c-8 3-12 9-12 15h11v21H70z"/>
+        <path class="ts-draw" d="M182 16v32"/>
+        <path class="ts-draw" d="M164 70l6-22h24l6 22z"/>
+        <path class="ts-draw" d="M176 76a6 6 0 0 0 12 0"/>
+        <path class="ts-draw" d="M162 116h40M182 116V98"/>
+        <path class="ts-floor" d="M134 118h92"/>
+      </svg>
+      <div class="ts-body">
+        <p class="ts-placeholder">Client quote coming soon</p>
+        <p class="ts-note">Kept free for a client to share their own words.</p>
+      </div>
+    </li>
+    <li class="testimonial-slot ts-designed-empty j2-hover">
+      <svg class="ts-art" viewBox="0 0 240 140" aria-hidden="true" focusable="false">
+        <circle class="ts-disc" cx="62" cy="64" r="44"/>
+        <circle class="ts-warm" cx="180" cy="80" r="30"/>
+        <path class="ts-q" d="M38 62c0-15 9-26 23-29l3 8c-8 3-12 9-12 15h11v21H38zM70 62c0-15 9-26 23-29l3 8c-8 3-12 9-12 15h11v21H70z"/>
+        <path class="ts-draw" d="M168 116h24l-4-24h-16z"/>
+        <path class="ts-draw" d="M180 92V60"/>
+        <path class="ts-draw" d="M180 90c-2-14-11-22-22-24 1 12 9 21 22 24z"/>
+        <path class="ts-draw" d="M180 80c2-14 11-24 24-26-1 13-10 23-24 26z"/>
+        <path class="ts-floor" d="M134 118h92"/>
+      </svg>
+      <div class="ts-body">
+        <p class="ts-placeholder">Client quote coming soon</p>
+        <p class="ts-note">Kept free for a client to share their own words.</p>
+      </div>
+    </li>
+  </ul>
+
+  <div class="ts-foot">
+    <div class="ts-foot-text">
+      <p class="ts-foot-title">Until then, see the work</p>
+      <p class="ts-foot-body">Browse our homes, kitchens and commercial spaces, or start with a consultation. Your first visit is free.</p>
+    </div>
+    <div class="ts-actions">
+      <a class="j2-btn-secondary j2-hover" href="#portfolio">See our work</a>
+      <a class="j2-btn j2-hover" href="#contact-form">Book a free consultation</a>
+    </div>
+  </div>
+</div>
+</section>
+<!-- J2:W-16 end -->
+<!-- J2:W-23 start (owner W-23) -->
+<section data-j2-section="W-23" data-j2-wait="1" aria-label="Add site footer: coming up"><p class="j2-wait-name">Add site footer</p><p class="j2-wait-note">Coming up</p><i></i><i></i><i></i></section>
+<!-- J2:W-23 end -->
+</body>
+</html>

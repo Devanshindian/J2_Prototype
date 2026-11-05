@@ -324,10 +324,22 @@ export function createOutput({ el, onTag }) {
   function find(sel) {
     return mode === "site" ? frame?.contentDocument?.querySelector(sel) : docEl?.querySelector(sel);
   }
+  /** How much of the frame's top a sticky or fixed header covers (so a section lands below it, not under it). */
+  function coveredTop() {
+    if (mode !== "site" || !frame) return 0;
+    const win = frame.contentWindow;
+    let y = 0;
+    for (const x of frame.contentDocument.querySelectorAll("[data-j2-section], body > header, body > nav")) {
+      if (!/fixed|sticky/.test(win.getComputedStyle(x).position)) continue;
+      const r = x.getBoundingClientRect();
+      if (r.top <= 4 && r.height < win.innerHeight / 3) y = Math.max(y, r.bottom);
+    }
+    return y;
+  }
   function scrollToNode(n, smooth = true) {
     const sc = scroller();
     if (!n || !sc) return false;
-    const top = n.getBoundingClientRect().top - (mode === "site" ? 0 : el.getBoundingClientRect().top) + (mode === "site" ? sc.scrollY : el.scrollTop) - 20;
+    const top = n.getBoundingClientRect().top - (mode === "site" ? 0 : el.getBoundingClientRect().top) + (mode === "site" ? sc.scrollY : el.scrollTop) - 20 - coveredTop();
     sc.scrollTo({ top: Math.max(0, top), behavior: smooth && !matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "instant" });
     return true;
   }
