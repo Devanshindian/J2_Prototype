@@ -256,19 +256,33 @@ function currentKind(s) {
   return (ds.find((d) => d.state === "working" || d.state === "draft") || [...ds].reverse().find((d) => d.state !== "todo") || ds[ds.length - 1])?.kind || "";
 }
 
-/** Fetches the live output when something that changes it moved (a part's state, a new version), or every few s. */
+/** The kind to ask /api/v2/live for: the person's pick when the run makes several deliverables, else "" (current). */
+function wantKind(s) {
+  return chosenKind && (s.deliverables || []).length > 1 ? chosenKind : "";
+}
+
+/** Fetches the live output when something that changes it moved (a part's state, a new version), or every few s.
+ * One fetch at a time: a refresh asked for meanwhile runs right after it, and an answer that a newer pick (a tab, a
+ * plan line in another document) or a new run made stale is dropped. */
+let liveAgain = false;
 async function refreshLive(force = false) {
   const s = store.s;
   const m = store.map;
   const kind = currentKind(s);
   const sig = [kind, s.status, (m.buildings || []).map((b) => `${b.id}:${b.state}`).join(","), (s.deliverables || []).map((d) => `${d.kind}${d.state}${d.version || 0}`).join(",")].join("|");
-  if (liveBusy || (!force && sig === liveSig && Date.now() - liveAt < (s.status === "working" ? 4000 : 30000))) return;
+  if (liveBusy) {
+    if (force || sig !== liveSig) liveAgain = true;
+    return;
+  }
+  if (!force && sig === liveSig && Date.now() - liveAt < (s.status === "working" ? 4000 : 30000)) return;
   liveBusy = true;
   liveSig = sig;
   liveAt = Date.now();
+  const want = wantKind(s);
+  const run = s.run?.id || "";
   try {
-    const l = await api.live(chosenKind && (s.deliverables || []).length > 1 ? chosenKind : "");
-    if (l) {
+    const l = await api.live(want);
+    if (l && want === wantKind(store.s) && run === (store.s.run?.id || "")) {
       live = l;
       render();
     }
@@ -276,6 +290,10 @@ async function refreshLive(force = false) {
     /* the next poll tries again */
   } finally {
     liveBusy = false;
+    if (liveAgain) {
+      liveAgain = false;
+      refreshLive(true);
+    }
   }
 }
 
@@ -615,6 +633,7 @@ nudge.addEventListener("click", () => output.scrollToInline());
 /* ---------- render ---------- */
 let lastDecision = null;
 let lastEnd = "";
+let runSeen = null;
 
 function render() {
   const s = store.s;
@@ -632,6 +651,17 @@ function render() {
     return;
   }
   if (!store.loaded) return;
+  const rid = s.run?.id || "";
+  if (runSeen !== null && rid !== runSeen) {
+    // another run now (started here or in another tab): nothing of the old one's output, pick or card carries over
+    live = null;
+    liveSig = "";
+    chosenKind = "";
+    qKey = "";
+    decidedKey = "";
+    pendingGo = null;
+  }
+  runSeen = rid;
 
   const parts = partsOf(s, store.map, live);
   const team = teamModel(s, store.map, parts);
