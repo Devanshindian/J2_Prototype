@@ -301,6 +301,9 @@ export function createOutput({ el, onTag }) {
       sec.querySelector(":scope > .st-mark")?.remove();
       sec.classList.remove("doing", "ask", "fix", "flash-keep");
       if (!m) continue;
+      // a placeholder says who is on it now, as on the site (a part waiting on the person is not "on it")
+      const note = sec.querySelector(":scope > .st-wait-note");
+      if (note && (m.state === "doing" || m.state === "ask")) note.textContent = m.state === "ask" ? "Waiting on your answer" : `${NAME[m.person]} is on it`;
       sec.classList.toggle("doing", m.state === "doing");
       sec.classList.toggle("ask", m.state === "ask");
       sec.classList.toggle("fix", m.state === "fix");
