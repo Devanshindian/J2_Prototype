@@ -188,6 +188,24 @@ ok(get(f"/api/v2/live?run={run_id}")["anchors"] == lv["anchors"], "the saved cop
 ok("data-j2-section" in raw(f"/api/v2/live/site?run={run_id}"), "the saved run's page has its anchors")
 ok(get("/api/v2/live?kind=prd")["kind"] == "website", "a kind the run doesn't make falls back to what it makes")
 
+
+class Racy(dict):
+    """The run's sections while a builder thread writes one mid-read (the dict is shared with the build threads)."""
+    def items(self):
+        it = iter(dict.items(self))
+        yield next(it)
+        self[f"W-race-{len(self)}"] = {"owner": "W-race", "head": "", "body": "<p>late</p>"}
+        yield from it
+
+
+keep = j2_server.RUN.sections
+j2_server.RUN.sections = Racy(keep)
+try:
+    snap, html_now = j2_v2.studio_live(j2_server.RUN)
+    ok(snap["kind"] == "website" and html_now, "live: a section written while the page is read never breaks /api/v2/live")
+finally:
+    j2_server.RUN.sections = keep
+
 # 4. a mock PRD run: blocks, each with the parts that wrote it
 post("/api/v2/new", {})
 post("/api/output", {"type": "prd"})

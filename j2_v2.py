@@ -1540,7 +1540,8 @@ def studio_live(run, kind=None):
     title = (run.goal or {}).get("site_name") or (run.goal or {}).get("product_name") or \
         (j2.short(run.request, 6) if run.request else "")
     if kind == cur:
-        wfs, sections = list(run.workflows), run.sections or {}
+        # copies: the build threads write sections and register parts while the page is read
+        wfs, sections = list(run.workflows), dict(run.sections or {})
         doc_md = run.sites[-1] if kind in DOC_KINDS and run.doc and run.sites else None
     elif kind in run.docs:
         ids = set(run.docs[kind].get("workflows") or [])
